@@ -1,0 +1,66 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="520" height="200" viewBox="0 0 520 200" role="img" aria-label="Insel verstecken mit dem Pfeil und oben in der Mitte über den Streifen zurückholen">
+  <defs>
+    <linearGradient id="wall" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#1d3557"/><stop offset=".55" stop-color="#4a3466"/><stop offset="1" stop-color="#8a5a3c"/></linearGradient>
+    <linearGradient id="cov" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ff9f0a"/><stop offset="1" stop-color="#ff375f"/></linearGradient>
+    <clipPath id="screen"><rect width="520" height="200" rx="16"/></clipPath>
+    <filter id="sh" x="-50%" y="-50%" width="200%" height="200%"><feDropShadow dx="0" dy="1" stdDeviation="1" flood-opacity=".5"/></filter>
+  </defs>
+  <rect width="520" height="200" rx="16" fill="url(#wall)"/>
+  <g clip-path="url(#screen)">
+    <!-- island: open → shrinks → gone … strip → springs open again -->
+    <rect y="14" fill="#000" x="70" width="380" height="128" rx="26">
+      <animate attributeName="x" dur="8s" repeatCount="indefinite" calcMode="spline"
+        keyTimes="0;.1625;.2125;.625;.6375;.69;.7125;1" values="70;70;172;172;172;64;70;70"
+        keySplines="0 0 1 1;.4 0 .2 1;0 0 1 1;0 0 1 1;.3 0 .3 1;.4 0 .6 1;0 0 1 1"/>
+      <animate attributeName="width" dur="8s" repeatCount="indefinite" calcMode="spline"
+        keyTimes="0;.1625;.2125;.625;.6375;.69;.7125;1" values="380;380;176;176;176;392;380;380"
+        keySplines="0 0 1 1;.4 0 .2 1;0 0 1 1;0 0 1 1;.3 0 .3 1;.4 0 .6 1;0 0 1 1"/>
+      <animate attributeName="height" dur="8s" repeatCount="indefinite" calcMode="spline"
+        keyTimes="0;.1625;.2125;.625;.6375;.69;.7125;1" values="128;128;32;32;32;134;128;128"
+        keySplines="0 0 1 1;.4 0 .2 1;0 0 1 1;0 0 1 1;.3 0 .3 1;.4 0 .6 1;0 0 1 1"/>
+      <animate attributeName="rx" dur="8s" repeatCount="indefinite"
+        keyTimes="0;.1625;.2125;.625;.6375;.69;1" values="26;26;16;16;16;26;26"/>
+      <animate attributeName="opacity" dur="8s" repeatCount="indefinite"
+        keyTimes="0;.2125;.25;.625;.6375;1" values="1;1;0;0;1;1"/>
+    </rect>
+    <!-- open content -->
+    <g font-family="Segoe UI, SF Pro Text, sans-serif">
+      <animate attributeName="opacity" dur="8s" repeatCount="indefinite" keyTimes="0;.15;.175;.69;.74;1" values="1;1;0;0;1;1"/>
+      <text x="92" y="38" fill="#fff" font-size="13" font-weight="600">Musik</text>
+      <rect x="388" y="27" width="1" height="12" fill="#3a3a3c"/>
+      <circle cx="404" cy="33" r="5.6" fill="none" stroke="#8e8e93" stroke-width="2.6" stroke-dasharray="2.2 2.2"/>
+      <circle cx="404" cy="33" r="3.2" fill="none" stroke="#8e8e93" stroke-width="1.5"/>
+      <path d="M422 36.5 l6 -6 6 6" fill="none" stroke="#8e8e93" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <animate attributeName="stroke" dur="8s" repeatCount="indefinite" calcMode="discrete"
+          keyTimes="0;.11;.2;1" values="#8e8e93;#FFCC00;#8e8e93;#8e8e93"/>
+      </path>
+      <rect x="90" y="52" width="74" height="74" rx="12" fill="url(#cov)"/>
+      <text x="180" y="70" fill="#fff" font-size="14" font-weight="600">Nachtlicht</text>
+      <text x="180" y="86" fill="#98989d" font-size="11">Lena Ost · Spotify</text>
+      <rect x="180" y="97" width="250" height="4" rx="2" fill="#2c2c2e"/>
+      <rect x="180" y="97" width="96" height="4" rx="2" fill="#0a84ff"/>
+      <g fill="#fff"><path d="M266 110 l-9 6 9 6z M256 110 l-9 6 9 6z"/><rect x="294" y="109" width="4" height="14" rx="1"/><rect x="302" y="109" width="4" height="14" rx="1"/><path d="M334 110 l9 6 -9 6z M344 110 l9 6 -9 6z"/></g>
+    </g>
+    <!-- the thin strip that appears when the pointer comes to the top centre -->
+    <rect x="226" y="-3" width="68" height="8" rx="3" fill="#000" fill-opacity=".9" stroke="#fff" stroke-opacity=".35" stroke-width=".8" opacity="0">
+      <animate attributeName="opacity" dur="8s" repeatCount="indefinite" keyTimes="0;.525;.545;.6125;.625;1" values="0;0;1;1;0;0"/>
+    </rect>
+    <!-- click rings -->
+    <circle cx="428" cy="33" r="4" fill="none" stroke="#fff" stroke-width="2" opacity="0">
+      <animate attributeName="r" dur="8s" repeatCount="indefinite" keyTimes="0;.15;.151;.2;1" values="4;4;4;16;16"/>
+      <animate attributeName="opacity" dur="8s" repeatCount="indefinite" keyTimes="0;.15;.151;.2;1" values="0;0;.7;0;0"/>
+    </circle>
+    <circle cx="260" cy="4" r="4" fill="none" stroke="#fff" stroke-width="2" opacity="0">
+      <animate attributeName="r" dur="8s" repeatCount="indefinite" keyTimes="0;.6125;.6135;.66;1" values="4;4;4;16;16"/>
+      <animate attributeName="opacity" dur="8s" repeatCount="indefinite" keyTimes="0;.6125;.6135;.66;1" values="0;0;.7;0;0"/>
+    </circle>
+    <!-- pointer -->
+    <g>
+      <animateTransform attributeName="transform" type="translate" dur="8s" repeatCount="indefinite" calcMode="spline"
+        keyTimes="0;.0375;.125;.175;.3;.45;.55;.625;.8;1"
+        values="330 120;330 120;428 35;428 35;330 172;330 172;260 3;260 3;330 120;330 120"
+        keySplines="0 0 1 1;.45 0 .2 1;0 0 1 1;.45 0 .2 1;0 0 1 1;.45 0 .2 1;0 0 1 1;.45 0 .2 1;0 0 1 1"/>
+      <path d="M0 0V13.1L3.3 10.1L5.5 15.2L7.7 14.3L5.6 9.2H9.9Z" fill="#fff" stroke="#000" stroke-width=".9" stroke-linejoin="round" filter="url(#sh)"/>
+    </g>
+  </g>
+</svg>

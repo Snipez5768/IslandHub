@@ -4,6 +4,20 @@
 
 <p align="center"><a href="https://snipez5768.github.io/IslandHub/#feder"><img src="docs/img/island-open-v2.svg" alt="Die Insel öffnet sich zur Musik-Seite" width="100%"></a></p>
 
+## Verstecken und zurückholen
+
+<img src="docs/img/hide-v1.svg" width="100%" alt="Pfeil versteckt die Insel, oben in der Mitte holt der Streifen sie zurück">
+
+## Platz machen
+
+### Adressleiste
+
+<img src="docs/img/browser-v1.svg" width="100%" alt="Klick in die Adressleiste: die Insel fährt hoch, am oberen Rand kommt sie runter">
+
+### YouTube im Vollbild
+
+<img src="docs/img/video-v1.svg" width="100%" alt="Video im Vollbild: die Insel fährt hoch, am oberen Rand kommt sie runter">
+
 ## Animationen
 
 ### Nachricht
