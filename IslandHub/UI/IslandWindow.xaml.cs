@@ -45,7 +45,6 @@ public partial class IslandWindow : Window
     private readonly OutsideClickHook _outside = new();
     private ListCollectionView _clipView;
     private string _clipFilter = "All";
-    private Storyboard _eq;
     private bool _eqRunning, _seeking;
     private Point _dragStart;
     private ShelfItem _dragItem;
@@ -89,7 +88,6 @@ public partial class IslandWindow : Window
         PeekPanel.MouseLeave += (_, _) => PeekClose.Visibility = Visibility.Collapsed;
         DataContext = H;
         Icon = IconFactory.CreateWindowIcon();
-        _eq = (Storyboard)Resources["EqStoryboard"];
 
         _clipView = new ListCollectionView(H.Clipboard.Items) { Filter = ClipFilterPredicate, CustomSort = new ClipSorter() };
         ClipList.ItemsSource = _clipView;
@@ -249,8 +247,8 @@ public partial class IslandWindow : Window
         Bubble.MouseLeftButtonUp += (_, _) => BubbleClicked(Bubble);
         Bubble2.MouseEnter += (_, _) => StartHover();
         Bubble2.MouseLeftButtonUp += (_, _) => BubbleClicked(Bubble2);
-        foreach (var spin in new[] { BubbleRingSpin, Bubble2RingSpin, AgentSpin })
-            spin.BeginAnimation(RotateTransform.AngleProperty, new DoubleAnimation(0, 360, TimeSpan.FromSeconds(1)) { RepeatBehavior = RepeatBehavior.Forever });
+        // the bubble rings turn only when StyleRing asks for it; the agent spinner only while it is on screen
+        Calm.Loop(AgentSpinner, AgentSpin, RotateTransform.AngleProperty, new DoubleAnimation(0, 360, TimeSpan.FromSeconds(1)) { RepeatBehavior = RepeatBehavior.Forever });
         Island.SizeChanged += (_, _) => UpdateClip();
         Island.DragEnter += Island_DragEnter;
         Island.DragOver += Island_DragOver;
@@ -1786,8 +1784,7 @@ public partial class IslandWindow : Window
         }
 
         bool eqOn = playing && !game;
-        if (eqOn && !_eqRunning) { _eq.Begin(this, true); _eqRunning = true; }
-        else if (!eqOn && _eqRunning) { _eq.Stop(this); _eqRunning = false; }
+        if (eqOn != _eqRunning) { PageEq(eqOn); _eqRunning = eqOn; }
         if (eqOn) { if (!_barTimer.IsEnabled) _barTimer.Start(); }
         else StopBars();
 
@@ -1819,7 +1816,9 @@ public partial class IslandWindow : Window
     // ---------- bar chart in the closed island: follows the player's real loudness ----------
 
     private readonly AppVolume _meter = new();
-    private readonly DispatcherTimer _barTimer = new(DispatcherPriority.Render) { Interval = TimeSpan.FromMilliseconds(30) };
+    // 25 frames a second: every frame redraws the whole see-through window, and the bars are smoothed anyway
+    private readonly DispatcherTimer _barTimer = new(DispatcherPriority.Render) { Interval = TimeSpan.FromMilliseconds(40) };
+    private ScaleTransform[] _eqScales;
     private readonly double[] _bars = { 0.2, 0.2, 0.2, 0.2, 0.2 };
     private static readonly double[] BarGain = { 0.72, 1.0, 0.86, 0.95, 0.66 };
     private readonly Random _barRnd = new();
@@ -1841,7 +1840,7 @@ public partial class IslandWindow : Window
     private void BarTick()
     {
         if (_state != State.Collapsed || Equalizer.Visibility != Visibility.Visible) return;
-        var scalesNow = new[] { Eq1, Eq2, Eq3, Eq4, Eq5 };
+        var scalesNow = _eqScales ??= new[] { Eq1, Eq2, Eq3, Eq4, Eq5 };
         // real frequency bands: bass left … treble right
         if (!_spectrum.Running) _spectrum.Start();
         if (_spectrum.Running)
@@ -1875,12 +1874,26 @@ public partial class IslandWindow : Window
             catch { }
         }
         double level = Math.Pow(Math.Clamp(peak, 0, 1), 0.55);
-        var scales = new[] { Eq1, Eq2, Eq3, Eq4, Eq5 };
+        var scales = scalesNow;
         for (int i = 0; i < 5; i++)
         {
             double target = Math.Max(0.16, level * BarGain[i] * (0.55 + 0.45 * _barRnd.NextDouble()));
             _bars[i] += (target - _bars[i]) * (target > _bars[i] ? 0.6 : 0.22); // quick up, gentle down
             scales[i].ScaleY = Math.Clamp(_bars[i], 0.12, 1);
+        }
+    }
+
+    /// <summary>The small bars on the Musik page: they move only while that page is on screen.</summary>
+    private void PageEq(bool on)
+    {
+        var bars = new (UIElement Host, ScaleTransform Scale, double From, double To, int Ms)[]
+        {
+            (MEqBar1, MEq1, 0.3, 1, 420), (MEqBar2, MEq2, 0.95, 0.35, 350), (MEqBar3, MEq3, 0.45, 1, 500), (MEqBar4, MEq4, 1, 0.4, 380)
+        };
+        foreach (var (host, scale, from, to, ms) in bars)
+        {
+            if (on) Calm.Loop(host, scale, ScaleTransform.ScaleYProperty, new DoubleAnimation(from, to, TimeSpan.FromMilliseconds(ms)) { AutoReverse = true, RepeatBehavior = RepeatBehavior.Forever });
+            else Calm.Stop(host, scale, ScaleTransform.ScaleYProperty);
         }
     }
 
@@ -1987,12 +2000,12 @@ public partial class IslandWindow : Window
         bool spinning = Equals(ring.Tag, "spin");
         if (spin && !spinning)
         {
-            rt.BeginAnimation(RotateTransform.AngleProperty, new DoubleAnimation(0, 360, TimeSpan.FromSeconds(1)) { RepeatBehavior = RepeatBehavior.Forever });
+            Calm.Loop(ring, rt, RotateTransform.AngleProperty, new DoubleAnimation(0, 360, TimeSpan.FromSeconds(1)) { RepeatBehavior = RepeatBehavior.Forever });
             ring.Tag = "spin";
         }
         else if (!spin && spinning || !spin && ring.Tag == null)
         {
-            rt.BeginAnimation(RotateTransform.AngleProperty, null);
+            Calm.Stop(ring, rt, RotateTransform.AngleProperty);
             rt.Angle = 0;
             ring.Tag = "still";
         }
@@ -2092,9 +2105,9 @@ public partial class IslandWindow : Window
 
     private static void Pulse(UIElement e, bool on, double min = 0.4)
     {
-        if (!on) { e.BeginAnimation(OpacityProperty, null); e.Opacity = 1; return; }
-        if (e.HasAnimatedProperties) return; // already pulsing – the bubble is refilled every half second
-        e.BeginAnimation(OpacityProperty, new DoubleAnimation(1, min, TimeSpan.FromMilliseconds(650))
+        if (!on) { Calm.Stop(e, e, OpacityProperty); e.Opacity = 1; return; }
+        if (Calm.Running(e, e, OpacityProperty)) return; // already pulsing – the bubble is refilled every half second
+        Calm.Loop(e, e, OpacityProperty, new DoubleAnimation(1, min, TimeSpan.FromMilliseconds(650))
             { AutoReverse = true, RepeatBehavior = RepeatBehavior.Forever, EasingFunction = new SineEase { EasingMode = EasingMode.EaseInOut } });
     }
 
@@ -2108,9 +2121,9 @@ public partial class IslandWindow : Window
             e.RenderTransform = rt;
             e.RenderTransformOrigin = new Point(0.5, 0.5);
         }
-        bool spinning = rt.HasAnimatedProperties;
-        if (on && !spinning) rt.BeginAnimation(RotateTransform.AngleProperty, new DoubleAnimation(0, 360, TimeSpan.FromSeconds(3.2)) { RepeatBehavior = RepeatBehavior.Forever });
-        else if (!on && spinning) { rt.BeginAnimation(RotateTransform.AngleProperty, null); rt.Angle = 0; }
+        bool spinning = Calm.Running(e, rt, RotateTransform.AngleProperty);
+        if (on && !spinning) Calm.Loop(e, rt, RotateTransform.AngleProperty, new DoubleAnimation(0, 360, TimeSpan.FromSeconds(3.2)) { RepeatBehavior = RepeatBehavior.Forever });
+        else if (!on && spinning) { Calm.Stop(e, rt, RotateTransform.AngleProperty); rt.Angle = 0; }
     }
 
     private static string ShortRemaining(string t)
@@ -3107,7 +3120,7 @@ public partial class IslandWindow : Window
         if (indet && !_indetRunning)
         {
             AgentIndet.Visibility = Visibility.Visible;
-            AgentIndetShift.BeginAnimation(TranslateTransform.XProperty,
+            Calm.Loop(AgentIndet, AgentIndetShift, TranslateTransform.XProperty,
                 new DoubleAnimation(-80, track, TimeSpan.FromSeconds(1.3)) { RepeatBehavior = RepeatBehavior.Forever, EasingFunction = new SineEase { EasingMode = EasingMode.EaseInOut } });
             _indetRunning = true;
         }
@@ -3117,7 +3130,7 @@ public partial class IslandWindow : Window
     private void StopIndet()
     {
         if (!_indetRunning) return;
-        AgentIndetShift.BeginAnimation(TranslateTransform.XProperty, null);
+        Calm.Stop(AgentIndet, AgentIndetShift, TranslateTransform.XProperty);
         AgentIndet.Visibility = Visibility.Collapsed;
         _indetRunning = false;
     }

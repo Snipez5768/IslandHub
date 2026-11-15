@@ -178,16 +178,25 @@ public sealed class MakeRoomService : ObservableObject
             || name.Contains("Suchleiste", StringComparison.OrdinalIgnoreCase) || name.Contains("Search or enter", StringComparison.OrdinalIgnoreCase);
     }
 
+    // the window in front rarely changes: remember the last answer instead of opening the process 2–5 times a second
+    private static IntPtr _lastWindow;
+    private static int _lastPid;
+    private static bool _lastIsBrowser;
+
     private static bool IsBrowser(IntPtr h, out int pid)
     {
         Native.GetWindowThreadProcessId(h, out var p);
         pid = (int)p;
+        if (h == _lastWindow && pid == _lastPid) return _lastIsBrowser;
+        bool browser;
         try
         {
             using var proc = Process.GetProcessById(pid);
-            return Browsers.Contains(proc.ProcessName);
+            browser = Browsers.Contains(proc.ProcessName);
         }
-        catch { return false; }
+        catch { browser = false; }
+        (_lastWindow, _lastPid, _lastIsBrowser) = (h, pid, browser);
+        return browser;
     }
 
     /// <summary>On the main screen? <paramref name="fills"/> = covers it completely without a title bar (fullscreen).</summary>

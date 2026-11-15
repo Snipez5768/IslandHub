@@ -347,8 +347,9 @@ public sealed class IslandPreview : Border
         for (int i = 0; i < f.Length; i++)
         {
             var sc = new ScaleTransform(1, f[i]);
-            s.Children.Add(new Rectangle { Width = 3, Height = h, RadiusX = 1, RadiusY = 1, Fill = Brushes.White, Margin = new Thickness(0, 0, i < f.Length - 1 ? 2 : 0, 0), RenderTransformOrigin = new Point(0.5, 1), RenderTransform = sc });
-            sc.BeginAnimation(ScaleTransform.ScaleYProperty, new DoubleAnimation(0.3, 1, TimeSpan.FromMilliseconds(380 + i * 70)) { AutoReverse = true, RepeatBehavior = RepeatBehavior.Forever, BeginTime = TimeSpan.FromMilliseconds(-i * 120), EasingFunction = new SineEase { EasingMode = EasingMode.EaseInOut } });
+            var bar = new Rectangle { Width = 3, Height = h, RadiusX = 1, RadiusY = 1, Fill = Brushes.White, Margin = new Thickness(0, 0, i < f.Length - 1 ? 2 : 0, 0), RenderTransformOrigin = new Point(0.5, 1), RenderTransform = sc };
+            s.Children.Add(bar);
+            Calm.Loop(bar, sc, ScaleTransform.ScaleYProperty, new DoubleAnimation(0.3, 1, TimeSpan.FromMilliseconds(380 + i * 70)) { AutoReverse = true, RepeatBehavior = RepeatBehavior.Forever, BeginTime = TimeSpan.FromMilliseconds(-i * 120), EasingFunction = new SineEase { EasingMode = EasingMode.EaseInOut } });
         }
         return s;
     }
@@ -822,8 +823,9 @@ public static class AnimGallery
         for (int i = 0; i < 4; i++)
         {
             var sc = new ScaleTransform(1, f[i]);
-            s.Children.Add(new Rectangle { Width = 2, Height = 10, RadiusX = 1, RadiusY = 1, Fill = Brushes.White, Margin = new Thickness(0, 0, 2, 0), VerticalAlignment = VerticalAlignment.Bottom, RenderTransformOrigin = new Point(0.5, 1), RenderTransform = sc });
-            sc.BeginAnimation(ScaleTransform.ScaleYProperty, new DoubleAnimation(0.35, 1, TimeSpan.FromMilliseconds(330 + i * 60)) { AutoReverse = true, RepeatBehavior = RepeatBehavior.Forever, EasingFunction = InOut });
+            var bar = new Rectangle { Width = 2, Height = 10, RadiusX = 1, RadiusY = 1, Fill = Brushes.White, Margin = new Thickness(0, 0, 2, 0), VerticalAlignment = VerticalAlignment.Bottom, RenderTransformOrigin = new Point(0.5, 1), RenderTransform = sc };
+            s.Children.Add(bar);
+            Calm.Loop(bar, sc, ScaleTransform.ScaleYProperty, new DoubleAnimation(0.35, 1, TimeSpan.FromMilliseconds(330 + i * 60)) { AutoReverse = true, RepeatBehavior = RepeatBehavior.Forever, EasingFunction = InOut });
         }
         return s;
     }

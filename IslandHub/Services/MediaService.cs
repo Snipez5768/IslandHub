@@ -42,8 +42,18 @@ public sealed class MediaService : ObservableObject
         }
     }
 
-    public List<(string Name, MediaSession Session)> Sessions =>
-        _mgr?.GetSessions().Select(s => (FriendlyApp(s.SourceAppUserModelId), s)).ToList() ?? new();
+    /// <summary>
+    /// The players Windows knows. Fetched only when Windows reports a change: every GetSessions() call creates new
+    /// WinRT wrappers that the finalizer must release later – the island read this list on every music update, and
+    /// IslandHub crashed twice (12.11. and 15.11.2026) with an AccessViolation in WinRT.IObjectReference.Finalize.
+    /// </summary>
+    public List<(string Name, MediaSession Session)> Sessions { get; private set; } = new();
+
+    private void ReadSessions()
+    {
+        try { Sessions = _mgr?.GetSessions().Select(s => (FriendlyApp(s.SourceAppUserModelId), s)).ToList() ?? new(); }
+        catch { Sessions = new(); }
+    }
 
     public async Task InitAsync()
     {
@@ -53,8 +63,10 @@ public sealed class MediaService : ObservableObject
             _mgr.CurrentSessionChanged += (_, _) => Ui.Run(() => Attach(_mgr.GetCurrentSession()));
             _mgr.SessionsChanged += (_, _) => Ui.Run(() =>
             {
-                if (_session == null || !_mgr.GetSessions().Contains(_session)) Attach(_mgr.GetCurrentSession());
+                ReadSessions();
+                if (_session == null || !Sessions.Any(x => x.Session.SourceAppUserModelId == _session.SourceAppUserModelId)) Attach(_mgr.GetCurrentSession());
             });
+            ReadSessions();
             Attach(_mgr.GetCurrentSession());
         }
         catch (Exception ex) { App.Log(ex); }

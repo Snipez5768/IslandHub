@@ -9,12 +9,6 @@
         UseLayoutRounding="True" TextOptions.TextFormattingMode="Ideal">
 
     <Window.Resources>
-        <Storyboard x:Key="EqStoryboard" RepeatBehavior="Forever">
-            <DoubleAnimation Storyboard.TargetName="MEq1" Storyboard.TargetProperty="ScaleY" From="0.3" To="1" Duration="0:0:0.42" AutoReverse="True" RepeatBehavior="Forever" />
-            <DoubleAnimation Storyboard.TargetName="MEq2" Storyboard.TargetProperty="ScaleY" From="0.95" To="0.35" Duration="0:0:0.35" AutoReverse="True" RepeatBehavior="Forever" />
-            <DoubleAnimation Storyboard.TargetName="MEq3" Storyboard.TargetProperty="ScaleY" From="0.45" To="1" Duration="0:0:0.5" AutoReverse="True" RepeatBehavior="Forever" />
-            <DoubleAnimation Storyboard.TargetName="MEq4" Storyboard.TargetProperty="ScaleY" From="1" To="0.4" Duration="0:0:0.38" AutoReverse="True" RepeatBehavior="Forever" />
-        </Storyboard>
 
         <!-- ===== Clipboard (approved mockup 2026-11-14). Row = list layouts A and C: every entry starts in the same
              32 px column (picture or a tinted type chip), one title line, one quiet line, the age on the right;

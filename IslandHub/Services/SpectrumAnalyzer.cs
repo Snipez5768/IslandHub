@@ -52,12 +52,13 @@ public sealed class SpectrumAnalyzer : IDisposable
         if (fmt.Encoding != WaveFormatEncoding.IeeeFloat && fmt.Encoding != WaveFormatEncoding.Extensible) return;
         if (fmt.BitsPerSample != 32) return;
         int frames = e.BytesRecorded / (4 * ch);
+        var samples = System.Runtime.InteropServices.MemoryMarshal.Cast<byte, float>(e.Buffer.AsSpan(0, frames * ch * 4));
         lock (_lock)
         {
             for (int i = 0; i < frames; i++)
             {
                 float s = 0;
-                for (int c = 0; c < ch; c++) s += BitConverter.ToSingle(e.Buffer, (i * ch + c) * 4);
+                for (int c = 0; c < ch; c++) s += samples[i * ch + c];
                 _ring[_pos] = s / ch;
                 _pos = (_pos + 1) % N;
             }
@@ -65,20 +66,24 @@ public sealed class SpectrumAnalyzer : IDisposable
     }
 
     /// <summary>Five levels 0…1 (auto-scaled per band, so quiet songs move as much as loud ones).</summary>
+    // reused every frame (the bars ask 25 times a second) – no garbage, the window is computed once
+    private readonly Complex[] _buf = new Complex[N];
+    private readonly double[] _res = new double[Bands.Length];
+    private static readonly float[] Hann = Enumerable.Range(0, N).Select(i => (float)(0.5 * (1 - Math.Cos(2 * Math.PI * i / (N - 1))))).ToArray();
+
     public double[] Levels()
     {
-        var buf = new Complex[N];
+        var buf = _buf;
         lock (_lock)
         {
             for (int i = 0; i < N; i++)
             {
-                double w = 0.5 * (1 - Math.Cos(2 * Math.PI * i / (N - 1))); // Hann window
-                buf[i].X = (float)(_ring[(_pos + i) % N] * w);
+                buf[i].X = _ring[(_pos + i) % N] * Hann[i];
                 buf[i].Y = 0;
             }
         }
         FastFourierTransform.FFT(true, (int)Math.Log2(N), buf);
-        var res = new double[Bands.Length];
+        var res = _res;
         double hz = (double)_rate / N;
         for (int b = 0; b < Bands.Length; b++)
         {

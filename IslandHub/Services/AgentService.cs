@@ -38,9 +38,10 @@ public sealed class AgentSession : ObservableObject
     public DateTime StartedAt { get; set; } = DateTime.Now;
     public DateTime? FinishedAt { get; set; }
     public DateTime LastEvent { get; set; } = DateTime.Now;
-    /// <summary>The plan's step names, so "advance" can show the next one.</summary>
-    internal List<string> PlanItems { get; } = new();
-    internal int PlanIndex { get; set; } = -1;
+    /// <summary>The plan's step names, so "advance" can show the next one. Saved with the session: after an IslandHub
+    /// restart the short updates ("next step") still have a plan to move along.</summary>
+    public List<string> PlanItems { get; set; } = new();
+    public int PlanIndex { get; set; } = -1;
 
     private void Changed()
     {
@@ -192,6 +193,7 @@ public sealed class AgentService : ObservableObject
             s = new AgentSession { Id = id };
             Sessions.Add(s);
         }
+        var quiet = DateTime.Now - s.LastEvent;
         s.LastEvent = DateTime.Now;
         var cwd = Str(e, "cwd");
         if (!string.IsNullOrEmpty(cwd)) s.Project = Path.GetFileName(cwd.TrimEnd('\\', '/'));
@@ -199,6 +201,9 @@ public sealed class AgentService : ObservableObject
         switch (ev)
         {
             case "UserPromptSubmit":
+                // a message sent while Claude is still working joins the running task – it is no new task,
+                // and the plan with its "2 / 5" stays (unless the session went silent long ago and missed its Stop)
+                if (s.IsRunning && s.HasPlan && quiet < TimeSpan.FromMinutes(10)) break;
                 s.Task = FirstLine(Str(e, "prompt"));
                 s.Step = "Denkt nach …";
                 s.State = AgentState.Running;
