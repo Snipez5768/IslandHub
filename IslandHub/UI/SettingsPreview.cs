@@ -195,6 +195,17 @@ public sealed class HintPic : Border
                 break;
             }
             case "mail": c = Pv.Icon("envelope", 17, Pv.Res("Blue")); break;
+            case "level":
+            {
+                var p = Pill(52, 12, 6);
+                var track = Pv.Box(26, 3, Pv.B("#55FFFFFF"), 1.5);
+                track.Child = new Border { Width = 16, Height = 3, CornerRadius = new CornerRadius(1.5), Background = white, HorizontalAlignment = HorizontalAlignment.Left };
+                p.Child = Pv.Row(3, Pv.Icon("speaker", 8, white), track);
+                c = p;
+                break;
+            }
+            case "headphones": c = Pv.Row(4, Pv.Icon("headphones", 15, white), new Ring { Width = 12, Height = 12, Thickness = 2, Value = 80, Stroke = Pv.Res("Green"), Track = Pv.B("#3330D158") }); break;
+            case "charge": c = Pv.Row(4, Pv.Icon("bolt", 15, Pv.Res("Green")), new Ring { Width = 12, Height = 12, Thickness = 2, Value = 64, Stroke = Pv.Res("Green"), Track = Pv.B("#3330D158") }); break;
             case "update": c = Pv.Icon("download", 16, Pv.Res("Blue")); break;
             case "fs.bar" or "fs.hide" or "fs.norm":
             {

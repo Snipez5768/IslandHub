@@ -35,6 +35,7 @@ public sealed class Hub
     public BrowserDownloadService Downloads { get; private set; }
     public AlarmService Alarm { get; private set; }
     public UpdateService Updates { get; private set; }
+    public DeviceMoments Devices { get; private set; }
     public ClockModel Clock { get; private set; }
 
     public void Init()
@@ -111,11 +112,13 @@ public sealed class Hub
         Downloads = new BrowserDownloadService();
         Downloads.Start();
         Updates = new UpdateService(); // started by the island once it listens (see IslandWindow)
+        Devices = new DeviceMoments(); // started by the island once it listens
     }
 
     public void Shutdown()
     {
         try { Room?.Stop(); } catch { }
+        try { Devices?.Dispose(); } catch { }
         try { Clipboard?.Shutdown(); } catch { }
         try { Hotkeys?.UnregisterAll(); } catch { }
         try { Foreground?.Dispose(); } catch { }

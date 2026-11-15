@@ -190,6 +190,42 @@
                         </StackPanel>
                     </Border>
 
+                    <TextBlock Text="In der Insel zeigen" Style="{StaticResource GroupHeader}" />
+                    <Border Style="{StaticResource SettingCard}">
+                        <StackPanel>
+                            <Border Style="{StaticResource Row}">
+                                <DockPanel>
+                                    <ToggleButton x:Name="OptLevel" DockPanel.Dock="Right" Style="{StaticResource Switch}" Click="Opt_Click" VerticalAlignment="Center" />
+                                    <ui:HintPic Kind="level" />
+                                    <StackPanel Margin="0,0,12,0" VerticalAlignment="Center">
+                                        <TextBlock Text="Lautstärke und Helligkeit" />
+                                        <TextBlock Style="{StaticResource Desc}" Text="Beim Ändern wird die Insel zu einem Balken mit Prozent. Helligkeit nur bei Laptops." />
+                                    </StackPanel>
+                                </DockPanel>
+                            </Border>
+                            <Border Style="{StaticResource Row}">
+                                <DockPanel>
+                                    <ToggleButton x:Name="OptDevice" DockPanel.Dock="Right" Style="{StaticResource Switch}" Click="Opt_Click" VerticalAlignment="Center" />
+                                    <ui:HintPic Kind="headphones" />
+                                    <StackPanel Margin="0,0,12,0" VerticalAlignment="Center">
+                                        <TextBlock Text="Kopfhörer verbunden" />
+                                        <TextBlock Style="{StaticResource Desc}" Text="Werden Kopfhörer zur Tonausgabe, zeigt die Insel ihren Namen – bei Bluetooth mit Akku-Ring." />
+                                    </StackPanel>
+                                </DockPanel>
+                            </Border>
+                            <Border Style="{StaticResource LastRow}">
+                                <DockPanel>
+                                    <ToggleButton x:Name="OptPower" DockPanel.Dock="Right" Style="{StaticResource Switch}" Click="Opt_Click" VerticalAlignment="Center" />
+                                    <ui:HintPic Kind="charge" />
+                                    <StackPanel Margin="0,0,12,0" VerticalAlignment="Center">
+                                        <TextBlock Text="Laden und Akku schwach" />
+                                        <TextBlock Style="{StaticResource Desc}" Text="Netzteil an oder ab, Akku bei 20 % und 10 %. Nur bei Laptops." />
+                                    </StackPanel>
+                                </DockPanel>
+                            </Border>
+                        </StackPanel>
+                    </Border>
+
                     <TextBlock Text="Vollbild" Style="{StaticResource GroupHeader}" />
                     <Border Style="{StaticResource SettingCard}">
                         <Border Style="{StaticResource LastRow}" Padding="12,10,12,12">

@@ -150,6 +150,7 @@ public partial class IslandWindow : Window
         H.Alarm.Rang += OnAlarmRang;
         H.Updates.Available += OnUpdateAvailable;
         H.Updates.Start();
+        InitDeviceMoments();
 
         H.Media.PropertyChanged += (_, _) => Ui.Run(() => { UpdateMusicUi(); UpdatePill(); UpdateGlow(); });
         H.Media.TrackChanged += OnTrackChanged;
@@ -334,11 +335,13 @@ public partial class IslandWindow : Window
 
         if (_state != State.Expanded)
         {
+            bool fromPillCover = _state == State.Collapsed && LeadCover.IsVisible;
             _state = State.Expanded;
             _peekTimer.Stop();
             if (_peek != null) { _peeks.Insert(0, _peek); _peek = null; }
             ShowPanel(ExpandedPanel);
             AnimateSize(ExpW, TabHeight(_tab) + NotchExtra, ExpRadius, true);
+            if (fromPillCover && _tab == "Music") StartCoverFlight(LeadCover, MusicCoverBox);
             UpdateBubble(null);
             OnTabShown();
             _outside.Install();
@@ -372,10 +375,12 @@ public partial class IslandWindow : Window
         _outside.Uninstall();
         _hintGen++;
         if (_state == State.Expanded && _peeks.Count > 0) { _state = State.Collapsed; ShowNextPeek(); return; }
+        bool fromBigCover = _state == State.Expanded && _tab == "Music" && MusicCoverBox.IsVisible && !_tucked; // tucking: it shrinks into the strip instead
         _state = State.Collapsed;
         _peek = null;
         ShowPanel(PillPanel);
         UpdatePill(true);
+        if (fromBigCover && LeadCover.Visibility == Visibility.Visible) StartCoverFlight(MusicCoverBox, LeadCover);
         Keyboard.ClearFocus();
         ClipConfirm.BeginAnimation(OpacityProperty, null);
         ClipConfirm.Visibility = Visibility.Collapsed; // an open "delete everything?" question never survives closing
@@ -1019,10 +1024,10 @@ public partial class IslandWindow : Window
 
     private sealed class BubbleMotion
     {
-        public readonly Spring Gap = new(-38, Spring.IslandResponse * 1.15, Spring.IslandDamping * 0.85);
+        public readonly Spring Gap = new(-38, Spring.IslandResponse * 0.96, Spring.IslandDamping * 0.85); // tighter (2026-11-15 polish): was × 1.15
         public readonly Spring Fade = new(0, Spring.IslandResponse * 0.6, 1, 0.005);
         /// <summary>Size of the symbol inside the bubble: starts small, pops to full size as the drop leaves.</summary>
-        public readonly Spring Size = new(1, 0.42, 0.55, 0.003);
+        public readonly Spring Size = new(1, 0.36, 0.55, 0.003); // was 0.42
         /// <summary>Seconds since this bubble was born (-1 = not being born).</summary>
         public double Birth = -1;
         /// <summary>The drop has torn off its neck (at the widest swing) – from then on it behaves like a resting bubble.</summary>
@@ -1033,7 +1038,7 @@ public partial class IslandWindow : Window
 
     // birth of a bubble (approved 2026-11-14, mix of mockup C + A): the symbol first shows small INSIDE the island
     // while the island bulges, then it drips out as a drop – the neck stretches and snaps at the widest swing
-    private const double BirthHold = 0.30, BulgeOut = 10, BirthBreak = 8, RestBreak = 5.5;
+    private const double BirthHold = 0.22, BulgeOut = 10, BirthBreak = 8, RestBreak = 5.5;
 
     /// <summary>Island and bubbles slide left together so the whole group stays centred on the screen.</summary>
     private readonly TranslateTransform _centreShift = new();
@@ -1131,7 +1136,10 @@ public partial class IslandWindow : Window
         double w = double.IsNaN(Island.Width) ? Island.ActualWidth : Island.Width;
         double h = double.IsNaN(Island.Height) ? Island.ActualHeight : Island.Height;
         double r = Island.CornerRadius.TopLeft;
-        Island.Clip = new RectangleGeometry(new Rect(0, 0, w, h), r, r);
+        // continuous corners like Apple's (the pill stays a capsule); the fine rim follows the same shape
+        Island.Clip = SmoothCorners.Make(w, h, r);
+        IslandRim.Data = SmoothCorners.Make(w, h, r, inset: 0.25);
+        IslandRim.Margin = new Thickness(0, -IslandContent.Margin.Top, 0, 0); // notch: the content sits lower, the rim does not
     }
 
     private void Remember(FrameworkElement p)
@@ -1281,8 +1289,9 @@ public partial class IslandWindow : Window
         _centreShift.X = _centre.Value;
         UpdateBridges();
         UpdateGhost();
+        StepCoverFlight(dt);
 
-        bool done = _sw.Settled && _sh.Settled && _sr.Settled && _panelFade.Count == 0 && _centre.Settled
+        bool done = !_flying && _sw.Settled && _sh.Settled && _sr.Settled && _panelFade.Count == 0 && _centre.Settled
                     && _bm1.Gap.Settled && _bm1.Fade.Settled && _bm1.Size.Settled && _bm1.Birth < 0
                     && _bm2.Gap.Settled && _bm2.Fade.Settled && _bm2.Size.Settled && _bm2.Birth < 0;
         if (!done) return;
@@ -1561,14 +1570,28 @@ public partial class IslandWindow : Window
     {
         _tucked = true;
         if (!S.IslandTucked) { S.IslandTucked = true; App.SaveSettings(); }
+        bool shrink = S.Animations != AnimationLevel.Aus && !_captureHidden && Island.IsVisible;
+        _tuckShrinking = shrink; // closing must not hide it yet – it shrinks into the strip first
         Collapse();
         _stripShown = false;
         TuckStrip.BeginAnimation(OpacityProperty, null);
         TuckStrip.Opacity = 0;
         TuckStrip.Visibility = Visibility.Visible;
         _nearTimer.Start();
+        if (shrink)
+        {
+            // polish 2026-11-15: the island first shrinks into the strip, then it is gone
+            HideBubbleNow(Bubble); HideBubbleNow(Bubble2);
+            AnimateSize(64, 6 + NotchExtra, 3, true);
+            After(240, () => { _tuckShrinking = false; UpdateVisibility(); });
+            After(140, TuckIntro);
+            return;
+        }
         UpdateVisibility();
+        TuckIntro();
     }
+
+    private bool _tuckShrinking;
 
     private void Untuck()
     {
@@ -1584,6 +1607,7 @@ public partial class IslandWindow : Window
     private void CheckNearStrip()
     {
         if (!_tucked) { _nearTimer.Stop(); return; }
+        if (DateTime.Now < _tuckIntroUntil) return; // the strip is just showing where the island went
         bool near = false;
         try
         {
@@ -1613,7 +1637,7 @@ public partial class IslandWindow : Window
     {
         // a fullscreen YouTube video is no game: the island just makes room there (see UpdateRoom)
         bool gameHide = H.Game.IsFullscreen && !H.Room.BrowserInFront && S.Fullscreen == FullscreenMode.Hide && _state == State.Collapsed;
-        var v = (_hiddenByUser || _tucked) && _state == State.Collapsed || gameHide ? Visibility.Hidden : Visibility.Visible;
+        var v = (_hiddenByUser || _tucked) && _state == State.Collapsed && !_tuckShrinking || gameHide ? Visibility.Hidden : Visibility.Visible;
         Island.Visibility = v;
         ShadowLayer.Visibility = v;
         if (v != Visibility.Visible) { HideBubbleNow(Bubble); HideBubbleNow(Bubble2); }
@@ -1664,7 +1688,7 @@ public partial class IslandWindow : Window
         Lead.ToolTip = null;
 
         var musicColor = MusicTint();
-        foreach (var bar in new[] { EqBar1, EqBar2, EqBar3, EqBar4, EqBar5, MEqBar1, MEqBar2, MEqBar3, MEqBar4 }) bar.Fill = musicColor;
+        BarColor(musicColor);
 
         if (game)
         {
@@ -2349,9 +2373,14 @@ public partial class IslandWindow : Window
         HintIcon.Opacity = 1;
         HintIcon.Visibility = Visibility.Visible;
         HintWave.Visibility = Visibility.Collapsed;
+        HintLevel.Visibility = Visibility.Collapsed; // only ShowLevel (volume / brightness) turns the bar on
+        HintText.MinWidth = 0;
+        HintText.TextAlignment = TextAlignment.Left;
+        HintActions.Margin = new Thickness(8, 0, -6, 0);
         HintIcon.Kind = icon;
         HintIcon.Foreground = color;
         HintIconCircle.Background = Tint(color, 0.18);
+        SlashMoment(icon, key, color);
         HintText.Text = text;
         // the circle carries the colour; only warnings (red, e.g. "Stumm") keep a coloured word – like Apple's silent switch
         HintText.Foreground = ReferenceEquals(color, FindResource("Danger")) ? color : Brushes.White;
@@ -2412,7 +2441,9 @@ public partial class IslandWindow : Window
 
     private async Task RunHint(int gen, bool check, bool withActions = false)
     {
-        await Task.Delay(check ? 650 : withActions ? 5000 : 1500);
+        int hold = _hintHoldMs; // a moment that wants to stay longer (headphones, charger) – used once
+        _hintHoldMs = 0;
+        await Task.Delay(check ? 650 : withActions ? 5000 : hold > 0 ? hold : 1500);
         if (gen != _hintGen) return;
         // a hint with buttons stays while the pointer rests on it
         while (withActions && IsCursorOverIsland(4))
@@ -2769,11 +2800,19 @@ public partial class IslandWindow : Window
     private void OpenTicker()
     {
         if (_state != State.Peek || _peek is not { Ticker: true, Open: false } p) return;
+        // the card grows out of the line: the person / app symbol flies from the line to its place on the card
+        var from = new FrameworkElement[] { TickerAvatar, TickerCover, TickerImageBox, TickerSymbol }.FirstOrDefault(e => e.IsVisible);
+        var picture = from != null ? Snapshot(from) : null;
         p.Open = true;
         _peeks.Insert(0, p);
         _peek = null;
         ShowNextPeek();
+        var to = new FrameworkElement[] { PeekAvatarBox, PeekCover, PeekImageBorder, PeekIconCircle, PeekRingBox }.FirstOrDefault(e => e.Visibility == Visibility.Visible);
+        if (from != null && to != null && picture != null)
+            StartFlight(from, to, picture, CornerOf(from), CornerOf(to));
     }
+
+    private static double CornerOf(FrameworkElement e) => e is Border b ? b.CornerRadius.TopLeft : e.ActualWidth / 2;
 
     private void StartCardCountdown()
     {
@@ -3337,6 +3376,13 @@ public partial class IslandWindow : Window
             double k = Math.Min(1, t / outDur);
             LeadCoverGhostShift.X = -SongWay * k * k * k;
             LeadCoverGhost.Opacity = 1 - k;
+            // polish 2026-11-15: the old cover also sinks back (smaller, softer) – depth instead of a flat slide
+            LeadCoverGhostScale.ScaleX = LeadCoverGhostScale.ScaleY = 1 - 0.28 * k;
+            if (S.Animations == AnimationLevel.An && k > 0.05)
+            {
+                if (LeadCoverGhost.Effect is not BlurEffect gb) LeadCoverGhost.Effect = gb = new BlurEffect { RenderingBias = RenderingBias.Performance };
+                gb.Radius = 3.5 * k;
+            }
             LeadCoverShift.X = t < start ? SongWay : x.Value;
             LeadCover.Opacity = t < start ? 0 : Math.Min(1, (t - start) / fadeIn);
             LeadCoverScale.ScaleX = LeadCoverScale.ScaleY = scale.Value;
@@ -3360,6 +3406,7 @@ public partial class IslandWindow : Window
                 _songFrame = null;
                 LeadCoverShift.X = 0; LeadCoverScale.ScaleX = LeadCoverScale.ScaleY = 1; LeadCover.Opacity = 1;
                 LeadCoverGhost.Visibility = Visibility.Collapsed; LeadCoverGhost.Opacity = 1; LeadCoverGhostShift.X = 0;
+                LeadCoverGhostScale.ScaleX = LeadCoverGhostScale.ScaleY = 1; LeadCoverGhost.Effect = null;
             }
         };
         CompositionTarget.Rendering += _songFrame;
@@ -4095,6 +4142,15 @@ public partial class IslandWindow : Window
     {
         var tab = (string)((RadioButton)sender).Tag;
         bool changed = tab != _tab;
+        // page switch with a direction: a picture of the old page, taken before it is hidden
+        int slideDir = 0;
+        System.Windows.Media.Imaging.BitmapSource oldPage = null;
+        if (changed && _state == State.Expanded && S.Animations != AnimationLevel.Aus)
+        {
+            var order = VisibleTabButtons().Select(r => (string)r.Tag).ToList();
+            slideDir = Math.Sign(order.IndexOf(tab) - order.IndexOf(_tab));
+            oldPage = SnapPage();
+        }
         _tab = tab;
         TabLive.Visibility = tab == "Live" ? Visibility.Visible : Visibility.Collapsed;
         TabMusic.Visibility = tab == "Music" ? Visibility.Visible : Visibility.Collapsed;
@@ -4122,7 +4178,8 @@ public partial class IslandWindow : Window
         {
             // only the clipboard is taller – every other tab keeps the same size
             AnimateSize(ExpW, TabHeight(tab) + NotchExtra, ExpRadius, true);
-            Pages.BeginAnimation(OpacityProperty, new DoubleAnimation(0, 1, TimeSpan.FromMilliseconds(220)) { EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut } });
+            if (oldPage != null && slideDir != 0) PageSlide(slideDir, oldPage);
+            else Pages.BeginAnimation(OpacityProperty, new DoubleAnimation(0, 1, TimeSpan.FromMilliseconds(220)) { EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut } });
             OnTabShown();
         }
     }

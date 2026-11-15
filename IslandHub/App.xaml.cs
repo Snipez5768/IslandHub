@@ -213,6 +213,9 @@ public partial class App : Application
         int qt = Array.IndexOf(e.Args, "--queue-test");
         if (qt >= 0 && qt + 1 < e.Args.Length) { _ = QueueTestAsync(e.Args[qt + 1]); return; }
 
+        int pol = Array.IndexOf(e.Args, "--polish-test");
+        if (pol >= 0 && pol + 2 < e.Args.Length) { _ = Island.PolishTestAsync(e.Args[pol + 1], e.Args[pol + 2]); return; }
+
         int mt = Array.IndexOf(e.Args, "--motion-test");
         if (mt >= 0 && mt + 1 < e.Args.Length) { _ = Island.MotionTestAsync(e.Args[mt + 1]); return; }
 #endif

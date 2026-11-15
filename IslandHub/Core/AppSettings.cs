@@ -80,6 +80,14 @@ public sealed class AppSettings
     public string MailUrl { get; set; } = "https://mail.google.com";
     /// <summary>Look for a newer IslandHub on GitHub at start (and every 6 hours).</summary>
     public bool UpdateCheck { get; set; } = true;
+    /// <summary>Volume (and laptop brightness) changes show a level bar in the island.</summary>
+    public bool LevelInIsland { get; set; } = true;
+    /// <summary>Headphones / Bluetooth audio connected → the island shows it with the battery.</summary>
+    public bool DeviceInIsland { get; set; } = true;
+    /// <summary>Plugged in / battery low (laptops only).</summary>
+    public bool PowerInIsland { get; set; } = true;
+    /// <summary>The thin strip of the tucked island glowed once to show where it is.</summary>
+    public bool TuckHintShown { get; set; }
     /// <summary>The Steam tile was put into Spiele once (removing it later is respected).</summary>
     public bool SteamTileAdded { get; set; }
     public bool Autostart { get; set; }

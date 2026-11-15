@@ -256,8 +256,12 @@
         <!-- tucked-away strip: invisible until the cursor comes near, click brings the island back -->
         <Border x:Name="TuckStrip" HorizontalAlignment="Center" VerticalAlignment="Top" Width="150" Height="14" Background="#01000000"
                 Cursor="Hand" Visibility="Collapsed" Opacity="0" ToolTip="Insel einblenden">
-            <Border Width="64" Height="4" VerticalAlignment="Top" CornerRadius="0,0,2.5,2.5" Background="#E6000000"
-                    BorderBrush="#4DFFFFFF" BorderThickness="0.5,0,0.5,0.5" />
+            <Border x:Name="TuckBar" Width="64" Height="4" VerticalAlignment="Top" CornerRadius="0,0,2.5,2.5" Background="#E6000000"
+                    BorderBrush="#4DFFFFFF" BorderThickness="0.5,0,0.5,0.5" RenderTransformOrigin="0.5,0">
+                <Border.RenderTransform><ScaleTransform x:Name="TuckBarScale" /></Border.RenderTransform>
+                <!-- polish 2026-11-15: a soft light shows where the island went (every time briefly, the first time longer) -->
+                <Border.Effect><DropShadowEffect x:Name="TuckGlow" Color="White" BlurRadius="10" ShadowDepth="0" Opacity="0" /></Border.Effect>
+            </Border>
         </Border>
 
         <!-- "make room": while the island has slid up out of the way, this small bar shows it is only hidden -->
@@ -348,9 +352,17 @@
         </Canvas>
 
         <Border x:Name="Island" HorizontalAlignment="Center" VerticalAlignment="Top" Width="176" Height="32" Margin="0,8,0,0"
-                CornerRadius="16" Background="{DynamicResource IslandBackground}" BorderBrush="{DynamicResource IslandBorder}" BorderThickness="0.5"
+                CornerRadius="16" Background="{DynamicResource IslandBackground}"
                 AllowDrop="True">
             <Grid x:Name="IslandContent">
+                <!-- the fine rim (theme), drawn on the same continuous-corner shape as the clip -->
+                <Path x:Name="IslandRim" Stroke="{DynamicResource IslandBorder}" StrokeThickness="0.5" IsHitTestVisible="False"
+                      HorizontalAlignment="Left" VerticalAlignment="Top" Panel.ZIndex="20" />
+                <!-- opening / closing on the music: the cover itself flies between the pill and the Musik page -->
+                <Border x:Name="CoverFlyer" IsHitTestVisible="False" HorizontalAlignment="Left" VerticalAlignment="Top" Visibility="Collapsed"
+                        Width="20" Height="20" CornerRadius="5" Panel.ZIndex="10">
+                    <Border.Background><ImageBrush x:Name="CoverFlyerImg" Stretch="UniformToFill" /></Border.Background>
+                </Border>
 
                 <!-- style "Tiefe": the album colour glows softly from behind the cover (positioned in code) -->
                 <Border x:Name="CoverGlow" IsHitTestVisible="False" HorizontalAlignment="Left" VerticalAlignment="Top" Opacity="0" Width="140" Height="88" />
@@ -378,11 +390,16 @@
                     <StackPanel x:Name="Lead" Orientation="Horizontal" VerticalAlignment="Center">
                         <Grid>
                             <!-- new song: the old cover slides out to the left while the new one comes in from the right -->
-                            <Border x:Name="LeadCoverGhost" Width="20" Height="20" CornerRadius="5" Visibility="Collapsed" IsHitTestVisible="False">
+                            <Border x:Name="LeadCoverGhost" Width="20" Height="20" CornerRadius="5" Visibility="Collapsed" IsHitTestVisible="False" RenderTransformOrigin="0.5,0.5">
                                 <Border.Background>
                                     <ImageBrush x:Name="PillCoverGhost" Stretch="UniformToFill" />
                                 </Border.Background>
-                                <Border.RenderTransform><TranslateTransform x:Name="LeadCoverGhostShift" /></Border.RenderTransform>
+                                <Border.RenderTransform>
+                                    <TransformGroup>
+                                        <ScaleTransform x:Name="LeadCoverGhostScale" />
+                                        <TranslateTransform x:Name="LeadCoverGhostShift" />
+                                    </TransformGroup>
+                                </Border.RenderTransform>
                             </Border>
                             <Border x:Name="LeadCover" Width="20" Height="20" CornerRadius="5" Visibility="Collapsed" RenderTransformOrigin="0.5,0.5">
                                 <Border.Background>
@@ -452,6 +469,13 @@
                     </Grid.ColumnDefinitions>
                     <!-- optional round glass buttons (e.g. "Discord nutzt dein Mikrofon" → mute / open) -->
                     <StackPanel x:Name="HintActions" Grid.Column="3" Orientation="Horizontal" VerticalAlignment="Center" Margin="8,0,-6,0" Visibility="Collapsed" />
+                    <!-- volume / brightness (polish 2026-11-15): a level bar between the symbol and the number -->
+                    <Border x:Name="HintLevel" Grid.Column="1" Height="6" CornerRadius="3" Background="#33FFFFFF" Margin="10,0,10,0"
+                            VerticalAlignment="Center" Visibility="Collapsed" ClipToBounds="True">
+                        <Border x:Name="HintLevelFill" CornerRadius="3" Background="White" HorizontalAlignment="Stretch" RenderTransformOrigin="0,0.5">
+                            <Border.RenderTransform><ScaleTransform x:Name="HintLevelScale" ScaleX="0.5" /></Border.RenderTransform>
+                        </Border>
+                    </Border>
                     <!-- the kind of notice: its icon in a softly tinted circle -->
                     <Border x:Name="HintIconCircle" Width="22" Height="22" CornerRadius="11" VerticalAlignment="Center" Margin="-1,0,0,0">
                         <Grid>
@@ -460,6 +484,10 @@
                                     <ScaleTransform x:Name="HintIconScale" />
                                 </ui:SfIcon.RenderTransform>
                             </ui:SfIcon>
+                            <!-- muted / on again (polish 2026-11-15): the slash draws itself across the mic, like Apple's silent switch -->
+                            <Path x:Name="HintSlash" Data="M0,0 M24,24 M4.5,4.5 L19.5,19.5" Width="13" Height="13" Stretch="Uniform" StrokeThickness="1.7"
+                                  StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeDashArray="9 9" StrokeDashOffset="9" Opacity="0"
+                                  HorizontalAlignment="Center" VerticalAlignment="Center" IsHitTestVisible="False" />
                             <!-- "… hört zu": an orange voice wave instead of the symbol (moves with the real mic level) -->
                             <StackPanel x:Name="HintWave" Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center" Visibility="Collapsed" />
                         </Grid>
@@ -635,6 +663,9 @@
                         <StackPanel x:Name="TabDots" Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center" Opacity="0" IsHitTestVisible="False" />
                     </Grid>
 
+                    <!-- page switch: a picture of the old page slides out while the new one slides in -->
+                    <Image x:Name="PageGhost" Grid.Row="1" Margin="0,6,0,0" IsHitTestVisible="False" Visibility="Collapsed" Stretch="None"
+                           HorizontalAlignment="Left" VerticalAlignment="Top" />
                     <Grid x:Name="Pages" Grid.Row="1" Margin="0,6,0,0">
 
                         <!-- ===== LIVE: apps using the mic / camera / sharing the screen – one entry per app ===== -->

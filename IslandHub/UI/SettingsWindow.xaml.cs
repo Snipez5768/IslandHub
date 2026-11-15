@@ -285,6 +285,9 @@ public partial class SettingsWindow : Window
         HoverDelayText.Text = $"{S.HoverDelayMs} ms";
         OptSeconds.IsChecked = S.ShowSeconds;
         OptTrackPeek.IsChecked = S.TrackPeek;
+        OptLevel.IsChecked = S.LevelInIsland;
+        OptDevice.IsChecked = S.DeviceInIsland;
+        OptPower.IsChecked = S.PowerInIsland;
         FsBar.IsChecked = S.Fullscreen == FullscreenMode.StatsBar;
         FsHide.IsChecked = S.Fullscreen == FullscreenMode.Hide;
         FsNormal.IsChecked = S.Fullscreen == FullscreenMode.Normal;
@@ -478,6 +481,9 @@ public partial class SettingsWindow : Window
         App.Hub.Clipboard.RefreshHook(); // noticing Ctrl+V is only needed for the queue or for this
         S.ShowSeconds = OptSeconds.IsChecked == true;
         S.TrackPeek = OptTrackPeek.IsChecked == true;
+        S.LevelInIsland = OptLevel.IsChecked == true;
+        S.DeviceInIsland = OptDevice.IsChecked == true;
+        S.PowerInIsland = OptPower.IsChecked == true;
         S.MusicGlow = OptGlow.IsChecked == true;
         S.TabBarAutoHide = OptTabAutoHide.IsChecked == true;
         S.ClickPastes = OptClickPastes.IsChecked == true;
