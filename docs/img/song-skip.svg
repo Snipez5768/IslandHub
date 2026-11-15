@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="520" height="180" viewBox="0 0 520 180" role="img" aria-label="Weiter: Balken läuft nach rechts, Cover schiebt sich von links nach rechts; Zurück: umgekehrt">
+  <defs>
+    <linearGradient id="wall" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#1d3557"/><stop offset=".55" stop-color="#4a3466"/><stop offset="1" stop-color="#8a5a3c"/></linearGradient>
+    <linearGradient id="a" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ff9f0a"/><stop offset="1" stop-color="#ff375f"/></linearGradient>
+    <linearGradient id="b" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#64d2ff"/><stop offset="1" stop-color="#30d158"/></linearGradient>
+    <clipPath id="frame"><rect x="84" y="36" width="78" height="78" rx="12"/></clipPath>
+    <clipPath id="txt"><rect x="176" y="38" width="250" height="34"/></clipPath>
+  </defs>
+  <rect width="520" height="180" rx="16" fill="url(#wall)"/>
+  <rect x="70" y="14" width="380" height="128" rx="26" fill="#000"/>
+  <g font-family="Segoe UI, SF Pro Text, sans-serif">
+    <text x="222" y="31" fill="#636366" font-size="11">♪  Musik</text>
+    <!-- covers: 0–.4 Weiter (A out right, B in from left) · .5–.9 Zurück (B out left, A in from right) -->
+    <g clip-path="url(#frame)">
+      <rect x="84" y="36" width="78" height="78" rx="12" fill="url(#a)"><animateTransform attributeName="transform" type="translate" dur="6s" repeatCount="indefinite" calcMode="spline" keyTimes="0;.08;.16;.5;.58;.66;1" values="0 0;0 0;80 0;80 0;80 0;0 0;0 0" keySplines="0 0 1 1;.5 0 .9 .5;0 0 1 1;0 0 1 1;.3 1.3 .5 1;0 0 1 1"/></rect>
+      <rect x="84" y="36" width="78" height="78" rx="12" fill="url(#b)"><animateTransform attributeName="transform" type="translate" dur="6s" repeatCount="indefinite" calcMode="spline" keyTimes="0;.09;.19;.5;.58;1" values="-80 0;-80 0;0 0;0 0;-80 0;-80 0" keySplines="0 0 1 1;.3 1.3 .5 1;0 0 1 1;.5 0 .9 .5;0 0 1 1"/></rect>
+    </g>
+    <g clip-path="url(#txt)">
+      <g><animateTransform attributeName="transform" type="translate" dur="6s" repeatCount="indefinite" keyTimes="0;.08;.13;.5;.6;.66;1" values="0 0;0 0;30 0;30 0;30 0;0 0;0 0"/><animate attributeName="opacity" dur="6s" repeatCount="indefinite" keyTimes="0;.08;.13;.58;.66;1" values="1;1;0;0;1;1"/>
+        <text x="176" y="52" fill="#fff" font-size="14" font-weight="600">Nachtlicht</text><text x="176" y="68" fill="#98989d" font-size="11">Lena Ost · Spotify</text></g>
+      <g opacity="0"><animateTransform attributeName="transform" type="translate" dur="6s" repeatCount="indefinite" keyTimes="0;.1;.18;.5;.56;1" values="-30 0;-30 0;0 0;0 0;-30 0;-30 0"/><animate attributeName="opacity" dur="6s" repeatCount="indefinite" keyTimes="0;.1;.18;.5;.55;1" values="0;0;1;1;0;0"/>
+        <text x="176" y="52" fill="#fff" font-size="14" font-weight="600">Morgengrau</text><text x="176" y="68" fill="#98989d" font-size="11">Kai Feld · Spotify</text></g>
+    </g>
+    <rect x="176" y="80" width="250" height="4" rx="2" fill="#2c2c2e"/>
+    <!-- bar: Weiter = runs on to the end, then the new song starts · Zurück = jumps full, runs right → left -->
+    <rect x="176" y="80" height="4" rx="2" fill="#fff" width="100"><animate attributeName="width" dur="6s" repeatCount="indefinite" keyTimes="0;.06;.12;.16;.17;.45;.5;.58;.62;1" values="100;100;250;250;2;60;250;0;2;100"/></rect>
+    <g fill="#fff"><path d="M262 96 l-9 6 9 6z M252 96 l-9 6 9 6z"/><rect x="290" y="95" width="4" height="14" rx="1"/><rect x="298" y="95" width="4" height="14" rx="1"/><path d="M330 96 l9 6 -9 6z M340 96 l9 6 -9 6z"/></g>
+    <circle cx="345" cy="102" r="17" fill="#fff" opacity="0"><animate attributeName="opacity" dur="6s" repeatCount="indefinite" keyTimes="0;.02;.05;1" values="0;.18;0;0"/></circle>
+    <circle cx="247" cy="102" r="17" fill="#fff" opacity="0"><animate attributeName="opacity" dur="6s" repeatCount="indefinite" keyTimes="0;.5;.52;.55;1" values="0;0;.18;0;0"/></circle>
+    <text x="260" y="164" fill="#ffffffcc" font-size="12" text-anchor="middle">Weiter →    ·    ← Zurück
+      <animate attributeName="opacity" dur="6s" repeatCount="indefinite" values="1;1"/></text>
+  </g>
+</svg>

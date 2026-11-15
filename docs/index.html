@@ -1,0 +1,177 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>IslandHub – Animationen zum Ausprobieren</title>
+<meta name="description" content="Interaktive Demo der Animationen von IslandHub, einer Dynamic Island für Windows.">
+<style>
+:root{--bg:#0d0d0f;--card:#17171a;--line:#2a2a2e;--text:#f2f2f7;--sub:#98989d;--accent:#0a84ff}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font:15px/1.55 -apple-system,"SF Pro Text","Segoe UI Variable Text","Segoe UI",sans-serif}
+main{max-width:860px;margin:0 auto;padding:40px 16px 80px}
+h1{font-size:34px;margin:0 0 6px;letter-spacing:-.02em}
+h2{font-size:20px;margin:0 0 4px}
+p.lead{color:var(--sub);margin:0 0 30px}
+section{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:20px;margin:0 0 22px}
+section>p{color:var(--sub);margin:0 0 14px;font-size:14px}
+.wall{position:relative;height:200px;border-radius:14px;overflow:hidden;background:linear-gradient(135deg,#1d3557,#4a3466 55%,#8a5a3c)}
+.isl{position:absolute;left:50%;top:14px;background:#000;color:#fff;overflow:hidden}
+.row{display:flex;align-items:center;gap:12px;margin:12px 0 0;flex-wrap:wrap}
+.row label{width:140px;color:var(--sub);font-size:13px}
+.row input[type=range]{flex:1;min-width:160px;accent-color:var(--accent)}
+.row .v{width:60px;text-align:right;font-weight:600;font-size:13px}
+button{background:#2c2c2e;color:#fff;border:1px solid #3a3a3c;border-radius:10px;padding:7px 14px;font:inherit;font-size:13px;cursor:pointer}
+button:hover{background:#3a3a3c}button.on{background:var(--accent);border-color:var(--accent)}
+.btns{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.eq{display:flex;gap:2px;align-items:flex-end;height:13px}.eq i{width:3px;height:13px;border-radius:2px;background:#fff;transform-origin:bottom;animation:eq .45s ease-in-out infinite alternate}
+@keyframes eq{from{transform:scaleY(.3)}to{transform:scaleY(1)}}
+.cov{border-radius:6px;background:linear-gradient(135deg,#ff9f0a,#ff375f)}
+.covB{background:linear-gradient(135deg,#64d2ff,#30d158)}
+.groove{position:relative;display:inline-flex;border-radius:11px;cursor:pointer;padding:2px;background:linear-gradient(180deg,#020203,#08080a 45%,#121214);box-shadow:inset 0 2px 3px #000,inset 0 1px .5px #000,inset 0 -1px 0 rgba(255,255,255,.11),0 1px 0 rgba(255,255,255,.07)}
+.thumb{position:absolute;top:2px;bottom:2px;border-radius:9px;background:linear-gradient(180deg,#5a5a5f,#434347 55%,#38383b);box-shadow:inset 0 1px 0 rgba(255,255,255,.28),0 1px 2px rgba(0,0,0,.9);transition:left .45s cubic-bezier(.3,1.35,.5,1),width .45s cubic-bezier(.3,1.35,.5,1)}
+.o{position:relative;z-index:1;padding:2px 10px;font-weight:600;font-size:12.5px;color:#6e6e73;transition:color .3s}.o.on{color:#fff}
+.ob{width:3px;border-radius:2px;background:#ff9f0a;transform-origin:center}
+footer{color:var(--sub);font-size:13px;text-align:center;margin-top:40px}
+a{color:#64d2ff}
+</style>
+</head>
+<body>
+<main>
+<h1>IslandHub</h1>
+<p class="lead">Eine Dynamic Island für Windows. Hier kannst du die Animationen ausprobieren – alles mit erfundenen Beispielen. <a href="https://github.com/Snipez5768/IslandHub">Zum Code und Download</a></p>
+
+<section>
+  <h2>Die Feder</h2>
+  <p>Jede Bewegung der Insel läuft auf derselben Feder. Stell Geschwindigkeit und Dämpfung ein und klick auf die Insel.</p>
+  <div class="wall" id="w1"><div class="isl" id="i1" style="cursor:pointer"></div></div>
+  <div class="row"><label>Geschwindigkeit</label><input id="r1" type="range" min=".2" max="1.2" step=".01" value=".5"><span class="v" id="r1v"></span></div>
+  <div class="row"><label>Dämpfung</label><input id="d1" type="range" min=".2" max="1" step=".01" value=".7"><span class="v" id="d1v"></span></div>
+</section>
+
+<section>
+  <h2>Neuer Song</h2>
+  <p>In der geschlossenen Insel: das alte Cover gleitet raus, das neue federt rein, wird kurz größer und färbt die Insel.</p>
+  <div class="wall" style="height:130px"><div class="isl" id="i2" style="width:176px;height:32px;border-radius:16px;left:calc(50% - 88px)"></div></div>
+  <div class="row"><label>Geschwindigkeit</label><input id="r2" type="range" min=".2" max="1.2" step=".01" value=".7"><span class="v" id="r2v"></span></div>
+  <div class="row"><label>Dämpfung</label><input id="d2" type="range" min=".2" max="1" step=".01" value=".6"><span class="v" id="d2v"></span></div>
+  <div class="row"><label>Vergrößerung</label><input id="p2" type="range" min="1" max="1.6" step=".05" value="1.3"><span class="v" id="p2v"></span></div>
+  <div class="btns"><button id="b2">Neuer Song ▶</button></div>
+</section>
+
+<section>
+  <h2>Überspringen in der offenen Insel</h2>
+  <p>Weiter: der Balken läuft bis zum Ende, das Cover schiebt sich von links nach rechts. Zurück: der Balken springt auf voll und läuft nach links, das Cover kommt von rechts.</p>
+  <div class="wall" style="height:170px"><div class="isl" id="i3" style="width:380px;height:128px;border-radius:26px;left:calc(50% - 190px)"></div></div>
+  <div class="btns"><button id="b3p">◀ Zurück</button><button id="b3n">Weiter ▶</button></div>
+</section>
+
+<section>
+  <h2>Nachricht</h2>
+  <p>Erst schwingt eine Glocke, dann eine schmale Laufzeile. Fahr mit der Maus darauf – dann wird sie zur Karte.</p>
+  <div class="wall" style="height:150px"><div class="isl" id="i4" style="width:176px;height:32px;border-radius:16px;left:calc(50% - 88px)"></div></div>
+  <div class="btns"><button id="b4">Nachricht kommt ▶</button></div>
+</section>
+
+<section>
+  <h2>Timer | Wecker</h2>
+  <p>Der Seitenname ist ein eingefräster Umschalter. Dieselben Räder stellen eine Dauer oder eine Uhrzeit.</p>
+  <div class="wall" style="height:170px"><div class="isl" id="i5" style="width:380px;height:128px;border-radius:26px;left:calc(50% - 190px)"></div></div>
+</section>
+
+<section>
+  <h2>… hört zu</h2>
+  <p>Nutzt eine App dein Mikrofon, sagt die Insel es selbst. Die Welle folgt in der App deiner echten Stimme – hier simuliert.</p>
+  <div class="wall" style="height:110px"><div class="isl" id="i6" style="width:176px;height:32px;border-radius:16px;left:calc(50% - 88px)"></div></div>
+  <div class="btns"><button id="b6">Claude hört zu ▶</button></div>
+</section>
+
+<footer>Alle Namen, Songs und Nachrichten sind erfunden. IslandHub ist ein eigenes Projekt und nicht mit Apple verbunden.</footer>
+</main>
+<script>
+const $=id=>document.getElementById(id);
+function spring(x,v,t,r,d,dt){const k=(2*Math.PI/r)**2,c=4*Math.PI*d/r;v+=(-k*(x-t)-c*v)*dt;return[x+v*dt,v]}
+function bind(id,fmt){const el=$(id),out=$(id+'v');const f=()=>out.textContent=fmt(+el.value);el.oninput=f;f();return()=>+el.value}
+const pill='<div class="cov" style="position:absolute;left:6px;top:6px;width:20px;height:20px"></div><div class="eq" style="position:absolute;right:13px;top:10px"><i></i><i style="animation-delay:-.2s"></i><i style="animation-delay:-.1s"></i><i style="animation-delay:-.3s"></i></div>';
+
+/* 1 · the spring */
+const R1=bind('r1',v=>v.toFixed(2)+' s'),D1=bind('d1',v=>v.toFixed(2));
+const i1=$('i1');let st1={w:[176,0],h:[32,0],open:false};
+const music='<div style="position:absolute;inset:0;opacity:0;transition:opacity .25s" id="m1"><div style="text-align:center;color:#636366;font-size:11px;margin-top:9px">♪ Musik</div><div class="cov" style="position:absolute;left:16px;top:36px;width:78px;height:78px;border-radius:12px"></div><div style="position:absolute;left:108px;top:38px;font-weight:600">Nachtlicht</div><div style="position:absolute;left:108px;top:58px;color:#98989d;font-size:12px">Lena Ost · Spotify</div><div style="position:absolute;left:108px;right:16px;top:84px;height:4px;border-radius:2px;background:#2c2c2e"><div style="width:38%;height:4px;border-radius:2px;background:#0a84ff"></div></div></div>';
+i1.innerHTML='<div id="p1">'+pill+'</div>'+music;
+function loop1(){let last=performance.now();(function f(now){const dt=Math.min(.03,(now-last)/1000);last=now;const tw=st1.open?380:176,th=st1.open?128:32;
+ st1.w=spring(st1.w[0],st1.w[1],tw,R1(),D1(),dt);st1.h=spring(st1.h[0],st1.h[1],th,R1(),D1(),dt);
+ i1.style.width=st1.w[0]+'px';i1.style.height=st1.h[0]+'px';i1.style.marginLeft=-st1.w[0]/2+'px';i1.style.borderRadius=Math.min(st1.h[0]/2,26)+'px';
+ $('m1').style.opacity=st1.open&&st1.h[0]>70?1:0;$('p1').style.opacity=!st1.open&&st1.h[0]<45?1:0;
+ if(Math.abs(st1.w[0]-tw)>.2||Math.abs(st1.w[1])>.5||Math.abs(st1.h[1])>.5)requestAnimationFrame(f)})(last)}
+i1.style.width='176px';i1.style.height='32px';i1.style.marginLeft='-88px';i1.style.borderRadius='16px';
+i1.onclick=()=>{st1.open=!st1.open;loop1()};
+
+/* 2 · new song */
+const R2=bind('r2',v=>v.toFixed(2)+' s'),D2=bind('d2',v=>v.toFixed(2)),P2=bind('p2',v=>v.toFixed(2)+'×');
+const i2=$('i2');let flip=false;
+function song(){i2.innerHTML='<div id="t2" style="position:absolute;inset:0;opacity:0"></div><div style="position:absolute;left:6px;top:6px;width:20px;height:20px"><div class="cov '+(flip?'covB':'')+'" id="o2" style="position:absolute;inset:0"></div><div class="cov '+(flip?'':'covB')+'" id="n2" style="position:absolute;inset:0;opacity:0"></div></div><div class="eq" style="position:absolute;right:13px;top:10px"><i></i><i style="animation-delay:-.2s"></i><i style="animation-delay:-.1s"></i><i style="animation-delay:-.3s"></i></div>'}
+song();
+$('b2').onclick=()=>{song();const o=$('o2'),n=$('n2'),t=$('t2');t.style.background=flip?'#ff5a3c':'#3fc6a0';flip=!flip;
+ let x=[30,0],s=[1,0],landed=false;const t0=performance.now();let last=t0;const r=R2(),d=D2(),pop=P2();
+ (function f(now){const tt=(now-t0)/1000,dt=Math.min(.03,(now-last)/1000);last=now;const k=Math.min(1,tt/Math.max(.15,r*.75));
+  o.style.transform=`translateX(${-30*k*k*k}px)`;o.style.opacity=1-k;
+  if(tt>.09){x=spring(x[0],x[1],0,r,d,dt);if(!landed&&x[0]<10.5){landed=true;s[1]=(pop-1)*2*Math.PI/r*1.6}s=spring(s[0],s[1],1,r*.8,d,dt)}
+  n.style.opacity=tt<.09?0:Math.min(1,(tt-.09)/(r*.6));n.style.transform=`translateX(${tt<.09?30:x[0]}px) scale(${s[0]})`;
+  const q=tt/.9;t.style.opacity=(q<.25?q/.25:q<.6?1:q<1?1-(q-.6)/.4:0)*.16*2;
+  if(tt<2.5)requestAnimationFrame(f)})(t0)};
+
+/* 3 · skip carousel */
+const i3=$('i3');const songs=[['Nachtlicht','Lena Ost',''],['Morgengrau','Kai Feld','covB']];let idx=0,pos=.45;
+function draw3(){const s=songs[idx];i3.innerHTML=`<div style="text-align:center;color:#636366;font-size:11px;margin-top:9px">♪ Musik</div><div style="position:absolute;left:16px;top:34px;width:78px;height:78px;border-radius:12px;overflow:hidden;background:#1c1c1e"><div class="cov ${s[2]}" id="c3" style="position:absolute;inset:0;border-radius:12px"></div><div class="cov" id="g3" style="position:absolute;inset:0;border-radius:12px;opacity:0"></div></div><div style="position:absolute;left:108px;right:16px;top:36px;height:40px;overflow:hidden"><div id="tx3" style="position:absolute;inset:0"><div style="font-weight:600">${s[0]}</div><div style="color:#98989d;font-size:12px">${s[1]} · Spotify</div></div></div><div style="position:absolute;left:108px;right:16px;top:80px;height:4px;border-radius:2px;background:#2c2c2e"><div id="bar3" style="height:4px;border-radius:2px;background:#fff;width:${pos*100}%"></div></div><div style="position:absolute;left:108px;right:16px;top:94px;text-align:center;font-size:16px;letter-spacing:22px">⏮ ⏸ ⏭</div>`}
+draw3();
+function skip(dir){const old=songs[idx];idx=(idx+1)%2;const bar=$('bar3'),c=$('c3'),g=$('g3'),tx=$('tx3');
+ const e='cubic-bezier(.3,1.35,.5,1)';
+ if(dir>0)bar.animate([{width:pos*100+'%'},{width:'100%'}],{duration:380,fill:'forwards',easing:'ease-in-out'});
+ setTimeout(()=>{g.className='cov '+old[2];g.style.opacity=1;c.className='cov '+songs[idx][2];
+  g.animate([{transform:'none',opacity:1},{transform:`translateX(${dir*78}px) scale(.85)`,opacity:0}],{duration:380,fill:'forwards',easing:'ease-in'});
+  c.animate([{transform:`translateX(${-dir*78}px) scale(.85)`,opacity:0},{transform:'none',opacity:1}],{duration:620,delay:80,fill:'both',easing:e});
+  tx.animate([{transform:`translateX(${-dir*30}px)`,opacity:0},{transform:'none',opacity:1}],{duration:520,delay:140,fill:'both',easing:e});
+  setTimeout(()=>{tx.firstElementChild.textContent=songs[idx][0];tx.lastElementChild.textContent=songs[idx][1]+' · Spotify'},140);
+  if(dir<0)bar.animate([{width:'100%'},{width:'0%'}],{duration:560,fill:'forwards',easing:'ease-in-out'});
+  setTimeout(()=>{pos=.03;draw3()},dir>0?700:800)},dir>0?400:150)}
+$('b3n').onclick=()=>skip(1);$('b3p').onclick=()=>skip(-1);
+
+/* 4 · message */
+const i4=$('i4');let busy4=false;
+function reset4(){i4.style.cssText='width:176px;height:32px;border-radius:16px;left:calc(50% - 88px);transition:all .5s cubic-bezier(.3,1.25,.5,1)';i4.innerHTML=pill;busy4=false}
+reset4();
+$('b4').onclick=()=>{if(busy4)return;busy4=true;reset4();busy4=true;const eq=i4.querySelector('.eq');eq.style.opacity=0;
+ const bell=document.createElement('div');bell.innerHTML='<svg width="16" height="18" viewBox="-8 -4 16 18"><path d="M-6 9 V3 a6 6 0 0 1 12 0 V9 l1.5 1.5 H-7.5z M-2 13 a2.2 2.2 0 0 0 4 0" fill="none" stroke="#fff" stroke-width="1.7" stroke-linejoin="round"/></svg>';bell.style.cssText='position:absolute;right:13px;top:6px;line-height:0;transform-origin:50% 10%';i4.appendChild(bell);
+ bell.animate([{transform:'rotate(0)'},{transform:'rotate(-18deg)'},{transform:'rotate(16deg)'},{transform:'rotate(-12deg)'},{transform:'rotate(8deg)'},{transform:'rotate(0)'}],{duration:760,easing:'ease-in-out'});
+ setTimeout(()=>{i4.style.width='330px';i4.style.left='calc(50% - 165px)';i4.innerHTML='<div style="position:absolute;left:5px;top:4px;width:24px;height:24px;border-radius:12px;background:#30d158;color:#04342c;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center">A</div><div style="position:absolute;left:38px;right:30px;top:0;bottom:0;overflow:hidden"><div id="tk" style="position:absolute;top:7px;white-space:nowrap;font-size:12.5px"><b>Anna</b>  <span style="color:#c7c7cc">Kommst du heute noch vorbei? Ich bring Pizza mit</span></div></div><div style="position:absolute;right:9px;top:8px;width:16px;height:16px;border-radius:8px;background:#30d158"></div>';
+  $('tk').animate([{transform:'none'},{transform:'none',offset:.2},{transform:'translateX(-90px)'}],{duration:4000,fill:'forwards',easing:'ease-in-out'});
+  const timeout=setTimeout(reset4,6000);
+  i4.onmouseenter=()=>{clearTimeout(timeout);i4.onmouseenter=null;i4.style.width='350px';i4.style.height='86px';i4.style.borderRadius='28px';i4.style.left='calc(50% - 175px)';
+   i4.innerHTML='<div style="position:absolute;left:52px;top:10px;color:#98989d;font-size:10.5px">WhatsApp · jetzt</div><div style="position:absolute;left:12px;top:24px;width:34px;height:34px;border-radius:17px;background:#30d158;color:#04342c;font-weight:700;display:flex;align-items:center;justify-content:center">A</div><div style="position:absolute;left:52px;top:26px;font-weight:600;font-size:13px">Anna</div><div style="position:absolute;left:52px;top:44px;color:#aeaeb2;font-size:12px">Kommst du heute noch vorbei?</div><div style="position:absolute;right:48px;top:28px;width:30px;height:30px;border-radius:15px;background:#2c2c2e;display:flex;align-items:center;justify-content:center">✓</div><div style="position:absolute;right:12px;top:28px;width:30px;height:30px;border-radius:15px;background:#30d158;color:#04342c;display:flex;align-items:center;justify-content:center">↗</div><div id="ln" style="position:absolute;left:28px;right:28px;bottom:0;height:2px;background:#ffffff66;transform-origin:left"></div>';
+   i4.onmouseleave=()=>{i4.onmouseleave=null;$('ln').animate([{transform:'scaleX(1)'},{transform:'scaleX(0)'}],{duration:3500,fill:'forwards'});setTimeout(reset4,3500)}}},800)};
+
+/* 5 · timer | wecker */
+const i5=$('i5');let alarm=false;
+function draw5(){i5.innerHTML=`<div style="position:absolute;left:14px;top:8px" class="groove" id="sw"><div class="thumb" id="th"></div><span class="o ${alarm?'':'on'}">Timer</span><span class="o ${alarm?'on':''}">Wecker</span></div>
+ <div style="position:absolute;left:16px;top:70px;width:180px;height:26px;border-radius:13px;background:#2c2c2e"></div>
+ <div style="position:absolute;left:28px;top:44px;line-height:26px;text-align:center;display:flex;align-items:center;gap:8px;font-size:18px">${alarm?'<div><div style="color:#48484a;font-size:12px">06</div>07<div style="color:#48484a;font-size:12px">08</div></div><div>:</div><div><div style="color:#48484a;font-size:12px">29</div>30<div style="color:#48484a;font-size:12px">31</div></div><div style="font-size:12px;color:#98989d">Uhr</div>':'<div><div style="color:#48484a;font-size:12px">&nbsp;</div>0<div style="color:#48484a;font-size:12px">1</div></div><div style="font-size:12px">h</div><div><div style="color:#48484a;font-size:12px">24</div>25<div style="color:#48484a;font-size:12px">26</div></div><div style="font-size:12px">m</div><div><div style="color:#48484a;font-size:12px">&nbsp;</div>0<div style="color:#48484a;font-size:12px">1</div></div><div style="font-size:12px">s</div>'}</div>
+ <div style="position:absolute;right:36px;top:46px;width:104px;padding:6px 0;text-align:center;border-radius:15px;font-weight:600;background:${alarm?'#ff9f0a40':'#30d15840'};color:${alarm?'#ff9f0a':'#30d158'}">${alarm?'Stellen':'Start'}</div>
+ <div style="position:absolute;right:36px;top:88px;width:104px;text-align:center;font-size:11px;color:#98989d">${alarm?'6:30 · 7:00 · 8:00':'5 · 10 · 25 Min'}</div>`;
+ const place=()=>{const os=i5.querySelectorAll('.o'),o=os[alarm?1:0],th=$('th');th.style.left=o.offsetLeft+'px';th.style.width=o.offsetWidth+'px'};requestAnimationFrame(place);
+ $('sw').onclick=()=>{alarm=!alarm;const os=i5.querySelectorAll('.o');os.forEach((x,k)=>x.classList.toggle('on',(k===1)===alarm));place();setTimeout(draw5,320)}}
+draw5();
+
+/* 6 · listening */
+const i6=$('i6');let t6;
+function idle6(){i6.style.cssText='width:176px;height:32px;border-radius:16px;left:calc(50% - 88px)';i6.innerHTML=pill}
+idle6();
+$('b6').onclick=()=>{clearInterval(t6);i6.style.transition='width .5s cubic-bezier(.3,1.25,.5,1),left .5s cubic-bezier(.3,1.25,.5,1)';i6.style.width='210px';i6.style.left='calc(50% - 105px)';
+ i6.innerHTML='<div style="position:absolute;left:6px;top:5px;width:22px;height:22px;border-radius:11px;background:#ff9f0a2e;display:flex;gap:1.5px;align-items:center;justify-content:center" id="wv"></div><div style="position:absolute;right:14px;top:7px;font-size:13px;font-weight:600"><span style="color:#ff9f0a">Claude</span> hört zu</div>';
+ const wv=$('wv');for(let k=0;k<5;k++){const b=document.createElement('div');b.className='ob';b.style.height='13px';wv.appendChild(b)}
+ const bars=[...wv.children],shape=[.55,1,.75,.9,.5];let lvl=0;
+ t6=setInterval(()=>{const talk=(Date.now()/600)%3<2;lvl=talk?Math.max(lvl*.8,Math.random()):lvl*.8;bars.forEach((b,k)=>b.style.transform=`scaleY(${Math.max(.25,Math.min(1,.25+lvl*shape[k]))})`)},60);
+ setTimeout(()=>{clearInterval(t6);idle6()},4500)};
+</script>
+</body>
+</html>

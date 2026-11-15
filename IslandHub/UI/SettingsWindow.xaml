@@ -1,0 +1,850 @@
+<Window x:Class="IslandHub.UI.SettingsWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:ui="clr-namespace:IslandHub.UI"
+        Title="IslandHub" Width="800" Height="660" MinWidth="720" MinHeight="480"
+        WindowStartupLocation="CenterScreen" Background="#FF1E1E1E" Foreground="White"
+        FontFamily="{StaticResource TextFont}" FontSize="13" UseLayoutRounding="True">
+    <!-- Settings redesign (approved mockup 2026-11-14): island preview to click through, a small picture next to every
+         option, choices as picture tiles, a page with all animations, connections folded until you set them up -->
+    <Window.Resources>
+        <!-- segmented control (An / Reduziert / Aus, Selbstauslöser) -->
+        <Style x:Key="Seg" TargetType="RadioButton">
+            <Setter Property="Foreground" Value="#FFC7C7CC" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Focusable" Value="False" />
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="RadioButton">
+                        <Border x:Name="b" CornerRadius="5" Padding="11,3" Background="Transparent">
+                            <ContentPresenter HorizontalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="b" Property="Background" Value="#FF636366" />
+                                <Setter Property="Foreground" Value="White" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Style x:Key="SegBox" TargetType="Border">
+            <Setter Property="Background" Value="#FF1C1C1E" />
+            <Setter Property="CornerRadius" Value="7" />
+            <Setter Property="Padding" Value="2" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+        <!-- page chips under the preview -->
+        <Style x:Key="Chip" TargetType="RadioButton">
+            <Setter Property="Foreground" Value="#FFE5E5EA" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Focusable" Value="False" />
+            <Setter Property="FontSize" Value="11.5" />
+            <Setter Property="Margin" Value="0,0,6,6" />
+            <Setter Property="GroupName" Value="PreviewView" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="RadioButton">
+                        <Border x:Name="b" CornerRadius="11" Padding="10,3.5" Background="#FF3A3A3C">
+                            <ContentPresenter />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="b" Property="Background" Value="#FF48484A" />
+                            </Trigger>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="b" Property="Background" Value="White" />
+                                <Setter Property="Foreground" Value="Black" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <!-- coloured app square in front of a connection -->
+        <Style x:Key="AppTile" TargetType="Border">
+            <Setter Property="Width" Value="30" />
+            <Setter Property="Height" Value="30" />
+            <Setter Property="CornerRadius" Value="7" />
+            <Setter Property="Margin" Value="0,0,12,0" />
+            <Setter Property="DockPanel.Dock" Value="Left" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+        <!-- "Einrichten" / "Details": folds a connection open (pressed = open) -->
+        <Style x:Key="MacButtonToggle" TargetType="ToggleButton">
+            <Setter Property="Foreground" Value="White" />
+            <Setter Property="FontSize" Value="12.5" />
+            <Setter Property="Padding" Value="11,3" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Focusable" Value="False" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ToggleButton">
+                        <Grid>
+                            <Border x:Name="bg" Background="#FF5A5A5E" CornerRadius="6" BorderBrush="#33FFFFFF" BorderThickness="0,0.6,0,0" />
+                            <Border x:Name="hov" Background="White" Opacity="0" CornerRadius="6" />
+                            <ContentPresenter Margin="{TemplateBinding Padding}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="hov" Property="Opacity" Value="0.06" />
+                            </Trigger>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="bg" Property="Background" Value="#FF3A3A3C" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Style x:Key="PageTitle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="15" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Margin" Value="2,0,0,14" />
+        </Style>
+    </Window.Resources>
+
+    <Grid x:Name="RootGrid" Background="#FF1E1E1E">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="210" />
+            <ColumnDefinition Width="*" />
+        </Grid.ColumnDefinitions>
+
+        <!-- ========== Sidebar ========== -->
+        <Border x:Name="Sidebar" Background="#FF2B2B2D" BorderBrush="#FF000000" BorderThickness="0,0,0.5,0" Padding="10,14,10,10">
+            <DockPanel>
+                <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="6,0,0,14">
+                    <Border Width="34" Height="34" CornerRadius="8" Background="Black">
+                        <Border Width="22" Height="8" CornerRadius="4" Background="#FF2C2C2E" VerticalAlignment="Top" Margin="0,6,0,0" />
+                    </Border>
+                    <StackPanel Margin="9,0,0,0" VerticalAlignment="Center">
+                        <TextBlock Text="IslandHub" FontWeight="SemiBold" FontSize="13" />
+                        <TextBlock x:Name="VersionText" Foreground="{StaticResource SubText}" FontSize="11" />
+                    </StackPanel>
+                </StackPanel>
+                <StackPanel x:Name="Nav">
+                    <RadioButton Style="{StaticResource NavButton}" Tag="General" ui:Ext.Icon="gear" Background="#FF8E8E93" Content="Allgemein" Checked="Nav_Checked" />
+                    <RadioButton Style="{StaticResource NavButton}" Tag="Look" ui:Ext.Icon="paintbrush" Background="#FF0A84FF" Content="Erscheinungsbild" IsChecked="True" Checked="Nav_Checked" />
+                    <RadioButton Style="{StaticResource NavButton}" Tag="Anim" ui:Ext.Icon="sparkles" Background="#FFFF375F" Content="Animationen" Checked="Nav_Checked" />
+                    <RadioButton Style="{StaticResource NavButton}" Tag="Keys" ui:Ext.Icon="keyboard" Background="#FF8E8E93" Content="Tastatur" Checked="Nav_Checked" />
+                    <RadioButton Style="{StaticResource NavButton}" Tag="Clip" ui:Ext.Icon="clipboard" Background="#FFFF9F0A" Content="Zwischenablage" Checked="Nav_Checked" />
+                    <RadioButton Style="{StaticResource NavButton}" Tag="Shot" ui:Ext.Icon="camera" Background="#FFBF5AF2" Content="Bildschirmfoto" Checked="Nav_Checked" />
+                    <RadioButton Style="{StaticResource NavButton}" Tag="Widgets" ui:Ext.Icon="widgets" Background="#FF30D158" Content="Widgets" Checked="Nav_Checked" />
+                    <RadioButton Style="{StaticResource NavButton}" Tag="About" ui:Ext.Icon="info" Background="#FF8E8E93" Content="Info" Checked="Nav_Checked" />
+                </StackPanel>
+            </DockPanel>
+        </Border>
+
+        <ScrollViewer Grid.Column="1" x:Name="PageScroll" VerticalScrollBarVisibility="Auto" Padding="22,16,22,20">
+            <Grid>
+                <!-- ======== GENERAL ======== -->
+                <StackPanel x:Name="PageGeneral" Visibility="Collapsed">
+                    <TextBlock Text="Allgemein" Style="{StaticResource PageTitle}" />
+                    <TextBlock Text="Insel öffnen" Style="{StaticResource GroupHeader}" />
+                    <Border Style="{StaticResource SettingCard}">
+                        <StackPanel>
+                            <Border Style="{StaticResource Row}">
+                                <DockPanel>
+                                    <ToggleButton x:Name="OptHover" DockPanel.Dock="Right" Style="{StaticResource Switch}" Click="Opt_Click" VerticalAlignment="Center" />
+                                    <ui:HintPic Kind="hover" />
+                                    <StackPanel Margin="0,0,12,0" VerticalAlignment="Center">
+                                        <TextBlock Text="Beim Darüberfahren öffnen" />
+                                        <TextBlock Style="{StaticResource Desc}" Text="Aus: nur per Klick oder Tastenkürzel." />
+                                    </StackPanel>
+                                </DockPanel>
+                            </Border>
+                            <Border Style="{StaticResource Row}">
+                                <DockPanel>
+                                    <TextBlock x:Name="HoverDelayText" DockPanel.Dock="Right" Foreground="{StaticResource SubText}" Width="54" TextAlignment="Right" VerticalAlignment="Center" />
+                                    <Slider x:Name="OptHoverDelay" DockPanel.Dock="Right" Style="{StaticResource ThinSlider}" Foreground="{DynamicResource Accent}" Width="140"
+                                            Minimum="0" Maximum="800" VerticalAlignment="Center" ValueChanged="HoverDelay_Changed" />
+                                    <ui:HintPic Kind="delay" />
+                                    <StackPanel Margin="0,0,12,0" VerticalAlignment="Center">
+                                        <TextBlock Text="Verzögerung" />
+                                        <TextBlock Style="{StaticResource Desc}" Text="So lange muss der Zeiger auf der Insel bleiben." />
+                                    </StackPanel>
+                                </DockPanel>
+                            </Border>
+                            <Border Style="{StaticResource Row}">
+                                <DockPanel>
+                                    <ToggleButton x:Name="OptSmartTab" DockPanel.Dock="Right" Style="{StaticResource Switch}" Click="Opt_Click" VerticalAlignment="Center" />
+                                    <ui:HintPic Kind="smart" />
+                                    <StackPanel Margin="0,0,14,0" VerticalAlignment="Center">
+                                        <TextBlock Text="Passende Seite öffnen" />
+                                        <TextBlock Style="{StaticResource Desc}" Text="Was gerade passiert ist, öffnet sich: neuer Song → Musik, kopiert → Zwischenablage, Claude fertig → Agent, im Anruf → Live. Aus: immer die zuletzt benutzte Seite." />
+                                    </StackPanel>
+                                </DockPanel>
+                            </Border>
+                            <Border Style="{StaticResource LastRow}">
+                                <DockPanel>
+                                    <ToggleButton x:Name="OptTrackPeek" DockPanel.Dock="Right" Style="{StaticResource Switch}" Click="Opt_Click" VerticalAlignment="Center" />
+                                    <ui:HintPic Kind="trackpeek" />
+                                    <StackPanel Margin="0,0,12,0" VerticalAlignment="Center">
+                                        <TextBlock Text="Neuen Titel kurz anzeigen" />
+                                        <TextBlock Style="{StaticResource Desc}" Text="Bei einem neuen Song zeigt die Insel kurz Titel und Cover." />
+                                    </StackPanel>
+                                </DockPanel>
+                            </Border>
+                        </StackPanel>
+                    </Border>
+
+                    <TextBlock Text="Vollbild" Style="{StaticResource GroupHeader}" />
+                    <Border Style="{StaticResource SettingCard}">
+                        <Border Style="{StaticResource LastRow}" Padding="12,10,12,12">
+                            <StackPanel>
+                                <TextBlock Text="Bei Spielen und Videos" />
+                                <TextBlock Style="{StaticResource Desc}" Text="Gilt für randloses Vollbild." Margin="0,2,0,10" />
+                                <StackPanel Orientation="Horizontal">
+                                    <RadioButton x:Name="FsBar" Style="{StaticResource OptionRadio}" GroupName="Fs" Tag="Leiste mit PC-Werten" Checked="Fullscreen_Checked"><ui:HintPic Kind="fs.bar" /></RadioButton>
+                                    <RadioButton x:Name="FsHide" Style="{StaticResource OptionRadio}" GroupName="Fs" Tag="Insel ausblenden" Checked="Fullscreen_Checked"><ui:HintPic Kind="fs.hide" /></RadioButton>
+                                    <RadioButton x:Name="FsNormal" Style="{StaticResource OptionRadio}" GroupName="Fs" Tag="Normal anzeigen" Checked="Fullscreen_Checked"><ui:HintPic Kind="fs.norm" /></RadioButton>
+                                </StackPanel>
+                            </StackPanel>
+                        </Border>
+                    </Border>
+
+                    <TextBlock Text="System" Style="{StaticResource GroupHeader}" />
+                    <Border Style="{StaticResource SettingCard}">
+                        <Border Style="{StaticResource LastRow}">
+                            <DockPanel>
+                                <ToggleButton x:Name="OptAutostart" DockPanel.Dock="Right" Style="{StaticResource Switch}" Click="Opt_Click" VerticalAlignment="Center" />
+                                <ui:HintPic Kind="autostart" />
+                                <StackPanel Margin="0,0,12,0" VerticalAlignment="Center">
+                                    <TextBlock Text="Autostart" />
+                                    <TextBlock x:Name="AutostartDesc" Style="{StaticResource Desc}" Text="IslandHub startet, wenn du dich bei Windows anmeldest." />
+                                </StackPanel>
+                            </DockPanel>
+                        </Border>
+                    </Border>
+
+                    <TextBlock Text="Timer" Style="{StaticResource GroupHeader}" />
+                    <Border Style="{StaticResource SettingCard}">
+                        <StackPanel>
+                            <Border Style="{StaticResource Row}">
+                                <DockPanel>
+                                    <Button x:Name="SoundPreviewBtn" DockPanel.Dock="Right" Style="{StaticResource MacButton}" Margin="8,0,0,0" Padding="10,3" VerticalAlignment="Center"
+                                            Click="SoundPreview_Click" ToolTip="Anhören">
+                                        <StackPanel Orientation="Horizontal">
+                                            <ui:SfIcon x:Name="SoundPreviewIcon" Kind="play.fill" Size="11" Margin="0,0,5,0" VerticalAlignment="Center" />
+                                            <TextBlock x:Name="SoundPreviewText" Text="Anhören" VerticalAlignment="Center" />
+                                        </StackPanel>
+                                    </Button>
+                                    <ComboBox x:Name="OptTimerSound" DockPanel.Dock="Right" Style="{StaticResource DarkCombo}" Width="170" VerticalAlignment="Center" SelectionChanged="TimerSound_Changed" />
+                                    <ui:HintPic Kind="sound" />
+                                    <StackPanel Margin="0,0,12,0" VerticalAlignment="Center">
+                                        <TextBlock Text="Ton bei Ablauf" />
+                                        <TextBlock Style="{StaticResource Desc}" Text="Eigene Töne, Windows-Alarme oder eine Datei." />
+                                    </StackPanel>
+                                </DockPanel>
+                            </Border>
+                            <Border Style="{StaticResource LastRow}">
+                                <DockPanel>
+                                    <ToggleButton x:Name="OptTimerRepeat" DockPanel.Dock="Right" Style="{StaticResource Switch}" Click="Opt_Click" VerticalAlignment="Center" />
+                                    <ui:HintPic Kind="repeat" />
+                                    <StackPanel Margin="0,0,12,0" VerticalAlignment="Center">
+                                        <TextBlock Text="Wiederholen, bis ich bestätige" />
+                                        <TextBlock Style="{StaticResource Desc}" Text="Der Ton läuft weiter, bis du „OK“ klickst (höchstens 1 Minute)." />
+                                    </StackPanel>
+                                </DockPanel>
+                            </Border>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- connections: folded – the steps only show when you set one up -->
+                    <TextBlock Text="Verbindungen" Style="{StaticResource GroupHeader}" />
+                    <Border Style="{StaticResource SettingCard}">
+                        <StackPanel>
+                            <!-- Discord -->
+                            <Border Style="{StaticResource Row}">
+                                <DockPanel>
+                                    <ToggleButton x:Name="DiscordExpand" DockPanel.Dock="Right" Style="{StaticResource MacButtonToggle}" Content="Einrichten" Tag="DiscordDetails" Click="Expand_Click" VerticalAlignment="Center" Margin="8,0,0,0" />
+                                    <TextBlock x:Name="DiscordStatus" DockPanel.Dock="Right" Style="{StaticResource Desc}" VerticalAlignment="Center" Margin="8,0,0,0" MaxWidth="200" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" />
+                                    <Border Style="{StaticResource AppTile}" Background="#FF5865F2"><ui:SfIcon Kind="mic" Size="16" Foreground="White" /></Border>
+                                    <StackPanel VerticalAlignment="Center">
+                                        <TextBlock Text="Discord" />
+                                        <TextBlock Style="{StaticResource Desc}" Text="Stumm in Discord, Mitglieder, Stream-Taste." />
+                                    </StackPanel>
+                                </DockPanel>
+                            </Border>
+                            <StackPanel x:Name="DiscordDetails" Visibility="Collapsed" Background="#0AFFFFFF">
+                                <Border Style="{StaticResource Row}" Padding="54,9,12,9">
+                                    <StackPanel>
+                                        <TextBlock Style="{StaticResource Desc}" Margin="0"
+                                                   Text="Mit deiner eigenen Discord-App schaltet die Insel dich in Discord stumm (die anderen hören dich nicht, dein Mikro bleibt an) und zeigt, wenn du in Discord stumm bist. So geht's: discord.com/developers → New Application → bei OAuth2 die Redirect-URL http://127.0.0.1 eintragen → Client-ID und Client-Secret hier einfügen." />
+                                        <TextBlock Margin="0,4,0,0"><Hyperlink NavigateUri="https://discord.com/developers/applications" RequestNavigate="Link_RequestNavigate">Discord Developer Portal öffnen</Hyperlink></TextBlock>
+                                    </StackPanel>
+                                </Border>
+                                <Border Style="{StaticResource Row}" Padding="54,9,12,9">
+                                    <DockPanel>
+                                        <TextBlock Text="Client-ID" Width="90" VerticalAlignment="Center" />
+                                        <TextBox x:Name="OptDiscordId" Style="{StaticResource MacTextBox}" Tag="z. B. 1300000000000000000" />
+                                    </DockPanel>
+                                </Border>
+                                <Border Style="{StaticResource Row}" Padding="54,9,12,9">
+                                    <DockPanel>
+                                        <TextBlock Text="Client-Secret" Width="90" VerticalAlignment="Center" />
+                                        <PasswordBox x:Name="OptDiscordSecret" Height="26" Background="#FF2C2C2E" Foreground="White" BorderBrush="#26FFFFFF" CaretBrush="White"
+                                                     VerticalContentAlignment="Center" Padding="6,0" />
+                                    </DockPanel>
+                                </Border>
+                                <Border Style="{StaticResource Row}" Padding="54,9,12,9">
+                                    <DockPanel>
+                                        <ToggleButton x:Name="OptMicBlue" DockPanel.Dock="Right" Style="{StaticResource Switch}" Click="MicBlue_Click" VerticalAlignment="Center" />
+                                        <StackPanel Margin="0,0,12,0">
+                                            <TextBlock Text="Mikro-Symbol in Blau" />
+                                            <TextBlock Style="{StaticResource Desc}" Text="Aus = weiß. Stumm in Discord ist immer rot und durchgestrichen." />
+                                        </StackPanel>
+                                    </DockPanel>
+                                </Border>
+                                <Border Style="{StaticResource Row}" Padding="54,9,12,9">
+                                    <StackPanel>
+                                        <DockPanel>
+                                            <TextBox x:Name="OptDiscordStreamKey" DockPanel.Dock="Right" Style="{StaticResource KeyBox}" Width="170" Tag="Klicken und drücken"
+                                                     PreviewKeyDown="DiscordStreamKey_PreviewKeyDown" />
+                                            <TextBlock Text="Stream starten / beenden" VerticalAlignment="Center" />
+                                        </DockPanel>
+                                        <TextBlock Style="{StaticResource Desc}" Margin="0,4,0,0"
+                                                   Text="Discord bietet dafür keine Schnittstelle, aber ein Tastenkürzel: Lege in Discord unter Einstellungen → Tastenkombinationen eine Aktion zum Umschalten der Bildschirmübertragung (Go Live) an und trage hier dieselbe Kombination ein, z. B. Strg + Shift + Alt + F9. Die Insel drückt sie dann für dich." />
+                                    </StackPanel>
+                                </Border>
+                                <Border Style="{StaticResource Row}" Padding="54,9,12,9">
+                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                                        <Button Style="{StaticResource MacButton}" Content="Trennen" Padding="10,3" Click="DiscordDisconnect_Click" />
+                                        <Button Style="{StaticResource MacAccentButton}" Content="Verbinden" Margin="8,0,0,0" Click="DiscordConnect_Click" />
+                                    </StackPanel>
+                                </Border>
+                            </StackPanel>
+
+                            <!-- Spotify -->
+                            <Border Style="{StaticResource Row}">
+                                <DockPanel>
+                                    <ToggleButton x:Name="SpotifyExpand" DockPanel.Dock="Right" Style="{StaticResource MacButtonToggle}" Content="Einrichten" Tag="SpotifyDetails" Click="Expand_Click" VerticalAlignment="Center" Margin="8,0,0,0" />
+                                    <TextBlock x:Name="SpotifyStatus" DockPanel.Dock="Right" Style="{StaticResource Desc}" VerticalAlignment="Center" Margin="8,0,0,0" MaxWidth="200" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" />
+                                    <Border Style="{StaticResource AppTile}" Background="#FF1DB954"><ui:SfIcon Kind="music" Size="16" Foreground="White" /></Border>
+                                    <StackPanel VerticalAlignment="Center">
+                                        <TextBlock Text="Spotify" />
+                                        <TextBlock Style="{StaticResource Desc}" Text="„Als Nächstes“ im Musik-Tab." />
+                                    </StackPanel>
+                                </DockPanel>
+                            </Border>
+                            <StackPanel x:Name="SpotifyDetails" Visibility="Collapsed" Background="#0AFFFFFF">
+                                <Border Style="{StaticResource Row}" Padding="54,9,12,9">
+                                    <StackPanel>
+                                        <TextBlock Style="{StaticResource Desc}" Margin="0"
+                                                   Text="So geht's: developer.spotify.com → Dashboard → Create app → bei Redirect URI http://127.0.0.1:47824/callback eintragen, „Web API“ anhaken → die Client-ID hier einfügen. Ein Secret ist nicht nötig." />
+                                        <TextBlock Margin="0,4,0,0"><Hyperlink NavigateUri="https://developer.spotify.com/dashboard" RequestNavigate="Link_RequestNavigate">Spotify Developer Dashboard öffnen</Hyperlink></TextBlock>
+                                    </StackPanel>
+                                </Border>
+                                <Border Style="{StaticResource Row}" Padding="54,9,12,9">
+                                    <DockPanel>
+                                        <TextBlock Text="Client-ID" Width="90" VerticalAlignment="Center" />
+                                        <TextBox x:Name="OptSpotifyId" Style="{StaticResource MacTextBox}" Tag="32 Zeichen aus dem Dashboard" />
+                                    </DockPanel>
+                                </Border>
+                                <Border Style="{StaticResource Row}" Padding="54,9,12,9">
+                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                                        <Button Style="{StaticResource MacButton}" Content="Trennen" Padding="10,3" Click="SpotifyDisconnect_Click" />
+                                        <Button Style="{StaticResource MacAccentButton}" Content="Verbinden" Margin="8,0,0,0" Click="SpotifyConnect_Click" />
+                                    </StackPanel>
+                                </Border>
+                            </StackPanel>
+
+                            <!-- OBS -->
+                            <Border x:Name="ObsRow" Style="{StaticResource LastRow}">
+                                <DockPanel>
+                                    <ToggleButton x:Name="ObsExpand" DockPanel.Dock="Right" Style="{StaticResource MacButtonToggle}" Content="Anleitung" Tag="ObsDetails" Click="Expand_Click" VerticalAlignment="Center" Margin="8,0,0,0" />
+                                    <TextBlock x:Name="ObsSettingsStatus" DockPanel.Dock="Right" Style="{StaticResource Desc}" VerticalAlignment="Center" Margin="8,0,0,0" MaxWidth="200" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" />
+                                    <Border Style="{StaticResource AppTile}" Background="#FF48484A"><ui:SfIcon Kind="record" Size="16" Foreground="White" /></Border>
+                                    <StackPanel VerticalAlignment="Center">
+                                        <TextBlock Text="OBS" />
+                                        <TextBlock Style="{StaticResource Desc}" Text="Aufnahme und Stream in der Insel." />
+                                    </StackPanel>
+                                </DockPanel>
+                            </Border>
+                            <StackPanel x:Name="ObsDetails" Visibility="Collapsed" Background="#0AFFFFFF">
+                                <Border Style="{StaticResource Row}" Padding="54,9,12,9" BorderThickness="0,0.5,0,0.5">
+                                    <TextBlock Style="{StaticResource Desc}" Margin="0"
+                                               Text="In OBS: Werkzeuge → WebSocket-Servereinstellungen → „WebSocket-Server aktivieren“ (Port 4455). Ist dort Authentifizierung an, das Passwort hier eintragen. Die Insel verbindet sich, sobald OBS läuft." />
+                                </Border>
+                                <Border Style="{StaticResource LastRow}" Padding="54,9,12,9">
+                                    <DockPanel>
+                                        <Button DockPanel.Dock="Right" Style="{StaticResource MacAccentButton}" Content="Speichern" Margin="8,0,0,0" Click="ObsSave_Click" />
+                                        <TextBlock Text="Passwort" Width="90" VerticalAlignment="Center" />
+                                        <PasswordBox x:Name="OptObsPassword" Height="26" Background="#FF2C2C2E" Foreground="White" BorderBrush="#26FFFFFF" CaretBrush="White"
+                                                     VerticalContentAlignment="Center" Padding="6,0" />
+                                    </DockPanel>
+                                </Border>
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- verification codes: open the mails -->
+                    <TextBlock Text="Bestätigungscodes" Style="{StaticResource GroupHeader}" />
+                    <Border Style="{StaticResource SettingCard}">
+                        <StackPanel>
+                            <Border Style="{StaticResource Row}">
+                                <DockPanel>
+                                    <ToggleButton x:Name="OptCodeMail" DockPanel.Dock="Right" Style="{StaticResource Switch}" Click="Opt_Click" VerticalAlignment="Center" />
+                                    <ui:HintPic Kind="code" />
+                                    <StackPanel Margin="0,0,12,0" VerticalAlignment="Center">
+                                        <TextBlock Text="E-Mails öffnen, wenn ein Code verlangt wird" />
+                                        <TextBlock Style="{StaticResource Desc}" Text="Fragt eine Seite im Browser nach einem Bestätigungscode, öffnet die Insel deinen E-Mail-Tab. Ein Code aus einer Mitteilung erscheint mit „Kopieren“." />
+                                    </StackPanel>
+                                </DockPanel>
+                            </Border>
+                            <Border Style="{StaticResource LastRow}">
+                                <DockPanel>
+                                    <ui:HintPic Kind="mail" />
+                                    <TextBlock Text="Postfach" Width="90" VerticalAlignment="Center" />
+                                    <TextBox x:Name="OptMailUrl" Style="{StaticResource MacTextBox}" Tag="https://mail.google.com" LostFocus="MailUrl_LostFocus" VerticalAlignment="Center" />
+                                </DockPanel>
+                            </Border>
+                        </StackPanel>
+                    </Border>
+                    <ToggleButton x:Name="OptSeconds" Visibility="Collapsed" />
+                </StackPanel>
+
+                <!-- ======== LOOK ======== -->
+                <StackPanel x:Name="PageLook">
+                    <TextBlock Text="Erscheinungsbild" Style="{StaticResource PageTitle}" />
+                    <Border Style="{StaticResource SettingCard}" Padding="10">
+                        <StackPanel>
+                            <ui:IslandPreview x:Name="Preview" />
+                            <WrapPanel x:Name="PreviewChips" Margin="0,10,0,-6" />
+                        </StackPanel>
+                    </Border>
+
+                    <TextBlock Text="Insel" Style="{StaticResource GroupHeader}" />
+                    <Border Style="{StaticResource SettingCard}">
+                        <StackPanel>
+                            <Border Style="{StaticResource Row}" Padding="12,12">
+                                <StackPanel>
+                                    <TextBlock Text="Form" Margin="0,0,0,10" />
+                                    <StackPanel Orientation="Horizontal">
+                                        <RadioButton x:Name="ShapePill" Style="{StaticResource OptionRadio}" GroupName="Shape" Tag="Insel" Checked="Shape_Checked">
+                                            <Border Width="92" Height="54" CornerRadius="6" Background="#FF3A3A3C">
+                                                <Border Width="44" Height="12" CornerRadius="6" Background="Black" VerticalAlignment="Top" Margin="0,7,0,0" />
+                                            </Border>
+                                        </RadioButton>
+                                        <RadioButton x:Name="ShapeNotch" Style="{StaticResource OptionRadio}" GroupName="Shape" Tag="Notch" Checked="Shape_Checked">
+                                            <Border Width="92" Height="54" CornerRadius="6" Background="#FF3A3A3C" ClipToBounds="True">
+                                                <Border Width="46" Height="13" CornerRadius="0,0,6,6" Background="Black" VerticalAlignment="Top" />
+                                            </Border>
+                                        </RadioButton>
+                                    </StackPanel>
+                                </StackPanel>
+                            </Border>
+                            <Border Style="{StaticResource Row}" Padding="12,12">
+                                <StackPanel>
+                                    <TextBlock Text="Stil" />
+                                    <TextBlock Style="{StaticResource Desc}" Text="Schwarz wie beim iPhone, Tiefe mit etwas Licht oben, Glas leicht durchsichtig." Margin="0,2,0,10" />
+                                    <WrapPanel x:Name="ThemePanel" />
+                                </StackPanel>
+                            </Border>
+                            <Border Style="{StaticResource Row}">
+                                <DockPanel>
+                                    <StackPanel x:Name="AccentPanel" DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center" />
+                                    <StackPanel VerticalAlignment="Center">
+                                        <TextBlock Text="Akzentfarbe" />
+                                        <TextBlock Style="{StaticResource Desc}" Text="Fortschritt, Auswahl und Schalter." />
+                                    </StackPanel>
+                                </DockPanel>
+                            </Border>
+                            <Border Style="{StaticResource LastRow}">
+                                <DockPanel>
+                                    <ToggleButton x:Name="OptGlow" DockPanel.Dock="Right" Style="{StaticResource Switch}" Click="Opt_Click" VerticalAlignment="Center" />
+                                    <ui:HintPic Kind="glow" />
+                                    <StackPanel Margin="0,0,12,0" VerticalAlignment="Center">
+                                        <TextBlock Text="Leuchten in Cover-Farbe" />
+                                        <TextBlock Style="{StaticResource Desc}" Text="Bei Musik leuchtet die Insel in der Farbe des Albumcovers." />
+                                    </StackPanel>
+                                </DockPanel>
+                            </Border>
+                        </StackPanel>
+                    </Border>
+
+                    <TextBlock Text="Tab-Leiste" Style="{StaticResource GroupHeader}" />
+                    <Border Style="{StaticResource SettingCard}">
+                        <StackPanel>
+                            <Border Style="{StaticResource Row}" Padding="12,12">
+                                <StackPanel Orientation="Horizontal">
+                                    <!-- A: quiet icons, the active one white with its name -->
+                                    <RadioButton x:Name="TabStyleA" Style="{StaticResource OptionRadio}" GroupName="TabStyle" Tag="Leise" Checked="TabStyle_Checked">
+                                        <Border Width="120" Height="48" CornerRadius="12" Background="Black" Padding="10,9">
+                                            <StackPanel>
+                                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                                    <Ellipse Width="4" Height="4" Fill="#FF48484A" Margin="0,0,5,0" />
+                                                    <Ellipse Width="4" Height="4" Fill="White" />
+                                                    <Rectangle Width="14" Height="3" RadiusX="1.5" RadiusY="1.5" Fill="White" Margin="2,0,5,0" VerticalAlignment="Center" />
+                                                    <Ellipse Width="4" Height="4" Fill="#FF48484A" Margin="0,0,5,0" />
+                                                    <Ellipse Width="4" Height="4" Fill="#FF48484A" Margin="0,0,5,0" />
+                                                    <Ellipse Width="4" Height="4" Fill="#FF48484A" />
+                                                </StackPanel>
+                                                <Rectangle Width="70" Height="4" RadiusX="2" RadiusY="2" Fill="#FF2C2C2E" HorizontalAlignment="Left" Margin="0,8,0,0" />
+                                                <Rectangle Width="44" Height="4" RadiusX="2" RadiusY="2" Fill="#FF2C2C2E" HorizontalAlignment="Left" Margin="0,4,0,0" />
+                                            </StackPanel>
+                                        </Border>
+                                    </RadioButton>
+                                    <!-- B: groups with small separators -->
+                                    <RadioButton x:Name="TabStyleB" Style="{StaticResource OptionRadio}" GroupName="TabStyle" Tag="Gruppen" Checked="TabStyle_Checked">
+                                        <Border Width="120" Height="48" CornerRadius="12" Background="Black" Padding="10,9">
+                                            <StackPanel>
+                                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                                    <Ellipse Width="4" Height="4" Fill="White" Margin="0,0,3,0" />
+                                                    <Ellipse Width="4" Height="4" Fill="#FF48484A" Margin="0,0,3,0" />
+                                                    <Ellipse Width="4" Height="4" Fill="#FF48484A" />
+                                                    <Rectangle Width="1" Height="7" Fill="#FF3A3A3C" Margin="6,0,6,0" />
+                                                    <Ellipse Width="4" Height="4" Fill="#FF48484A" Margin="0,0,3,0" />
+                                                    <Ellipse Width="4" Height="4" Fill="#FF48484A" />
+                                                    <Rectangle Width="1" Height="7" Fill="#FF3A3A3C" Margin="6,0,6,0" />
+                                                    <Ellipse Width="4" Height="4" Fill="#FFFF453A" />
+                                                </StackPanel>
+                                                <Rectangle Width="70" Height="4" RadiusX="2" RadiusY="2" Fill="#FF2C2C2E" HorizontalAlignment="Left" Margin="0,8,0,0" />
+                                                <Rectangle Width="44" Height="4" RadiusX="2" RadiusY="2" Fill="#FF2C2C2E" HorizontalAlignment="Left" Margin="0,4,0,0" />
+                                            </StackPanel>
+                                        </Border>
+                                    </RadioButton>
+                                    <!-- C: page name large on the left, icons small on the right -->
+                                    <RadioButton x:Name="TabStyleC" Style="{StaticResource OptionRadio}" GroupName="TabStyle" Tag="Titelzeile" Checked="TabStyle_Checked">
+                                        <Border Width="120" Height="48" CornerRadius="12" Background="Black" Padding="10,8">
+                                            <StackPanel>
+                                                <Grid>
+                                                    <Rectangle Width="28" Height="5" RadiusX="2" RadiusY="2" Fill="White" HorizontalAlignment="Left" />
+                                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                                                        <Ellipse Width="4" Height="4" Fill="White" Margin="0,0,3,0" />
+                                                        <Ellipse Width="4" Height="4" Fill="#FF48484A" Margin="0,0,3,0" />
+                                                        <Ellipse Width="4" Height="4" Fill="#FF48484A" Margin="0,0,3,0" />
+                                                        <Ellipse Width="4" Height="4" Fill="#FF48484A" />
+                                                    </StackPanel>
+                                                </Grid>
+                                                <Rectangle Width="70" Height="4" RadiusX="2" RadiusY="2" Fill="#FF2C2C2E" HorizontalAlignment="Left" Margin="0,9,0,0" />
+                                                <Rectangle Width="44" Height="4" RadiusX="2" RadiusY="2" Fill="#FF2C2C2E" HorizontalAlignment="Left" Margin="0,4,0,0" />
+                                            </StackPanel>
+                                        </Border>
+                                    </RadioButton>
+                                </StackPanel>
+                            </Border>
+                            <Border Style="{StaticResource Row}">
+                                <DockPanel>
+                                    <ToggleButton x:Name="OptTabAutoHide" DockPanel.Dock="Right" Style="{StaticResource Switch}" Click="Opt_Click" VerticalAlignment="Center" />
+                                    <ui:HintPic Kind="tabhide" />
+                                    <StackPanel Margin="0,0,12,0" VerticalAlignment="Center">
+                                        <TextBlock Text="Tab-Leiste ausblenden" />
+                                        <TextBlock Style="{StaticResource Desc}" Text="Nur kleine Seitenpunkte, bis der Zeiger auf die Leiste kommt." />
+                                    </StackPanel>
+                                </DockPanel>
+                            </Border>
+                            <Border Style="{StaticResource LastRow}" Cursor="Hand" MouseLeftButtonUp="TabOrderRow_Click" Background="Transparent">
+                                <DockPanel>
+                                    <ui:SfIcon x:Name="TabOrderChevron" DockPanel.Dock="Right" Kind="chevron.down" Size="13" Foreground="{StaticResource SubText}" VerticalAlignment="Center" />
+                                    <ui:HintPic Kind="order" />
+                                    <StackPanel Margin="0,0,12,0" VerticalAlignment="Center">
+                                        <TextBlock Text="Reihenfolge und sichtbare Tabs" />
+                                        <TextBlock Style="{StaticResource Desc}" Text="Zeile greifen und nach oben oder unten ziehen. Der Schalter blendet einen Tab aus." />
+                                    </StackPanel>
+                                </DockPanel>
+                            </Border>
+                            <!-- order + which tabs exist: drag a row up/down (it only moves on that axis and snaps into place) -->
+                            <Border x:Name="TabOrderPanel" Padding="6" Visibility="Collapsed" BorderBrush="#14FFFFFF" BorderThickness="0,0.5,0,0">
+                                <ItemsControl x:Name="TabOrderList">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Border Height="38" CornerRadius="8" Background="#FF2C2C2E" Margin="0,0,0,4" Padding="10,0,10,0" Cursor="SizeNS">
+                                                <DockPanel>
+                                                    <ToggleButton DockPanel.Dock="Right" Style="{StaticResource Switch}" IsChecked="{Binding Visible, Mode=TwoWay}"
+                                                                  Click="TabVisible_Click" Cursor="Hand" VerticalAlignment="Center" />
+                                                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                                        <TextBlock Text="⋮⋮" FontSize="11" Foreground="#FF636366" VerticalAlignment="Center" Margin="0,0,10,0" />
+                                                        <ui:SfIcon Kind="{Binding Icon}" Size="15" Foreground="White" Margin="0,0,10,0" />
+                                                        <TextBlock Text="{Binding Name}" VerticalAlignment="Center" />
+                                                        <TextBlock Text="{Binding Note}" Foreground="#FF8E8E93" FontSize="11" VerticalAlignment="Center" Margin="6,0,0,0" />
+                                                    </StackPanel>
+                                                </DockPanel>
+                                            </Border>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </Border>
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+
+                <!-- ======== ANIMATIONS ======== -->
+                <StackPanel x:Name="PageAnim" Visibility="Collapsed">
+                    <TextBlock Text="Animationen" Style="{StaticResource PageTitle}" />
+                    <Border Style="{StaticResource SettingCard}">
+                        <StackPanel>
+                            <Border Style="{StaticResource Row}">
+                                <DockPanel>
+                                    <Border DockPanel.Dock="Right" Style="{StaticResource SegBox}">
+                                        <StackPanel Orientation="Horizontal">
+                                            <RadioButton x:Name="AnimOn" Style="{StaticResource Seg}" GroupName="AnimLevel" Content="An" Checked="AnimLevel_Checked" />
+                                            <RadioButton x:Name="AnimReduced" Style="{StaticResource Seg}" GroupName="AnimLevel" Content="Reduziert" Checked="AnimLevel_Checked" />
+                                            <RadioButton x:Name="AnimOff" Style="{StaticResource Seg}" GroupName="AnimLevel" Content="Aus" Checked="AnimLevel_Checked" />
+                                        </StackPanel>
+                                    </Border>
+                                    <ui:HintPic Kind="anim" />
+                                    <StackPanel Margin="0,0,12,0" VerticalAlignment="Center">
+                                        <TextBlock Text="Kleine Animationen" />
+                                        <TextBlock x:Name="AnimLevelDesc" Style="{StaticResource Desc}" />
+                                    </StackPanel>
+                                </DockPanel>
+                            </Border>
+                            <Border Style="{StaticResource LastRow}">
+                                <DockPanel>
+                                    <Button DockPanel.Dock="Right" Style="{StaticResource MacAccentButton}" Click="PlayAll_Click" VerticalAlignment="Center">
+                                        <StackPanel Orientation="Horizontal">
+                                            <ui:SfIcon Kind="play.fill" Size="10" Margin="0,0,5,0" VerticalAlignment="Center" Foreground="White" />
+                                            <TextBlock Text="Abspielen" />
+                                        </StackPanel>
+                                    </Button>
+                                    <StackPanel VerticalAlignment="Center">
+                                        <TextBlock Text="Alle nacheinander ansehen" />
+                                        <TextBlock Style="{StaticResource Desc}" Text="Ein Klick auf eine Karte spielt sie einzeln ab." />
+                                    </StackPanel>
+                                </DockPanel>
+                            </Border>
+                        </StackPanel>
+                    </Border>
+                    <TextBlock Text="Bewegung der Insel" Style="{StaticResource GroupHeader}" />
+                    <UniformGrid x:Name="AnimMoves" Columns="2" Margin="0,0,-8,10" />
+                    <TextBlock Text="Momente auf der Insel" Style="{StaticResource GroupHeader}" />
+                    <UniformGrid x:Name="AnimMoments" Columns="2" Margin="0,0,-8,0" />
+                </StackPanel>
+
+                <!-- ======== KEYBOARD ======== -->
+                <StackPanel x:Name="PageKeys" Visibility="Collapsed">
+                    <TextBlock Text="Tastatur" Style="{StaticResource PageTitle}" />
+                    <TextBlock Text="Tastenkürzel" Style="{StaticResource GroupHeader}" />
+                    <Border Style="{StaticResource SettingCard}">
+                        <StackPanel x:Name="KeysPanel" />
+                    </Border>
+                    <DockPanel>
+                        <Button DockPanel.Dock="Right" Style="{StaticResource MacButton}" Content="Standard wiederherstellen" Click="ResetKeys_Click" VerticalAlignment="Top" />
+                        <TextBlock Style="{StaticResource Desc}" Margin="2,0,16,0"
+                                   Text="Feld anklicken und Kombination aus Win, Strg, Alt und Shift drücken. Entf entfernt, Esc bricht ab. Strg+Alt entspricht auf deutschen Tastaturen AltGr – Q, E, M, 2, 3 und 7–0 meiden." />
+                    </DockPanel>
+                    <TextBlock x:Name="KeysStatus" Style="{StaticResource Desc}" Margin="2,10,0,0" Foreground="{StaticResource Orange}" />
+                </StackPanel>
+
+                <!-- ======== CLIPBOARD ======== -->
+                <StackPanel x:Name="PageClip" Visibility="Collapsed">
+                    <TextBlock Text="Zwischenablage" Style="{StaticResource PageTitle}" />
+                    <TextBlock Text="Ansicht" Style="{StaticResource GroupHeader}" />
+                    <Border Style="{StaticResource SettingCard}">
+                        <Border Style="{StaticResource LastRow}" Padding="12,12">
+                            <StackPanel Orientation="Horizontal">
+                                <!-- previews = the real island rendered with sample entries (Resources/clip_*.png) -->
+                                <RadioButton x:Name="ClipLayoutC" Style="{StaticResource OptionRadio}" GroupName="ClipLayout" Tag="Bilder + Liste" Checked="ClipLayout_Checked">
+                                    <Border Width="126" Height="100" CornerRadius="8" ClipToBounds="True">
+                                        <Border.Background><ImageBrush ImageSource="/Resources/clip_streifen.png" Stretch="UniformToFill" AlignmentY="Top" /></Border.Background>
+                                    </Border>
+                                </RadioButton>
+                                <RadioButton x:Name="ClipLayoutA" Style="{StaticResource OptionRadio}" GroupName="ClipLayout" Tag="Liste" Checked="ClipLayout_Checked">
+                                    <Border Width="126" Height="100" CornerRadius="8" ClipToBounds="True">
+                                        <Border.Background><ImageBrush ImageSource="/Resources/clip_liste.png" Stretch="UniformToFill" AlignmentY="Top" /></Border.Background>
+                                    </Border>
+                                </RadioButton>
+                                <RadioButton x:Name="ClipLayoutB" Style="{StaticResource OptionRadio}" GroupName="ClipLayout" Tag="Kacheln" Checked="ClipLayout_Checked">
+                                    <Border Width="126" Height="100" CornerRadius="8" ClipToBounds="True">
+                                        <Border.Background><ImageBrush ImageSource="/Resources/clip_kacheln.png" Stretch="UniformToFill" AlignmentY="Top" /></Border.Background>
+                                    </Border>
+                                </RadioButton>
+                            </StackPanel>
+                        </Border>
+                    </Border>
+                    <TextBlock Text="Einfügen" Style="{StaticResource GroupHeader}" />
+                    <Border Style="{StaticResource SettingCard}">
+                        <StackPanel>
+                            <Border Style="{StaticResource Row}">
+                                <DockPanel>
+                                    <ToggleButton x:Name="OptQueue" DockPanel.Dock="Right" Style="{StaticResource Switch}" Click="Opt_Click" VerticalAlignment="Center" />
+                                    <ui:HintPic Kind="stack" />
+                                    <StackPanel Margin="0,0,14,0" VerticalAlignment="Center">
+                                        <TextBlock Text="Stapel-Modus" />
+                                        <TextBlock Style="{StaticResource Desc}" Text="Mehrere Dinge nacheinander kopieren, jedes Strg+V fügt das nächste der Reihe nach ein." />
+                                    </StackPanel>
+                                </DockPanel>
+                            </Border>
+                            <Border Style="{StaticResource Row}">
+                                <DockPanel>
+                                    <ToggleButton x:Name="OptClickPastes" DockPanel.Dock="Right" Style="{StaticResource Switch}" Click="Opt_Click" VerticalAlignment="Center" />
+                                    <ui:HintPic Kind="click" />
+                                    <StackPanel Margin="0,0,14,0" VerticalAlignment="Center">
+                                        <TextBlock Text="Klick fügt direkt ein" />
+                                        <TextBlock Style="{StaticResource Desc}" Text="Aus: ein Klick kopiert den Eintrag nur." />
+                                    </StackPanel>
+                                </DockPanel>
+                            </Border>
+                            <Border Style="{StaticResource LastRow}">
+                                <DockPanel>
+                                    <ToggleButton x:Name="OptConfirmCopy" DockPanel.Dock="Right" Style="{StaticResource Switch}" Click="Opt_Click" VerticalAlignment="Center" />
+                                    <ui:HintPic Kind="confirm" />
+                                    <StackPanel Margin="0,0,14,0" VerticalAlignment="Center">
+                                        <TextBlock Text="Kopieren bestätigen" />
+                                        <TextBlock Style="{StaticResource Desc}" Text="Bei Strg+C zeigt die Insel kurz „Kopiert“ mit Haken." />
+                                    </StackPanel>
+                                </DockPanel>
+                            </Border>
+                        </StackPanel>
+                    </Border>
+                    <TextBlock Text="Verlauf" Style="{StaticResource GroupHeader}" />
+                    <Border Style="{StaticResource SettingCard}">
+                        <StackPanel>
+                            <Border Style="{StaticResource Row}">
+                                <DockPanel>
+                                    <ToggleButton x:Name="OptPersist" DockPanel.Dock="Right" Style="{StaticResource Switch}" Click="Opt_Click" VerticalAlignment="Center" />
+                                    <ui:HintPic Kind="history" />
+                                    <TextBlock Text="Nach Neustart behalten" VerticalAlignment="Center" />
+                                </DockPanel>
+                            </Border>
+                            <Border Style="{StaticResource Row}">
+                                <DockPanel>
+                                    <ComboBox x:Name="OptLimit" DockPanel.Dock="Right" Style="{StaticResource DarkCombo}" Width="90" SelectionChanged="Limit_Changed" VerticalAlignment="Center">
+                                        <ComboBoxItem Content="50" />
+                                        <ComboBoxItem Content="100" />
+                                        <ComboBoxItem Content="200" />
+                                        <ComboBoxItem Content="500" />
+                                        <ComboBoxItem Content="1000" />
+                                    </ComboBox>
+                                    <ui:HintPic Kind="limit" />
+                                    <StackPanel VerticalAlignment="Center">
+                                        <TextBlock Text="Einträge im Verlauf" />
+                                        <TextBlock Style="{StaticResource Desc}" Text="Angeheftetes bleibt immer erhalten." />
+                                    </StackPanel>
+                                </DockPanel>
+                            </Border>
+                            <Border Style="{StaticResource LastRow}">
+                                <DockPanel>
+                                    <Button DockPanel.Dock="Right" Style="{StaticResource MacButton}" Content="Verlauf leeren…" Click="ClearHistory_Click" VerticalAlignment="Center" />
+                                    <ui:HintPic Kind="clear" />
+                                    <TextBlock Text="Alles außer Angeheftetem löschen" VerticalAlignment="Center" />
+                                </DockPanel>
+                            </Border>
+                        </StackPanel>
+                    </Border>
+                    <TextBlock Style="{StaticResource Desc}" Margin="2,0,0,0"
+                               Text="Nutzt die normale Windows-Zwischenablage. Passwort-Manager, die das Aufzeichnen verbieten, werden respektiert. Alles bleibt lokal auf diesem PC." />
+                </StackPanel>
+
+                <!-- ======== SCREENSHOT ======== -->
+                <StackPanel x:Name="PageShot" Visibility="Collapsed">
+                    <TextBlock Text="Bildschirmfoto" Style="{StaticResource PageTitle}" />
+                    <Border Style="{StaticResource SettingCard}">
+                        <StackPanel>
+                            <Border Style="{StaticResource Row}">
+                                <DockPanel>
+                                    <Button DockPanel.Dock="Right" Style="{StaticResource MacButton}" Content="Auswählen…" Margin="8,0,0,0" Click="BrowseShotFolder_Click" VerticalAlignment="Center" />
+                                    <ui:HintPic Kind="folder" />
+                                    <TextBlock Text="Sichern in" VerticalAlignment="Center" Margin="0,0,12,0" />
+                                    <TextBox x:Name="OptShotFolder" Style="{StaticResource MacTextBox}" FontSize="12" LostFocus="ShotFolder_LostFocus" VerticalAlignment="Center" />
+                                </DockPanel>
+                            </Border>
+                            <Border Style="{StaticResource Row}">
+                                <DockPanel>
+                                    <ToggleButton x:Name="OptShotAsk" DockPanel.Dock="Right" Style="{StaticResource Switch}" Click="Opt_Click" VerticalAlignment="Center" />
+                                    <ui:HintPic Kind="shotpreview" />
+                                    <StackPanel Margin="0,0,14,0" VerticalAlignment="Center">
+                                        <TextBlock Text="Vorschau in der Insel" />
+                                        <TextBlock Style="{StaticResource Desc}" Text="Die Insel geht nach unten auf und zeigt das Foto: Sichern, Text erkennen oder Verwerfen." />
+                                    </StackPanel>
+                                </DockPanel>
+                            </Border>
+                            <Border Style="{StaticResource LastRow}">
+                                <DockPanel>
+                                    <ToggleButton x:Name="OptShotAuto" DockPanel.Dock="Right" Style="{StaticResource Switch}" Click="Opt_Click" VerticalAlignment="Center" />
+                                    <ui:HintPic Kind="autosave" />
+                                    <StackPanel Margin="0,0,14,0" VerticalAlignment="Center">
+                                        <TextBlock Text="Immer automatisch sichern" />
+                                        <TextBlock Style="{StaticResource Desc}" Text="Aus: du entscheidest nach dem Foto." />
+                                    </StackPanel>
+                                </DockPanel>
+                            </Border>
+                        </StackPanel>
+                    </Border>
+                    <TextBlock Style="{StaticResource Desc}" Margin="2,0,0,0"
+                               Text="Bereich aufziehen wie beim Snipping Tool. Das Foto landet sofort in der Zwischenablage. Die Texterkennung läuft offline mit Windows." />
+                </StackPanel>
+
+                <!-- ======== WIDGETS ======== -->
+                <StackPanel x:Name="PageWidgets" Visibility="Collapsed">
+                    <TextBlock Text="Widgets" Style="{StaticResource PageTitle}" />
+                    <TextBlock Text="Auf dem Schreibtisch" Style="{StaticResource GroupHeader}" />
+                    <Border Style="{StaticResource SettingCard}">
+                        <StackPanel x:Name="DesktopWidgetsPanel" />
+                    </Border>
+                    <TextBlock Text="Wetter" Style="{StaticResource GroupHeader}" />
+                    <Border Style="{StaticResource SettingCard}">
+                        <Border Style="{StaticResource LastRow}">
+                            <StackPanel>
+                                <DockPanel>
+                                    <Button DockPanel.Dock="Right" Style="{StaticResource MacAccentButton}" Content="Übernehmen" Margin="8,0,0,0" Click="SetCity_Click" VerticalAlignment="Center" />
+                                    <ui:HintPic Kind="sun" />
+                                    <TextBlock Text="Ort" VerticalAlignment="Center" Margin="0,0,12,0" />
+                                    <TextBox x:Name="OptCity" Style="{StaticResource MacTextBox}" Tag="Berlin" KeyDown="City_KeyDown" VerticalAlignment="Center" />
+                                </DockPanel>
+                                <TextBlock x:Name="CityStatus" Style="{StaticResource Desc}" Margin="76,6,0,0" />
+                            </StackPanel>
+                        </Border>
+                    </Border>
+                    <TextBlock Text="Weltzeituhr" Style="{StaticResource GroupHeader}" />
+                    <Border Style="{StaticResource SettingCard}">
+                        <StackPanel x:Name="WorldPanel" />
+                    </Border>
+                    <TextBlock Style="{StaticResource Desc}" Margin="2,0,0,0" Text="Eingeschaltete Widgets liegen auf dem Schreibtisch hinter deinen Fenstern. Zum Verschieben einfach ziehen." />
+                </StackPanel>
+
+                <!-- ======== ABOUT ======== -->
+                <StackPanel x:Name="PageAbout" Visibility="Collapsed">
+                    <TextBlock Text="Info" Style="{StaticResource PageTitle}" />
+                    <Border Style="{StaticResource SettingCard}">
+                        <StackPanel>
+                            <Border Style="{StaticResource Row}">
+                                <DockPanel>
+                                    <ui:HintPic Kind="privacy" />
+                                    <StackPanel VerticalAlignment="Center">
+                                        <TextBlock Text="Datenschutz" />
+                                        <TextBlock Style="{StaticResource Desc}" Text="Zwischenablage, Dateien, Fotos und Erinnerungen bleiben auf diesem PC. Ins Netz geht nur, was du selbst einrichtest: Wetter, Preisalarme, Spotify und Discord – und die Frage an GitHub, ob es eine neue Version gibt." />
+                                    </StackPanel>
+                                </DockPanel>
+                            </Border>
+                            <Border Style="{StaticResource Row}">
+                                <DockPanel>
+                                    <ToggleButton x:Name="OptUpdateCheck" DockPanel.Dock="Right" Style="{StaticResource Switch}" Click="Opt_Click" VerticalAlignment="Center" />
+                                    <Button DockPanel.Dock="Right" Style="{StaticResource MacButton}" Content="Jetzt prüfen" Margin="0,0,10,0" Click="CheckUpdate_Click" VerticalAlignment="Center" />
+                                    <ui:HintPic Kind="update" />
+                                    <StackPanel Margin="0,0,12,0" VerticalAlignment="Center">
+                                        <TextBlock Text="Nach Updates suchen" />
+                                        <TextBlock x:Name="UpdateStatus" Style="{StaticResource Desc}" Text="Beim Start fragt IslandHub GitHub nach einer neuen Version und bietet sie zum Installieren an." />
+                                    </StackPanel>
+                                </DockPanel>
+                            </Border>
+                            <Border Style="{StaticResource Row}">
+                                <DockPanel>
+                                    <Button DockPanel.Dock="Right" Style="{StaticResource MacButton}" Content="Im Explorer zeigen" Click="OpenDataDir_Click" VerticalAlignment="Center" />
+                                    <ui:HintPic Kind="data" />
+                                    <StackPanel Margin="0,0,12,0" VerticalAlignment="Center">
+                                        <TextBlock Text="Datenordner" />
+                                        <TextBlock x:Name="DataDirText" Style="{StaticResource Desc}" />
+                                    </StackPanel>
+                                </DockPanel>
+                            </Border>
+                            <Border Style="{StaticResource LastRow}">
+                                <DockPanel>
+                                    <Button DockPanel.Dock="Right" Style="{StaticResource MacButton}" Content="Beenden" Click="Quit_Click" VerticalAlignment="Center" />
+                                    <ui:HintPic Kind="power" />
+                                    <StackPanel VerticalAlignment="Center">
+                                        <TextBlock Text="IslandHub beenden" />
+                                        <TextBlock Style="{StaticResource Desc}" Text="Die Insel verschwindet, bis du IslandHub wieder startest." />
+                                    </StackPanel>
+                                </DockPanel>
+                            </Border>
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+            </Grid>
+        </ScrollViewer>
+    </Grid>
+</Window>

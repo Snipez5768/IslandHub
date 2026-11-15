@@ -1,0 +1,165 @@
+namespace IslandHub.Core;
+
+public enum IslandShape { Pill, Notch }
+/// <summary>Schwarz = variant "A" (pure black + light edge on top), Tiefe = variant "C" (black with depth + cover glow).</summary>
+public enum IslandTheme { Glas, Schwarz, Graphit, Mitternacht, Aurora, Tiefe }
+public enum FullscreenMode { StatsBar, Hide, Normal }
+/// <summary>Tab bar of the open island (approved mockup 2026-11-14): A = quiet with the active tab's name, B = groups, C = title line.</summary>
+public enum TabBarStyle { Leise, Gruppen, Titel }
+/// <summary>Clipboard page (approved mockup 2026-11-14): A list by day, B tiles, C picture strip + list (default).</summary>
+public enum ClipLayout { Liste, Kacheln, Streifen }
+/// <summary>The small moments on the island (Claude done, timer end …): full (subtle), reduced (no light/rings), off.</summary>
+public enum AnimationLevel { An, Reduziert, Aus }
+
+public enum HotkeyAction
+{
+    ToggleIsland, Clipboard, Screenshot, ScreenshotOcr, Shelf, Music, Widgets, Reminders, Controls,
+    MicMute, QueueMode, PlayPause, NextTrack, PrevTrack, FocusTimer, Settings
+}
+
+public sealed record HotkeyDef(HotkeyAction Action, string Label, string Default);
+
+public static class HotkeyInfo
+{
+    // Defaults avoid Ctrl+Alt+Q/E/M/2/3/7-0 because Ctrl+Alt = AltGr on German keyboards (@ € µ ² ³ { [ ] }).
+    public static readonly HotkeyDef[] All =
+    {
+        new(HotkeyAction.ToggleIsland,  "Insel öffnen / schließen",        "Ctrl+Alt+I"),
+        new(HotkeyAction.Clipboard,     "Zwischenablage öffnen",           "Ctrl+Alt+V"),
+        new(HotkeyAction.Screenshot,    "Screenshot (Bereich)",            "Ctrl+Alt+S"),
+        new(HotkeyAction.ScreenshotOcr, "Screenshot → Text erkennen",      "Ctrl+Alt+T"),
+        new(HotkeyAction.Shelf,         "Dateiablage öffnen",              "Ctrl+Alt+F"),
+        new(HotkeyAction.Music,         "Musik öffnen",                    "Ctrl+Alt+P"),
+        new(HotkeyAction.Widgets,       "Timer öffnen",                    "Ctrl+Alt+W"),
+        new(HotkeyAction.Reminders,     "Neue Erinnerung",                 "Ctrl+Alt+R"),
+        new(HotkeyAction.Controls,      "Schnellsteuerung öffnen",         "Ctrl+Alt+C"),
+        new(HotkeyAction.MicMute,       "Mikrofon stumm / an",             "Ctrl+Alt+K"),
+        new(HotkeyAction.QueueMode,     "Stapel-Modus an / aus",           "Ctrl+Alt+X"),
+        new(HotkeyAction.PlayPause,     "Wiedergabe / Pause",              ""),
+        new(HotkeyAction.NextTrack,     "Nächster Titel",                  ""),
+        new(HotkeyAction.PrevTrack,     "Vorheriger Titel",                ""),
+        new(HotkeyAction.FocusTimer,    "Timer starten / pausieren",       ""),
+        new(HotkeyAction.Settings,      "Einstellungen öffnen",            "Ctrl+Alt+O"),
+    };
+}
+
+public sealed class DesktopWidgetState
+{
+    public string Kind { get; set; }
+    public double Left { get; set; }
+    public double Top { get; set; }
+}
+
+public sealed class AppSettings
+{
+    // Look
+    public int SettingsVersion { get; set; }
+    public IslandShape Shape { get; set; } = IslandShape.Pill;
+    public IslandTheme Theme { get; set; } = IslandTheme.Schwarz;
+    public string Accent { get; set; } = "#0A84FF";
+    public bool MusicGlow { get; set; }
+    public TabBarStyle TabBar { get; set; } = TabBarStyle.Leise;
+    /// <summary>"D": the tab bar fades to small page dots while the pointer is not on it.</summary>
+    public bool TabBarAutoHide { get; set; }
+    public ClipLayout ClipLayout { get; set; } = ClipLayout.Streifen;
+    /// <summary>Own order of the tabs (dragged in Settings); empty = the built-in order.</summary>
+    public List<string> TabOrder { get; set; } = new();
+    /// <summary>Tabs switched off in Settings.</summary>
+    public List<string> HiddenTabs { get; set; } = new();
+    public AnimationLevel Animations { get; set; } = AnimationLevel.An;
+
+    // Behaviour
+    public bool OpenOnHover { get; set; } = true;
+    /// <summary>Opening shows what just happened (new song, copied/pasted, Claude done, call …) – time-based, not learned.</summary>
+    public bool SmartTab { get; set; } = true;
+    public int HoverDelayMs { get; set; } = 150;
+    public bool ShowSeconds { get; set; }
+    public bool TrackPeek { get; set; } = true;
+    /// <summary>A page in the browser asks for a verification code → open the mail tab (and offer codes from notifications).</summary>
+    public bool CodeMail { get; set; } = true;
+    public string MailUrl { get; set; } = "https://mail.google.com";
+    /// <summary>Look for a newer IslandHub on GitHub at start (and every 6 hours).</summary>
+    public bool UpdateCheck { get; set; } = true;
+    /// <summary>The Steam tile was put into Spiele once (removing it later is respected).</summary>
+    public bool SteamTileAdded { get; set; }
+    public bool Autostart { get; set; }
+    public FullscreenMode Fullscreen { get; set; } = FullscreenMode.StatsBar;
+    public string LastTab { get; set; } = "Music";
+    /// <summary>Island tucked away into a thin strip that only appears when the cursor comes near.</summary>
+    public bool IslandTucked { get; set; }
+
+    // Shortcuts: action name -> "Ctrl+Alt+V"
+    public Dictionary<string, string> Hotkeys { get; set; } = new();
+
+    // Clipboard
+    public int ClipboardLimit { get; set; } = 200;
+    public bool ClipboardPersist { get; set; } = true;
+    public bool ClickPastes { get; set; }
+    public bool ConfirmCopy { get; set; } = true;
+    public bool QueueMode { get; set; }
+
+    // Screenshot
+    public string ScreenshotFolder { get; set; } = "";
+    public bool ScreenshotAutoSave { get; set; }
+    public bool ScreenshotAsk { get; set; } = true;
+    public int ScreenshotTimer { get; set; }
+    public string LastRegion { get; set; } = "";
+
+    // Timer
+    public string TimerSound { get; set; } = "synth:soft";
+    /// <summary>The alarm (Timer page › Wecker): when it rings next, null = none.</summary>
+    public DateTime? AlarmAt { get; set; }
+    public bool TimerSoundRepeat { get; set; } = true;
+    /// <summary>The user's own Discord application (for mute status / self-mute via Discord RPC).</summary>
+    public string DiscordClientId { get; set; } = "";
+    /// <summary>Client secret, encrypted for this Windows user (DPAPI).</summary>
+    public string DiscordSecret { get; set; } = "";
+    /// <summary>The keybind set in Discord for toggling screen sharing – the island presses it to start / stop the stream.</summary>
+    public string DiscordStreamKey { get; set; } = "";
+    /// <summary>obs-websocket password (encrypted, DPAPI) – only if OBS asks for one.</summary>
+    public string ObsPassword { get; set; } = "";
+    /// <summary>The user's own Spotify app (client id, PKCE – no secret) for the queue.</summary>
+    public string SpotifyClientId { get; set; } = "";
+    /// <summary>The mic indicator next to the island: white (default) or blue.</summary>
+    public bool MicIndicatorBlue { get; set; }
+
+    // Widgets
+    public string WeatherCity { get; set; } = "";
+    public string WeatherPlace { get; set; } = "";
+    public double WeatherLat { get; set; }
+    public double WeatherLon { get; set; }
+    public List<string> WorldClocks { get; set; }
+    public List<DesktopWidgetState> DesktopWidgets { get; set; } = new();
+
+    public void EnsureDefaults()
+    {
+        if (SettingsVersion < 2)
+        {
+            // v2 = Apple redesign: pure black island, no coloured glow
+            Theme = IslandTheme.Schwarz;
+            MusicGlow = false;
+            SettingsVersion = 2;
+        }
+        if (SettingsVersion < 3)
+        {
+            // v3: a click in the clipboard list only copies – it no longer jumps to another window and pastes
+            ClickPastes = false;
+            SettingsVersion = 3;
+        }
+        // only Schwarz, Tiefe and Glas are offered since 2026-11-14 – older styles fall back to Schwarz
+        if (Theme is IslandTheme.Graphit or IslandTheme.Mitternacht or IslandTheme.Aurora) Theme = IslandTheme.Schwarz;
+        if (string.IsNullOrWhiteSpace(MailUrl)) MailUrl = "https://mail.google.com";
+        Hotkeys ??= new();
+        foreach (var h in HotkeyInfo.All)
+            if (!Hotkeys.ContainsKey(h.Action.ToString()))
+                Hotkeys[h.Action.ToString()] = h.Default;
+
+        if (string.IsNullOrWhiteSpace(ScreenshotFolder))
+            ScreenshotFolder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyPictures), "IslandHub");
+
+        WorldClocks ??= new() { "Eastern Standard Time", "GMT Standard Time", "Tokyo Standard Time" };
+        DesktopWidgets ??= new();
+        if (ClipboardLimit < 10) ClipboardLimit = 200;
+        if (HoverDelayMs < 0) HoverDelayMs = 150;
+    }
+}

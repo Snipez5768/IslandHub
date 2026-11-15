@@ -1,0 +1,14 @@
+# build output
+bin/
+obj/
+dist/
+publish/
+*.user
+.vs/
+.vscode/
+*.swp
+
+# never commit local data or secrets
+*.log
+appsettings.local.json
+settings.json

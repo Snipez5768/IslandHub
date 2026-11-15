@@ -1,0 +1,1854 @@
+﻿<Window x:Class="IslandHub.UI.IslandWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:ui="clr-namespace:IslandHub.UI"
+        Title="IslandHub" Width="560" Height="360"
+        WindowStyle="None" AllowsTransparency="True" Background="Transparent"
+        Topmost="True" ShowInTaskbar="False" ResizeMode="NoResize" ShowActivated="False"
+        FontFamily="{StaticResource TextFont}" Foreground="White" FontSize="13"
+        UseLayoutRounding="True" TextOptions.TextFormattingMode="Ideal">
+
+    <Window.Resources>
+        <Storyboard x:Key="EqStoryboard" RepeatBehavior="Forever">
+            <DoubleAnimation Storyboard.TargetName="MEq1" Storyboard.TargetProperty="ScaleY" From="0.3" To="1" Duration="0:0:0.42" AutoReverse="True" RepeatBehavior="Forever" />
+            <DoubleAnimation Storyboard.TargetName="MEq2" Storyboard.TargetProperty="ScaleY" From="0.95" To="0.35" Duration="0:0:0.35" AutoReverse="True" RepeatBehavior="Forever" />
+            <DoubleAnimation Storyboard.TargetName="MEq3" Storyboard.TargetProperty="ScaleY" From="0.45" To="1" Duration="0:0:0.5" AutoReverse="True" RepeatBehavior="Forever" />
+            <DoubleAnimation Storyboard.TargetName="MEq4" Storyboard.TargetProperty="ScaleY" From="1" To="0.4" Duration="0:0:0.38" AutoReverse="True" RepeatBehavior="Forever" />
+        </Storyboard>
+
+        <!-- ===== Clipboard (approved mockup 2026-11-14). Row = list layouts A and C: every entry starts in the same
+             32 px column (picture or a tinted type chip), one title line, one quiet line, the age on the right;
+             pin / delete / ⌄ only while pointing at the row. ===== -->
+        <DataTemplate x:Key="ClipTemplate">
+            <StackPanel Background="Transparent">
+                <Grid Height="40">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <Border x:Name="KindChip" Width="32" Height="32" CornerRadius="8" Background="{Binding TypeGround}" Margin="0,0,10,0" VerticalAlignment="Center">
+                        <ui:SfIcon Kind="{Binding TypeGlyph}" Size="15" Foreground="{Binding TypeBrush}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                    </Border>
+                    <Border x:Name="ThumbBox" Width="32" Height="32" CornerRadius="8" Margin="0,0,10,0" Visibility="Collapsed" BorderBrush="#26FFFFFF" BorderThickness="0.5" VerticalAlignment="Center">
+                        <Border.Background>
+                            <ImageBrush ImageSource="{Binding Thumb}" Stretch="UniformToFill" />
+                        </Border.Background>
+                    </Border>
+                    <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                        <DockPanel>
+                            <ui:SfIcon Kind="pin" Size="10" Foreground="{StaticResource Orange}" Margin="0,0,4,0" Visibility="{Binding Pinned, Converter={StaticResource BoolVis}}" />
+                            <TextBlock x:Name="TitleText" Text="{Binding Title}" TextTrimming="CharacterEllipsis" FontSize="12.5" />
+                        </DockPanel>
+                        <TextBlock Text="{Binding Sub}" FontSize="10.5" Foreground="{StaticResource SubText}" TextTrimming="CharacterEllipsis" Margin="0,1,0,0" />
+                    </StackPanel>
+                    <Grid Grid.Column="2" VerticalAlignment="Center" Margin="8,0,0,0" MinWidth="40">
+                        <TextBlock x:Name="AgoText" Text="{Binding Ago}" FontSize="10.5" Foreground="{StaticResource FaintText}" HorizontalAlignment="Right" VerticalAlignment="Center" />
+                        <StackPanel x:Name="Actions" Orientation="Horizontal" VerticalAlignment="Center" HorizontalAlignment="Right" Visibility="Collapsed">
+                            <Button Style="{StaticResource SmallIconButton}" Width="22" Height="22" ui:Ext.IconSize="13" ui:Ext.Icon="pin" ui:Ext.Hover="{StaticResource Orange}" ToolTip="Anheften" Click="ClipPin_Click" />
+                            <Button Style="{StaticResource SmallIconButton}" Width="22" Height="22" ui:Ext.IconSize="13" ui:Ext.Icon="trash" ui:Ext.Hover="{StaticResource Danger}" ToolTip="Löschen" Click="ClipDelete_Click" />
+                            <Button x:Name="ExpandBtn" Style="{StaticResource SmallIconButton}" Width="22" Height="22" ui:Ext.IconSize="13" ui:Ext.Icon="chevron.down"
+                                    ToolTip="Aufklappen" Click="ClipExpand_Click" />
+                        </StackPanel>
+                    <!-- confirmation after a click: "Kopiert ✓" -->
+                    <Border x:Name="CopiedBadge" Height="22" Padding="8,0" VerticalAlignment="Center" HorizontalAlignment="Right" Visibility="Collapsed"
+                            Background="#3330D158" CornerRadius="11" RenderTransformOrigin="0.5,0.5">
+                        <Border.RenderTransform>
+                            <ScaleTransform x:Name="BadgeScale" />
+                        </Border.RenderTransform>
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                            <ui:SfIcon Kind="check" Size="12" Weight="2.4" Foreground="{StaticResource Green}" Margin="0,0,4,0" />
+                            <TextBlock Text="Kopiert" FontSize="11" FontWeight="SemiBold" Foreground="{StaticResource Green}" VerticalAlignment="Center" />
+                        </StackPanel>
+                    </Border>
+                    </Grid>
+                </Grid>
+
+                <!-- expanded part -->
+                <Border x:Name="Expanded" Tag="noclick" Visibility="Collapsed" Margin="42,0,4,8" Cursor="Arrow">
+                    <StackPanel>
+                        <TextBox x:Name="FullText" Text="{Binding FullText, Mode=OneWay}" IsReadOnly="True" TextWrapping="Wrap" MaxHeight="130"
+                                 VerticalScrollBarVisibility="Auto" Background="Transparent" BorderThickness="0" Foreground="White" CaretBrush="Transparent"
+                                 SelectionBrush="{DynamicResource Accent}" FontSize="12" Padding="0" />
+                        <Border x:Name="BigImage" CornerRadius="8" Visibility="Collapsed" HorizontalAlignment="Left" MaxHeight="160" MaxWidth="300"
+                                Cursor="Hand" ToolTip="Groß anzeigen" Background="Transparent" MouseLeftButtonUp="ClipImage_Click">
+                            <Image Source="{Binding LargeImage}" Stretch="Uniform" MaxHeight="160" MaxWidth="300" RenderOptions.BitmapScalingMode="HighQuality" />
+                        </Border>
+                        <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+                            <Button Style="{StaticResource PillButton}" Height="24" FontSize="11.5" ui:Ext.Icon="copy" ui:Ext.IconSize="12" ui:Ext.Hover="{StaticResource Blue}"
+                                    Content="Kopieren" Click="ClipCopy_Click" />
+                            <Button Style="{StaticResource AccentButton}" Height="24" FontSize="11.5" Margin="6,0,0,0" Content="Einfügen" Click="ClipPaste_Click" />
+                            <Button x:Name="OcrBtn" Style="{StaticResource PillButton}" Height="24" FontSize="11.5" Margin="6,0,0,0" ui:Ext.Icon="text.viewfinder" ui:Ext.IconSize="12"
+                                    ui:Ext.Hover="{StaticResource Teal}" Content="Text" ToolTip="Öffnen und Text markieren" Click="ClipOpen_Click" Visibility="Collapsed" />
+                            <Button x:Name="SaveBtn" Style="{StaticResource GlassIcon}" Width="24" Height="24" Margin="6,0,0,0" ui:Ext.Icon="save" ui:Ext.IconSize="12"
+                                    ui:Ext.Hover="{StaticResource Green}" ToolTip="Auf dem PC sichern" Click="ClipSave_Click" Visibility="Collapsed" />
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+            <DataTemplate.Triggers>
+                <DataTrigger Binding="{Binding IsMouseOver, RelativeSource={RelativeSource AncestorType=ListBoxItem}}" Value="True">
+                    <Setter TargetName="Actions" Property="Visibility" Value="Visible" />
+                    <Setter TargetName="AgoText" Property="Visibility" Value="Hidden" />
+                </DataTrigger>
+                <DataTrigger Binding="{Binding IsCode}" Value="True">
+                    <Setter TargetName="TitleText" Property="FontFamily" Value="Consolas" />
+                    <Setter TargetName="TitleText" Property="Foreground" Value="#FFD7B5F5" />
+                </DataTrigger>
+                <DataTrigger Binding="{Binding IsImage}" Value="True">
+                    <Setter TargetName="KindChip" Property="Visibility" Value="Collapsed" />
+                    <Setter TargetName="ThumbBox" Property="Visibility" Value="Visible" />
+                    <Setter TargetName="FullText" Property="Visibility" Value="Collapsed" />
+                    <Setter TargetName="BigImage" Property="Visibility" Value="Visible" />
+                    <Setter TargetName="OcrBtn" Property="Visibility" Value="Visible" />
+                    <Setter TargetName="SaveBtn" Property="Visibility" Value="Visible" />
+                </DataTrigger>
+                <DataTrigger Binding="{Binding JustCopied}" Value="True">
+                    <Setter TargetName="CopiedBadge" Property="Visibility" Value="Visible" />
+                    <Setter TargetName="Actions" Property="Visibility" Value="Collapsed" />
+                    <Setter TargetName="AgoText" Property="Visibility" Value="Hidden" />
+                    <DataTrigger.EnterActions>
+                        <BeginStoryboard>
+                            <Storyboard>
+                                <DoubleAnimation Storyboard.TargetName="BadgeScale" Storyboard.TargetProperty="ScaleX" From="0.6" To="1" Duration="0:0:0.35" EasingFunction="{StaticResource SpringOut}" />
+                                <DoubleAnimation Storyboard.TargetName="BadgeScale" Storyboard.TargetProperty="ScaleY" From="0.6" To="1" Duration="0:0:0.35" EasingFunction="{StaticResource SpringOut}" />
+                            </Storyboard>
+                        </BeginStoryboard>
+                    </DataTrigger.EnterActions>
+                </DataTrigger>
+                <DataTrigger Binding="{Binding IsExpanded}" Value="True">
+                    <Setter TargetName="Expanded" Property="Visibility" Value="Visible" />
+                    <Setter TargetName="Actions" Property="Visibility" Value="Visible" />
+                    <Setter TargetName="AgoText" Property="Visibility" Value="Hidden" />
+                    <Setter TargetName="ExpandBtn" Property="ui:Ext.Icon" Value="chevron.up" />
+                    <Setter TargetName="ExpandBtn" Property="ToolTip" Value="Zuklappen" />
+                </DataTrigger>
+            </DataTemplate.Triggers>
+        </DataTemplate>
+
+        <!-- Layout B: tiles in two columns – pictures fill their tile, text shows up to three lines -->
+        <DataTemplate x:Key="ClipCardTemplate">
+            <Grid Height="76" Background="Transparent">
+                <Border CornerRadius="12" Background="#14FFFFFF" ClipToBounds="True">
+                    <Grid>
+                        <DockPanel x:Name="TextCard" Margin="10,8,10,7">
+                            <TextBlock DockPanel.Dock="Bottom" FontSize="10" Foreground="{StaticResource SubText}" TextTrimming="CharacterEllipsis">
+                                <Run Text="{Binding Sub, Mode=OneWay}" /><Run Text=" · " /><Run Text="{Binding Ago, Mode=OneWay}" />
+                            </TextBlock>
+                            <TextBlock x:Name="CardText" Text="{Binding Title}" TextWrapping="Wrap" TextTrimming="CharacterEllipsis" FontSize="11.5" LineHeight="15"
+                                       MaxHeight="45" Margin="0,0,14,0" />
+                        </DockPanel>
+                        <Border x:Name="ImageCard" Visibility="Collapsed" CornerRadius="12">
+                            <Border.Background>
+                                <ImageBrush ImageSource="{Binding Thumb}" Stretch="UniformToFill" />
+                            </Border.Background>
+                            <Border VerticalAlignment="Bottom" Padding="9,14,9,5">
+                                <Border.Background>
+                                    <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                        <GradientStop Color="#00000000" Offset="0" />
+                                        <GradientStop Color="#B3000000" Offset="1" />
+                                    </LinearGradientBrush>
+                                </Border.Background>
+                                <TextBlock FontSize="10" Foreground="#E6FFFFFF" TextTrimming="CharacterEllipsis">
+                                    <Run Text="{Binding Sub, Mode=OneWay}" /><Run Text=" · " /><Run Text="{Binding Ago, Mode=OneWay}" />
+                                </TextBlock>
+                            </Border>
+                        </Border>
+                    </Grid>
+                </Border>
+                <ui:SfIcon Kind="pin" Size="11" Foreground="{StaticResource Orange}" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,7,8,0"
+                           Visibility="{Binding Pinned, Converter={StaticResource BoolVis}}" />
+                <Border x:Name="CardActions" CornerRadius="11" Background="#D91C1C1E" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,4,4,0" Visibility="Collapsed">
+                    <StackPanel Orientation="Horizontal">
+                        <Button x:Name="LookBtn" Style="{StaticResource SmallIconButton}" Width="22" Height="22" ui:Ext.IconSize="12" ui:Ext.Icon="eye" ToolTip="Groß anzeigen"
+                                Click="ClipQuickLook_Click" Visibility="Collapsed" />
+                        <Button Style="{StaticResource SmallIconButton}" Width="22" Height="22" ui:Ext.IconSize="12" ui:Ext.Icon="pin" ui:Ext.Hover="{StaticResource Orange}" ToolTip="Anheften" Click="ClipPin_Click" />
+                        <Button Style="{StaticResource SmallIconButton}" Width="22" Height="22" ui:Ext.IconSize="12" ui:Ext.Icon="trash" ui:Ext.Hover="{StaticResource Danger}" ToolTip="Löschen" Click="ClipDelete_Click" />
+                    </StackPanel>
+                </Border>
+                <Border x:Name="CardCopied" Height="22" Padding="8,0" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0,0,6,6" Visibility="Collapsed"
+                        Background="#E61C3A24" CornerRadius="11">
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                        <ui:SfIcon Kind="check" Size="11" Weight="2.4" Foreground="{StaticResource Green}" Margin="0,0,4,0" />
+                        <TextBlock Text="Kopiert" FontSize="10.5" FontWeight="SemiBold" Foreground="{StaticResource Green}" VerticalAlignment="Center" />
+                    </StackPanel>
+                </Border>
+            </Grid>
+            <DataTemplate.Triggers>
+                <DataTrigger Binding="{Binding IsImage}" Value="True">
+                    <Setter TargetName="TextCard" Property="Visibility" Value="Collapsed" />
+                    <Setter TargetName="ImageCard" Property="Visibility" Value="Visible" />
+                    <Setter TargetName="LookBtn" Property="Visibility" Value="Visible" />
+                </DataTrigger>
+                <DataTrigger Binding="{Binding IsCode}" Value="True">
+                    <Setter TargetName="CardText" Property="FontFamily" Value="Consolas" />
+                    <Setter TargetName="CardText" Property="Foreground" Value="#FFD7B5F5" />
+                </DataTrigger>
+                <DataTrigger Binding="{Binding IsMouseOver, RelativeSource={RelativeSource AncestorType=ListBoxItem}}" Value="True">
+                    <Setter TargetName="CardActions" Property="Visibility" Value="Visible" />
+                </DataTrigger>
+                <DataTrigger Binding="{Binding JustCopied}" Value="True">
+                    <Setter TargetName="CardCopied" Property="Visibility" Value="Visible" />
+                    <Setter TargetName="CardActions" Property="Visibility" Value="Collapsed" />
+                </DataTrigger>
+            </DataTemplate.Triggers>
+        </DataTemplate>
+
+        <!-- list rows: soft hover, the accent bar marks the keyboard selection; no separator lines (the day headers group them) -->
+        <Style x:Key="ClipRowItem" TargetType="ListBoxItem">
+            <Setter Property="Foreground" Value="White" />
+            <Setter Property="Padding" Value="6,0" />
+            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+            <EventSetter Event="MouseLeftButtonUp" Handler="ClipItem_Click" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ListBoxItem">
+                        <Grid>
+                            <Border x:Name="hov" CornerRadius="10" Background="#10FFFFFF" Opacity="0" />
+                            <Border x:Name="bar" Width="3" Height="20" CornerRadius="1.5" Background="{DynamicResource Accent}" HorizontalAlignment="Left"
+                                    VerticalAlignment="Top" Margin="0,10,0,0" Opacity="0" />
+                            <ContentPresenter Margin="{TemplateBinding Padding}" />
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="hov" Property="Opacity" Value="1" />
+                            </Trigger>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter TargetName="bar" Property="Opacity" Value="1" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Style x:Key="ClipCardItem" TargetType="ListBoxItem">
+            <Setter Property="Foreground" Value="White" />
+            <Setter Property="Margin" Value="3,0,3,6" />
+            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+            <EventSetter Event="MouseLeftButtonUp" Handler="ClipItem_Click" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ListBoxItem">
+                        <Grid>
+                            <ContentPresenter />
+                            <Border x:Name="hov" CornerRadius="12" Background="#0FFFFFFF" Opacity="0" IsHitTestVisible="False" />
+                            <Border x:Name="sel" CornerRadius="12" BorderThickness="1.5" BorderBrush="{DynamicResource Accent}" Opacity="0" IsHitTestVisible="False" />
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="hov" Property="Opacity" Value="1" />
+                            </Trigger>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter TargetName="sel" Property="Opacity" Value="1" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <ItemsPanelTemplate x:Key="ClipRowsPanel">
+            <VirtualizingStackPanel />
+        </ItemsPanelTemplate>
+        <ItemsPanelTemplate x:Key="ClipTilesPanel">
+            <UniformGrid Columns="2" VerticalAlignment="Top" />
+        </ItemsPanelTemplate>
+    </Window.Resources>
+
+    <Grid x:Name="Root">
+        <!-- tucked-away strip: invisible until the cursor comes near, click brings the island back -->
+        <Border x:Name="TuckStrip" HorizontalAlignment="Center" VerticalAlignment="Top" Width="150" Height="14" Background="#01000000"
+                Cursor="Hand" Visibility="Collapsed" Opacity="0" ToolTip="Insel einblenden">
+            <Border Width="64" Height="4" VerticalAlignment="Top" CornerRadius="0,0,2.5,2.5" Background="#E6000000"
+                    BorderBrush="#4DFFFFFF" BorderThickness="0.5,0,0.5,0.5" />
+        </Border>
+
+        <!-- "make room": while the island has slid up out of the way, this small bar shows it is only hidden -->
+        <Border x:Name="RoomStrip" HorizontalAlignment="Center" VerticalAlignment="Top" Width="64" Height="5" CornerRadius="0,0,2.5,2.5"
+                Background="#E6000000" BorderBrush="#4DFFFFFF" BorderThickness="0.5,0,0.5,0.5" Opacity="0" IsHitTestVisible="False" />
+
+        <!-- rings that run away from the island (timer done) -->
+        <Border x:Name="Ripple1" HorizontalAlignment="Center" VerticalAlignment="Top" IsHitTestVisible="False" Opacity="0" BorderThickness="1.5" BorderBrush="{StaticResource Orange}"
+                Width="{Binding ActualWidth, ElementName=Island}" Height="{Binding ActualHeight, ElementName=Island}"
+                Margin="{Binding Margin, ElementName=Island}" CornerRadius="{Binding CornerRadius, ElementName=Island}" RenderTransformOrigin="0.5,0.5">
+            <Border.RenderTransform><ScaleTransform x:Name="Ripple1Scale" /></Border.RenderTransform>
+        </Border>
+        <Border x:Name="Ripple2" HorizontalAlignment="Center" VerticalAlignment="Top" IsHitTestVisible="False" Opacity="0" BorderThickness="1.5" BorderBrush="{StaticResource Orange}"
+                Width="{Binding ActualWidth, ElementName=Island}" Height="{Binding ActualHeight, ElementName=Island}"
+                Margin="{Binding Margin, ElementName=Island}" CornerRadius="{Binding CornerRadius, ElementName=Island}" RenderTransformOrigin="0.5,0.5">
+            <Border.RenderTransform><ScaleTransform x:Name="Ripple2Scale" /></Border.RenderTransform>
+        </Border>
+
+        <Border x:Name="ShadowLayer" HorizontalAlignment="Center" VerticalAlignment="Top" IsHitTestVisible="False"
+                Width="{Binding ActualWidth, ElementName=Island}" Height="{Binding ActualHeight, ElementName=Island}"
+                Margin="{Binding Margin, ElementName=Island}" CornerRadius="{Binding CornerRadius, ElementName=Island}" Background="Black">
+            <Border.Effect>
+                <DropShadowEffect x:Name="IslandShadow" BlurRadius="22" ShadowDepth="3" Direction="270" Opacity="0.4" Color="Black" />
+            </Border.Effect>
+        </Border>
+
+        <Border x:Name="Bubble" HorizontalAlignment="Center" VerticalAlignment="Top" Width="32" Height="32" CornerRadius="16"
+                Background="{DynamicResource IslandBubbleBackground}" BorderBrush="{DynamicResource IslandBorder}" BorderThickness="0.5"
+                Margin="0,8,0,0" Visibility="Collapsed" Cursor="Hand">
+            <Border.RenderTransform>
+                <TranslateTransform x:Name="BubbleShift" X="120" />
+            </Border.RenderTransform>
+            <Border.Effect>
+                <DropShadowEffect BlurRadius="16" ShadowDepth="2" Direction="270" Opacity="0.35" />
+            </Border.Effect>
+            <Grid>
+                <ui:SfIcon x:Name="BubbleIcon" Size="15" />
+                <Border x:Name="BubbleCover" Width="20" Height="20" CornerRadius="10" Visibility="Collapsed">
+                    <Border.Background>
+                        <ImageBrush x:Name="BubbleCoverImg" Stretch="UniformToFill" />
+                    </Border.Background>
+                </Border>
+                <ui:SfIcon x:Name="BubbleDot" Kind="display" Size="14" Foreground="{StaticResource Blue}" Visibility="Collapsed" />
+                <!-- round game icon inside the Steam progress ring -->
+                <Ellipse x:Name="BubbleImg" Width="15" Height="15" Visibility="Collapsed">
+                    <Ellipse.Fill><ImageBrush x:Name="BubbleImgBrush" Stretch="UniformToFill" /></Ellipse.Fill>
+                </Ellipse>
+                <!-- Claude working: a turning ring -->
+                <ui:Ring x:Name="BubbleRing" Width="16" Height="16" Value="28" Thickness="2" Track="#40E8875B" Stroke="#E8875B"
+                         RenderTransformOrigin="0.5,0.5" Visibility="Collapsed">
+                    <ui:Ring.RenderTransform><RotateTransform x:Name="BubbleRingSpin" /></ui:Ring.RenderTransform>
+                </ui:Ring>
+            </Grid>
+        </Border>
+
+        <!-- a second bubble when two things run next to the island (e.g. mic + Claude while music plays) -->
+        <Border x:Name="Bubble2" HorizontalAlignment="Center" VerticalAlignment="Top" Width="32" Height="32" CornerRadius="16"
+                Background="{DynamicResource IslandBubbleBackground}" BorderBrush="{DynamicResource IslandBorder}" BorderThickness="0.5"
+                Margin="0,8,0,0" Visibility="Collapsed" Cursor="Hand">
+            <Border.RenderTransform>
+                <TranslateTransform x:Name="Bubble2Shift" X="160" />
+            </Border.RenderTransform>
+            <Border.Effect>
+                <DropShadowEffect BlurRadius="16" ShadowDepth="2" Direction="270" Opacity="0.35" />
+            </Border.Effect>
+            <Grid>
+                <ui:SfIcon x:Name="Bubble2Icon" Size="15" />
+                <Border x:Name="Bubble2Cover" Width="20" Height="20" CornerRadius="10" Visibility="Collapsed">
+                    <Border.Background>
+                        <ImageBrush x:Name="Bubble2CoverImg" Stretch="UniformToFill" />
+                    </Border.Background>
+                </Border>
+                <ui:SfIcon x:Name="Bubble2Dot" Kind="display" Size="14" Foreground="{StaticResource Blue}" Visibility="Collapsed" />
+                <Ellipse x:Name="Bubble2Img" Width="15" Height="15" Visibility="Collapsed">
+                    <Ellipse.Fill><ImageBrush x:Name="Bubble2ImgBrush" Stretch="UniformToFill" /></Ellipse.Fill>
+                </Ellipse>
+                <ui:Ring x:Name="Bubble2Ring" Width="16" Height="16" Value="28" Thickness="2" Track="#40E8875B" Stroke="#E8875B"
+                         RenderTransformOrigin="0.5,0.5" Visibility="Collapsed">
+                    <ui:Ring.RenderTransform><RotateTransform x:Name="Bubble2RingSpin" /></ui:Ring.RenderTransform>
+                </ui:Ring>
+            </Grid>
+        </Border>
+
+        <!-- the "sticky" neck while a bubble pulls away from the island (or from the first bubble) -->
+        <Canvas x:Name="BridgeLayer" IsHitTestVisible="False">
+            <Path x:Name="BubbleBridge" Fill="{DynamicResource IslandBubbleBackground}" Visibility="Collapsed" />
+            <Path x:Name="Bubble2Bridge" Fill="{DynamicResource IslandBubbleBackground}" Visibility="Collapsed" />
+        </Canvas>
+
+        <Border x:Name="Island" HorizontalAlignment="Center" VerticalAlignment="Top" Width="176" Height="32" Margin="0,8,0,0"
+                CornerRadius="16" Background="{DynamicResource IslandBackground}" BorderBrush="{DynamicResource IslandBorder}" BorderThickness="0.5"
+                AllowDrop="True">
+            <Grid x:Name="IslandContent">
+
+                <!-- style "Tiefe": the album colour glows softly from behind the cover (positioned in code) -->
+                <Border x:Name="CoverGlow" IsHitTestVisible="False" HorizontalAlignment="Left" VerticalAlignment="Top" Opacity="0" Width="140" Height="88" />
+                <!-- a short colour wash over the whole island (new song: cover colour, muted: dark red) -->
+                <Border x:Name="IslandTint" IsHitTestVisible="False" Opacity="0" Margin="-2" />
+                <!-- a soft light that runs across the island (e.g. green when Claude is done) -->
+                <Border x:Name="IslandSweep" IsHitTestVisible="False" HorizontalAlignment="Left" Width="70" Opacity="0" Panel.ZIndex="3">
+                    <Border.RenderTransform><TranslateTransform x:Name="IslandSweepShift" X="-80" /></Border.RenderTransform>
+                    <Border.Background>
+                        <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
+                            <GradientStop x:Name="SweepEdgeA" Color="#0030D158" Offset="0" />
+                            <GradientStop x:Name="SweepMid" Color="#6630D158" Offset="0.5" />
+                            <GradientStop x:Name="SweepEdgeB" Color="#0030D158" Offset="1" />
+                        </LinearGradientBrush>
+                    </Border.Background>
+                </Border>
+
+                <!-- ============ COMPACT ============ -->
+                <Grid x:Name="PillPanel" Margin="6,0,11,0" VerticalAlignment="Center">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <StackPanel x:Name="Lead" Orientation="Horizontal" VerticalAlignment="Center">
+                        <Grid>
+                            <!-- new song: the old cover slides out to the left while the new one comes in from the right -->
+                            <Border x:Name="LeadCoverGhost" Width="20" Height="20" CornerRadius="5" Visibility="Collapsed" IsHitTestVisible="False">
+                                <Border.Background>
+                                    <ImageBrush x:Name="PillCoverGhost" Stretch="UniformToFill" />
+                                </Border.Background>
+                                <Border.RenderTransform><TranslateTransform x:Name="LeadCoverGhostShift" /></Border.RenderTransform>
+                            </Border>
+                            <Border x:Name="LeadCover" Width="20" Height="20" CornerRadius="5" Visibility="Collapsed" RenderTransformOrigin="0.5,0.5">
+                                <Border.Background>
+                                    <ImageBrush x:Name="PillCover" Stretch="UniformToFill" />
+                                </Border.Background>
+                                <Border.RenderTransform>
+                                    <TransformGroup>
+                                        <ScaleTransform x:Name="LeadCoverScale" />
+                                        <TranslateTransform x:Name="LeadCoverShift" />
+                                    </TransformGroup>
+                                </Border.RenderTransform>
+                            </Border>
+                        </Grid>
+                        <ui:SfIcon x:Name="LeadIcon" Size="16" Margin="5,0,0,0" Visibility="Collapsed" />
+                        <TextBlock x:Name="LeadText" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center" Margin="6,0,0,0" Visibility="Collapsed" />
+                    </StackPanel>
+                    <Grid x:Name="Trail" Grid.Column="2" VerticalAlignment="Center">
+                        <!-- bar chart: 5 bars growing from the bottom, driven by the player's real loudness -->
+                        <StackPanel x:Name="Equalizer" Orientation="Horizontal" Height="14" VerticalAlignment="Center" Visibility="Collapsed">
+                            <Rectangle x:Name="EqBar1" Width="3" Height="14" RadiusX="1" RadiusY="1" Margin="0,0,2,0" RenderTransformOrigin="0.5,1">
+                                <Rectangle.RenderTransform><ScaleTransform x:Name="Eq1" ScaleY="0.2" /></Rectangle.RenderTransform>
+                            </Rectangle>
+                            <Rectangle x:Name="EqBar2" Width="3" Height="14" RadiusX="1" RadiusY="1" Margin="0,0,2,0" RenderTransformOrigin="0.5,1">
+                                <Rectangle.RenderTransform><ScaleTransform x:Name="Eq2" ScaleY="0.2" /></Rectangle.RenderTransform>
+                            </Rectangle>
+                            <Rectangle x:Name="EqBar3" Width="3" Height="14" RadiusX="1" RadiusY="1" Margin="0,0,2,0" RenderTransformOrigin="0.5,1">
+                                <Rectangle.RenderTransform><ScaleTransform x:Name="Eq3" ScaleY="0.2" /></Rectangle.RenderTransform>
+                            </Rectangle>
+                            <Rectangle x:Name="EqBar4" Width="3" Height="14" RadiusX="1" RadiusY="1" Margin="0,0,2,0" RenderTransformOrigin="0.5,1">
+                                <Rectangle.RenderTransform><ScaleTransform x:Name="Eq4" ScaleY="0.2" /></Rectangle.RenderTransform>
+                            </Rectangle>
+                            <Rectangle x:Name="EqBar5" Width="3" Height="14" RadiusX="1" RadiusY="1" RenderTransformOrigin="0.5,1">
+                                <Rectangle.RenderTransform><ScaleTransform x:Name="Eq5" ScaleY="0.2" /></Rectangle.RenderTransform>
+                            </Rectangle>
+                        </StackPanel>
+                        <TextBlock x:Name="TrailText" FontSize="13" FontWeight="SemiBold" VerticalAlignment="Center" Visibility="Collapsed" />
+                        <!-- a notification arrives: the trail steps aside, this bell rings left/right, then the island opens downwards -->
+                        <ui:SfIcon x:Name="TrailBell" Kind="bell" Size="15" Foreground="White" HorizontalAlignment="Right" VerticalAlignment="Center"
+                                   Visibility="Collapsed" Opacity="0" IsHitTestVisible="False" RenderTransformOrigin="0.5,0.12">
+                            <ui:SfIcon.RenderTransform>
+                                <TransformGroup>
+                                    <ScaleTransform x:Name="TrailBellScale" />
+                                    <RotateTransform x:Name="TrailBellTurn" />
+                                </TransformGroup>
+                            </ui:SfIcon.RenderTransform>
+                        </ui:SfIcon>
+                        <!-- live: mic / camera / screen sharing of other apps -->
+                        <StackPanel x:Name="TrailLive" Orientation="Horizontal" VerticalAlignment="Center" Visibility="Collapsed" Background="Transparent"
+                                    MouseLeftButtonUp="TrailLive_Click">
+                            <ui:SfIcon x:Name="TrailIcon" Size="15" Margin="0,0,2,0" VerticalAlignment="Center" />
+                            <!-- streaming / sharing the screen: a blue monitor next to the mic -->
+                            <ui:SfIcon x:Name="DotScreen" Kind="display" Size="15" Foreground="{StaticResource Blue}" Margin="5,0,0,0" VerticalAlignment="Center" Visibility="Collapsed" />
+                            <TextBlock x:Name="TrailLiveText" FontSize="13" FontWeight="SemiBold" VerticalAlignment="Center" />
+                            <Ellipse x:Name="DotMic" Width="6" Height="6" Fill="{StaticResource Orange}" Margin="5,0,0,0" VerticalAlignment="Center" />
+                            <Ellipse x:Name="DotCam" Width="6" Height="6" Fill="{StaticResource Green}" Margin="4,0,0,0" VerticalAlignment="Center" />
+                        </StackPanel>
+                    </Grid>
+                </Grid>
+
+                <!-- ============ MINI HINT ============ -->
+                <Grid x:Name="HintPanel" Margin="11,0,12,0" Visibility="Collapsed" VerticalAlignment="Center">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <!-- optional round glass buttons (e.g. "Discord nutzt dein Mikrofon" → mute / open) -->
+                    <StackPanel x:Name="HintActions" Grid.Column="3" Orientation="Horizontal" VerticalAlignment="Center" Margin="8,0,-6,0" Visibility="Collapsed" />
+                    <!-- the kind of notice: its icon in a softly tinted circle -->
+                    <Border x:Name="HintIconCircle" Width="22" Height="22" CornerRadius="11" VerticalAlignment="Center" Margin="-1,0,0,0">
+                        <Grid>
+                            <ui:SfIcon x:Name="HintIcon" Size="13" RenderTransformOrigin="0.5,0.5" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                <ui:SfIcon.RenderTransform>
+                                    <ScaleTransform x:Name="HintIconScale" />
+                                </ui:SfIcon.RenderTransform>
+                            </ui:SfIcon>
+                            <!-- "… hört zu": an orange voice wave instead of the symbol (moves with the real mic level) -->
+                            <StackPanel x:Name="HintWave" Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center" Visibility="Collapsed" />
+                        </Grid>
+                    </Border>
+                    <Grid Grid.Column="2" VerticalAlignment="Center">
+                        <TextBlock x:Name="HintText" FontSize="13" FontWeight="SemiBold" VerticalAlignment="Center" RenderTransformOrigin="1,0.5">
+                            <TextBlock.RenderTransform>
+                                <ScaleTransform x:Name="HintTextScale" />
+                            </TextBlock.RenderTransform>
+                        </TextBlock>
+                        <Path x:Name="HintCheck" Data="M5,12.5 L10,17.5 L19,7" Width="24" Height="24" Stroke="{StaticResource Green}" StrokeThickness="2.6"
+                              StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" StrokeDashArray="8 8" StrokeDashOffset="8"
+                              HorizontalAlignment="Right" VerticalAlignment="Center" Opacity="0" RenderTransformOrigin="0.5,0.5" Margin="0,-5,-3,-5">
+                            <Path.RenderTransform>
+                                <ScaleTransform x:Name="HintCheckScale" ScaleX="0.78" ScaleY="0.78" />
+                            </Path.RenderTransform>
+                        </Path>
+                    </Grid>
+                </Grid>
+
+                <!-- ============ MESSAGE TICKER (user wish 2026-11-15): after the bell the island only grows sideways –
+                     the person left, "Name  message" as one line that runs through, the app right. Hover → the full card. -->
+                <Grid x:Name="TickerPanel" Margin="5,0,10,0" Visibility="Collapsed" VerticalAlignment="Center" Height="26">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <Grid x:Name="TickerLead" Width="24" Height="24" VerticalAlignment="Center" RenderTransformOrigin="0.5,0.5">
+                        <Border x:Name="TickerAvatar" CornerRadius="12">
+                            <TextBlock x:Name="TickerAvatarText" FontSize="11" FontWeight="SemiBold" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <Border x:Name="TickerImageBox" CornerRadius="12" Background="#FF2C2C2E" Visibility="Collapsed">
+                            <Border Width="16" Height="16">
+                                <Border.Background><ImageBrush x:Name="TickerImage" Stretch="Uniform" /></Border.Background>
+                            </Border>
+                        </Border>
+                        <!-- the other notices (timer, reminder, price …): a coloured circle with the symbol -->
+                        <Border x:Name="TickerSymbol" CornerRadius="12" Visibility="Collapsed">
+                            <ui:SfIcon x:Name="TickerSymbolIcon" Size="13" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <!-- a song: its cover -->
+                        <Border x:Name="TickerCover" CornerRadius="6" Visibility="Collapsed">
+                            <Border.Background><ImageBrush x:Name="TickerCoverImg" Stretch="UniformToFill" /></Border.Background>
+                        </Border>
+                    </Grid>
+                    <Canvas x:Name="TickerClip" Grid.Column="1" ClipToBounds="True" Margin="9,0,8,0" Height="20" VerticalAlignment="Center">
+                        <TextBlock x:Name="TickerText" FontSize="12.5" Canvas.Top="1.5">
+                            <TextBlock.RenderTransform><TranslateTransform x:Name="TickerShift" /></TextBlock.RenderTransform>
+                            <Run x:Name="TickerName" FontWeight="SemiBold" Foreground="White" /><Run Text="  " /><Run x:Name="TickerMsg" Foreground="#FFC7C7CC" />
+                        </TextBlock>
+                    </Canvas>
+                    <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                        <Border x:Name="TickerCount" MinWidth="17" Height="17" CornerRadius="8.5" Background="{StaticResource Green}" Padding="4,0" Margin="0,0,6,0" Visibility="Collapsed">
+                            <TextBlock x:Name="TickerCountText" FontSize="10.5" FontWeight="SemiBold" Foreground="#FF04342C" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <Border x:Name="TickerAppBox" Width="16" Height="16" Visibility="Collapsed">
+                            <Border.Background><ImageBrush x:Name="TickerApp" Stretch="Uniform" /></Border.Background>
+                        </Border>
+                    </StackPanel>
+                </Grid>
+
+                <!-- ============ ALERT ============ -->
+                <Grid x:Name="PeekPanel" Margin="10,10,10,10" Visibility="Collapsed" VerticalAlignment="Center">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <!-- screenshot: the island opens downwards and shows the picture, which then goes "into" it -->
+                    <Border x:Name="PeekShot" Grid.ColumnSpan="3" CornerRadius="10" Visibility="Collapsed" HorizontalAlignment="Center" VerticalAlignment="Center"
+                            BorderBrush="#33FFFFFF" BorderThickness="0.5" RenderTransformOrigin="0.5,0">
+                        <Border.Background><ImageBrush x:Name="PeekShotImg" Stretch="UniformToFill" /></Border.Background>
+                        <Border.RenderTransform><ScaleTransform x:Name="PeekShotScale" /></Border.RenderTransform>
+                    </Border>
+                    <Grid x:Name="PeekLead" Margin="0,0,10,0" VerticalAlignment="Center">
+                        <!-- a symbol sits in a tinted circle; an app icon in a round dark plate -->
+                        <Border x:Name="PeekIconCircle" Width="34" Height="34" CornerRadius="17">
+                            <ui:SfIcon x:Name="PeekIcon" Size="17" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <Border x:Name="PeekImageBorder" Width="36" Height="36" CornerRadius="18" Background="#FF2C2C2E" Visibility="Collapsed">
+                            <Border Width="24" Height="24">
+                                <Border.Background>
+                                    <ImageBrush x:Name="PeekImage" Stretch="Uniform" />
+                                </Border.Background>
+                            </Border>
+                        </Border>
+                        <!-- the symbol inside a progress ring (Claude's plan, done = full green ring) -->
+                        <Grid x:Name="PeekRingBox" Width="36" Height="36" Visibility="Collapsed">
+                            <ui:Ring x:Name="PeekRing" Thickness="2.5" />
+                            <ui:SfIcon x:Name="PeekRingIcon" Size="15" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Grid>
+                        <!-- a person: coloured circle with the initial, the app as a small badge -->
+                        <Grid x:Name="PeekAvatarBox" Width="36" Height="36" Visibility="Collapsed">
+                            <Border x:Name="PeekAvatar" CornerRadius="18">
+                                <TextBlock x:Name="PeekAvatarText" FontSize="14" FontWeight="SemiBold" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                            </Border>
+                            <Border x:Name="PeekAvatarBadgeBox" Width="17" Height="17" CornerRadius="8.5" Background="Black" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0,0,-3,-3">
+                                <Border Width="11" Height="11">
+                                    <Border.Background><ImageBrush x:Name="PeekAvatarBadge" Stretch="Uniform" /></Border.Background>
+                                </Border>
+                            </Border>
+                        </Grid>
+                        <!-- a cover (game, album): rounded square, filled -->
+                        <Border x:Name="PeekCover" Width="36" Height="36" CornerRadius="9" Visibility="Collapsed">
+                            <Border.Background><ImageBrush x:Name="PeekCoverImg" Stretch="UniformToFill" /></Border.Background>
+                        </Border>
+                    </Grid>
+                    <!-- dismiss without opening (banners whose click opens something) -->
+                    <Button x:Name="PeekClose" Grid.Column="2" Style="{StaticResource GlassIcon}" Width="20" Height="20" ui:Ext.Icon="xmark" ui:Ext.IconSize="9"
+                            HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,-6,-4,0" Panel.ZIndex="5" Visibility="Collapsed" ToolTip="Wegwischen" Click="PeekClose_Click" />
+                    <StackPanel x:Name="PeekBody" Grid.Column="1" VerticalAlignment="Center">
+                        <!-- where it comes from, small: "Claude Code · dynamic island", "Discord · jetzt" -->
+                        <StackPanel x:Name="PeekSourceRow" Orientation="Horizontal" Margin="0,0,0,1" Visibility="Collapsed">
+                            <ui:SfIcon x:Name="PeekSourceIcon" Size="10" Margin="0,0,4,0" VerticalAlignment="Center" />
+                            <TextBlock x:Name="PeekSource" FontSize="10.5" Foreground="{StaticResource SubText}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+                        </StackPanel>
+                        <DockPanel>
+                            <TextBlock x:Name="PeekTime" DockPanel.Dock="Right" FontSize="11" Foreground="{StaticResource SubText}" Margin="8,0,2,0" VerticalAlignment="Center" Visibility="Collapsed" Text="jetzt" />
+                            <TextBlock x:Name="PeekTitle" FontWeight="SemiBold" FontSize="13" TextTrimming="CharacterEllipsis" />
+                        </DockPanel>
+                        <TextBlock x:Name="PeekText" Foreground="#FFAEAEB2" FontSize="11.5" TextTrimming="CharacterEllipsis" />
+                        <WrapPanel x:Name="PeekActions" Orientation="Horizontal" Margin="0,8,0,0" />
+                    </StackPanel>
+                    <StackPanel x:Name="PeekActionsRight" Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center" Margin="8,0,0,0" />
+                    <!-- message card: when it closes by itself (runs down once the pointer has left) -->
+                    <Border x:Name="PeekProgress" Grid.ColumnSpan="3" Height="2" CornerRadius="1" Background="#59FFFFFF" VerticalAlignment="Bottom"
+                            Margin="18,0,18,-8" RenderTransformOrigin="0,0.5" Visibility="Collapsed" IsHitTestVisible="False">
+                        <Border.RenderTransform><ScaleTransform x:Name="PeekProgressScale" /></Border.RenderTransform>
+                    </Border>
+                </Grid>
+
+                <!-- ============ EXPANDED: fixed 380 × 128 for every tab ============ -->
+                <Grid x:Name="ExpandedPanel" Margin="12,7,12,10" Visibility="Collapsed">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+
+                    <!-- tab bar: always at the same place, all icons visible, mouse wheel switches.
+                         Look (A leise / B Gruppen / C Titelzeile) and the optional fading to page dots are set in code (ApplyTabStyle). -->
+                    <Grid x:Name="TabHeader" Height="24" Background="Transparent" PreviewMouseWheel="TabBar_MouseWheel">
+                        <Grid x:Name="TabHeaderBar">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock x:Name="TabTitle" FontSize="15" FontWeight="SemiBold" Foreground="White" VerticalAlignment="Center" Margin="2,0,10,0" Visibility="Collapsed" />
+                            <StackPanel x:Name="TabBar" Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Left" VerticalAlignment="Center">
+                                <RadioButton x:Name="LiveTabBtn" Style="{StaticResource TabButton}" Tag="Live" Content="Live" ui:Ext.Icon="dot.radiowaves" Checked="Tab_Checked"
+                                             ToolTip="Live – Mikrofon, Kamera, Bildschirm teilen" Visibility="Collapsed" />
+                                <RadioButton x:Name="ObsTabBtn" Style="{StaticResource TabButton}" Tag="Obs" Content="OBS" ui:Ext.Icon="record" Checked="Tab_Checked" ToolTip="OBS" Visibility="Collapsed" />
+                                <RadioButton Style="{StaticResource TabButton}" Tag="Music" Content="Musik" ui:Ext.Icon="music" Checked="Tab_Checked" ToolTip="Musik" />
+                                <RadioButton Style="{StaticResource TabButton}" Tag="Clip" Content="Zwischenablage" ui:Ext.Icon="clipboard" Checked="Tab_Checked" ToolTip="Zwischenablage" />
+                                <RadioButton x:Name="ShelfTabBtn" Style="{StaticResource TabButton}" Tag="Shelf" Content="Ablage" ui:Ext.Icon="folder" Checked="Tab_Checked" ToolTip="Ablage" Visibility="Collapsed" />
+                                <RadioButton Style="{StaticResource TabButton}" Tag="Agent" Content="Agent" ui:Ext.Icon="sparkles" Checked="Tab_Checked" ToolTip="KI-Agenten" />
+                                <RadioButton Style="{StaticResource TabButton}" Tag="Games" Content="Spiele" ui:Ext.Icon="gamecontroller" Checked="Tab_Checked" ToolTip="Spiele und Programme" />
+                                <RadioButton Style="{StaticResource TabButton}" Tag="Notify" Content="Mitteilungen" ui:Ext.Icon="bell.badge" Checked="Tab_Checked" ToolTip="Mitteilungen, Preisalarme, Vorschläge" />
+                                <RadioButton Style="{StaticResource TabButton}" Tag="Timer" Content="Timer" ui:Ext.Icon="timer" Checked="Tab_Checked" ToolTip="Timer" />
+                                <RadioButton Style="{StaticResource TabButton}" Tag="Remind" Content="Erinnerungen" ui:Ext.Icon="checklist" Checked="Tab_Checked" ToolTip="Erinnerungen" />
+                                <RadioButton Style="{StaticResource TabButton}" Tag="Controls" Content="Steuerung" ui:Ext.Icon="sliders" Checked="Tab_Checked" ToolTip="Steuerung" />
+                            </StackPanel>
+                            <Border x:Name="TabDivider" Grid.Column="2" Width="1" Height="12" Background="#FF3A3A3C" Margin="6,0,4,0" VerticalAlignment="Center" />
+                            <StackPanel x:Name="TabTools" Grid.Column="3" Orientation="Horizontal" VerticalAlignment="Center">
+                                <Button x:Name="GearBtn" Style="{StaticResource IconButton}" Width="32" Height="24" ui:Ext.Icon="gear" ui:Ext.IconSize="15" ToolTip="Einstellungen" Click="Settings_Click" />
+                                <Button x:Name="TuckBtn" Style="{StaticResource BareIconButton}" Width="32" Height="24" ui:Ext.Icon="chevron.up" ui:Ext.IconSize="15" ui:Ext.Hover="#FFCC00"
+                                        ToolTip="Insel verstecken – fahr oben in die Mitte und klick auf den Streifen, um sie zurückzuholen" Click="Tuck_Click" />
+                            </StackPanel>
+                        </Grid>
+                        <!-- "D": while the pointer is not on the bar, only these page dots remain -->
+                        <StackPanel x:Name="TabDots" Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center" Opacity="0" IsHitTestVisible="False" />
+                    </Grid>
+
+                    <Grid x:Name="Pages" Grid.Row="1" Margin="0,6,0,0">
+
+                        <!-- ===== LIVE: apps using the mic / camera / sharing the screen – one entry per app ===== -->
+                        <Grid x:Name="TabLive" Visibility="Collapsed">
+                            <Grid.Resources>
+                                <!-- the mute button shows whether the microphone is already muted -->
+                                <Style x:Key="LiveMuteStyle" TargetType="Button" BasedOn="{StaticResource GlassIcon}">
+                                    <Setter Property="ui:Ext.Icon" Value="mic.slash" />
+                                    <Setter Property="ui:Ext.Hover" Value="{StaticResource Orange}" />
+                                    <Setter Property="ToolTip" Value="Mikrofon stummschalten" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding DataContext.Audio.MicMuted, RelativeSource={RelativeSource AncestorType=Window}}" Value="True">
+                                            <Setter Property="ui:Ext.Icon" Value="mic" />
+                                            <Setter Property="Foreground" Value="{StaticResource Danger}" />
+                                            <Setter Property="ToolTip" Value="Mikrofon wieder einschalten" />
+                                        </DataTrigger>
+                                        <!-- muted inside Discord (its own mute, via Discord RPC) -->
+                                        <DataTrigger Binding="{Binding SelfMuted}" Value="True">
+                                            <Setter Property="ui:Ext.Icon" Value="mic" />
+                                            <Setter Property="Foreground" Value="{StaticResource Danger}" />
+                                            <Setter Property="ToolTip" Value="In Discord wieder sprechen" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Grid.Resources>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="*" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+
+                            <!-- Steam download below the calls: name, bar, percent and speed -->
+                            <Grid x:Name="SteamRow" Grid.Row="1" Margin="2,4,2,0" Visibility="Collapsed" ToolTip="Steam-Download">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <!-- the game's round icon from the Steam library (fallback: download arrow) -->
+                                <Grid Width="28" Height="28">
+                                    <Ellipse Fill="#FF1B2838" />
+                                    <ui:SfIcon Kind="download" Size="14" Foreground="#66C0F4" />
+                                    <Ellipse>
+                                        <Ellipse.Fill><ImageBrush ImageSource="{Binding Steam.Icon}" Stretch="UniformToFill" /></Ellipse.Fill>
+                                    </Ellipse>
+                                </Grid>
+                                <StackPanel Grid.Column="1" Margin="10,0,0,0" VerticalAlignment="Center">
+                                    <!-- name left, percent right – above the bar -->
+                                    <DockPanel>
+                                        <TextBlock DockPanel.Dock="Right" Text="{Binding Steam.Percent}" FontSize="11.5" FontWeight="SemiBold" Foreground="#66C0F4" />
+                                        <TextBlock Text="{Binding Steam.Name}" FontSize="12" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" Margin="0,0,8,0" />
+                                    </DockPanel>
+                                    <Grid Height="4" Margin="0,4,0,0">
+                                        <Border Background="#1FFFFFFF" CornerRadius="2" />
+                                        <Border Background="#66C0F4" CornerRadius="2" RenderTransformOrigin="0,0.5">
+                                            <Border.RenderTransform><ScaleTransform ScaleX="{Binding Steam.Progress, Mode=OneWay}" /></Border.RenderTransform>
+                                        </Border>
+                                    </Grid>
+                                    <!-- remaining time and speed – below the bar, right-aligned -->
+                                    <TextBlock FontSize="10.5" Foreground="{StaticResource SubText}" HorizontalAlignment="Right" Margin="0,3,0,0">
+                                        <Run Text="{Binding Steam.Eta, Mode=OneWay}" Foreground="White" /><Run Text=" · " /><Run Text="{Binding Steam.Speed, Mode=OneWay}" />
+                                    </TextBlock>
+                                </StackPanel>
+                            </Grid>
+
+                            <!-- several apps: one row each -->
+                            <ScrollViewer x:Name="LiveListScroll" VerticalScrollBarVisibility="Hidden" HorizontalScrollBarVisibility="Disabled">
+                                <ItemsControl x:Name="LiveList" ItemsSource="{Binding Privacy.Apps}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Grid Height="36" Margin="2,0,0,4">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="Auto" />
+                                                    <ColumnDefinition Width="*" />
+                                                    <ColumnDefinition Width="Auto" />
+                                                </Grid.ColumnDefinitions>
+                                                <Border Width="28" Height="28" CornerRadius="7" Background="{StaticResource Card}">
+                                                    <Image Source="{Binding Icon}" Width="22" Height="22" RenderOptions.BitmapScalingMode="HighQuality" />
+                                                </Border>
+                                                <StackPanel Grid.Column="1" Margin="10,0,6,0" VerticalAlignment="Center">
+                                                    <TextBlock Text="{Binding Name}" FontSize="12" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                                                    <TextBlock FontSize="11" TextTrimming="CharacterEllipsis">
+                                                        <Run Text="{Binding Parts, Mode=OneWay}" Foreground="{Binding Accent, Mode=OneWay}" /><Run Text=" · " Foreground="{StaticResource SubText}" /><Run Text="{Binding Elapsed, Mode=OneWay}" Foreground="{StaticResource SubText}" />
+                                                    </TextBlock>
+                                                </StackPanel>
+                                                <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                                                    <Button x:Name="MuteBtn" Style="{StaticResource LiveMuteStyle}" Tag="{Binding}" Click="LiveMute_Click" Margin="0,0,6,0" />
+                                                    <Button Style="{StaticResource GlassIcon}" ui:Ext.Icon="open" ui:Ext.Hover="{StaticResource Blue}"
+                                                            ToolTip="App öffnen" Tag="{Binding}" Click="LiveOpen_Click" />
+                                                    <Button x:Name="StopBtn" Style="{StaticResource PillButton}" Height="28" Padding="11,0" Margin="6,0,0,0" ui:Ext.Icon="stop" ui:Ext.IconSize="11"
+                                                            Background="{StaticResource Danger}" Content="Beenden" ToolTip="Teilen beenden" Tag="{Binding}" Click="LiveStop_Click" />
+                                                    <Button x:Name="StartBtn" Style="{StaticResource PillButton}" Height="28" Padding="11,0" Margin="6,0,0,0" ui:Ext.Icon="display" ui:Ext.IconSize="12"
+                                                            Background="{StaticResource Blue}" Content="Streamen" ToolTip="Stream in Discord starten" Tag="{Binding}" Click="LiveStartStream_Click" Visibility="Collapsed" />
+                                                </StackPanel>
+                                            </Grid>
+                                            <DataTemplate.Triggers>
+                                                <DataTrigger Binding="{Binding Mic}" Value="False">
+                                                    <Setter TargetName="MuteBtn" Property="Visibility" Value="Collapsed" />
+                                                </DataTrigger>
+                                                <DataTrigger Binding="{Binding Screen}" Value="False">
+                                                    <Setter TargetName="StopBtn" Property="Visibility" Value="Collapsed" />
+                                                </DataTrigger>
+                                                <DataTrigger Binding="{Binding CanStartStream}" Value="True">
+                                                    <Setter TargetName="StartBtn" Property="Visibility" Value="Visible" />
+                                                </DataTrigger>
+                                            </DataTemplate.Triggers>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </ScrollViewer>
+
+                            <!-- one app (even if it streams AND uses the mic): one big entry -->
+                            <Grid x:Name="LiveSingle" DataContext="{Binding Privacy.Primary}" Margin="2,0,0,0" Visibility="Collapsed">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <Grid Width="46" Height="46" VerticalAlignment="Center">
+                                    <Border CornerRadius="11" Background="{StaticResource Card}">
+                                        <Image Source="{Binding Icon}" Width="34" Height="34" RenderOptions.BitmapScalingMode="HighQuality" />
+                                    </Border>
+                                    <Border Width="18" Height="18" CornerRadius="9" Background="{Binding Accent}" BorderBrush="Black" BorderThickness="2"
+                                            HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0,0,-4,-4">
+                                        <ui:SfIcon x:Name="LiveSingleBadge" Size="9" Foreground="White" />
+                                    </Border>
+                                </Grid>
+                                <StackPanel Grid.Column="1" Margin="12,0,8,0" VerticalAlignment="Center">
+                                    <TextBlock x:Name="LiveSingleName" Text="{Binding Name}" FontSize="13" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                                    <TextBlock FontSize="11" TextTrimming="CharacterEllipsis" Margin="0,1,0,0">
+                                        <Run Text="{Binding Parts, Mode=OneWay}" Foreground="{StaticResource SubText}" /><Run Text=" · " Foreground="{StaticResource SubText}" /><Run Text="{Binding Elapsed, Mode=OneWay}" Foreground="{Binding Accent, Mode=OneWay}" />
+                                    </TextBlock>
+                                    <!-- Discord call: who is there – green ring = speaking right now -->
+                                    <ItemsControl x:Name="LiveMembers" Margin="0,6,0,0" Visibility="Collapsed"
+                                                  ItemsSource="{Binding DataContext.Discord.Members, RelativeSource={RelativeSource AncestorType=Window}}">
+                                        <ItemsControl.ItemsPanel>
+                                            <ItemsPanelTemplate><StackPanel Orientation="Horizontal" /></ItemsPanelTemplate>
+                                        </ItemsControl.ItemsPanel>
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <Grid Width="22" Height="22" Margin="0,0,4,0" ToolTip="{Binding Name}">
+                                                    <Ellipse Fill="#FF3A3A3C" />
+                                                    <TextBlock Text="{Binding Initial}" FontSize="10" FontWeight="SemiBold" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                                    <Ellipse>
+                                                        <Ellipse.Fill><ImageBrush ImageSource="{Binding Avatar}" Stretch="UniformToFill" /></Ellipse.Fill>
+                                                    </Ellipse>
+                                                    <Ellipse x:Name="ring" Stroke="{StaticResource Green}" StrokeThickness="2" Margin="-2" Visibility="Collapsed" />
+                                                    <Border x:Name="mut" Width="10" Height="10" CornerRadius="5" Background="{StaticResource Danger}" BorderBrush="Black" BorderThickness="1"
+                                                            HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0,0,-2,-2" Visibility="Collapsed">
+                                                        <ui:SfIcon Kind="mic.slash" Size="6" Foreground="White" />
+                                                    </Border>
+                                                </Grid>
+                                                <DataTemplate.Triggers>
+                                                    <DataTrigger Binding="{Binding Speaking}" Value="True">
+                                                        <Setter TargetName="ring" Property="Visibility" Value="Visible" />
+                                                    </DataTrigger>
+                                                    <DataTrigger Binding="{Binding Muted}" Value="True">
+                                                        <Setter TargetName="mut" Property="Visibility" Value="Visible" />
+                                                    </DataTrigger>
+                                                </DataTemplate.Triggers>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </StackPanel>
+                                <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                                    <StackPanel x:Name="LiveSingleMute" Margin="0,0,10,0">
+                                        <Button x:Name="LiveSingleMuteBtn" Style="{StaticResource LiveMuteStyle}" Width="34" Height="34" ui:Ext.IconSize="15"
+                                                Tag="{Binding}" Click="LiveMute_Click" />
+                                        <TextBlock x:Name="LiveSingleMuteText" Text="Stumm" FontSize="10" Foreground="{StaticResource SubText}" HorizontalAlignment="Center" Margin="0,3,0,0" />
+                                    </StackPanel>
+                                    <StackPanel x:Name="LiveSingleDeaf" Margin="0,0,10,0" Visibility="Collapsed">
+                                        <Button x:Name="LiveSingleDeafBtn" Style="{StaticResource GlassIcon}" Width="34" Height="34" ui:Ext.Icon="speaker.slash" ui:Ext.IconSize="15"
+                                                ui:Ext.Hover="{StaticResource Orange}" Click="LiveDeaf_Click" ToolTip="In Discord taub schalten" />
+                                        <TextBlock x:Name="LiveSingleDeafText" Text="Taub" FontSize="10" Foreground="{StaticResource SubText}" HorizontalAlignment="Center" Margin="0,3,0,0" />
+                                    </StackPanel>
+                                    <StackPanel>
+                                        <Button Style="{StaticResource GlassIcon}" Width="34" Height="34" ui:Ext.Icon="open" ui:Ext.IconSize="15"
+                                                ui:Ext.Hover="{StaticResource Blue}" Tag="{Binding}" Click="LiveOpen_Click" />
+                                        <TextBlock Text="Öffnen" FontSize="10" Foreground="{StaticResource SubText}" HorizontalAlignment="Center" Margin="0,3,0,0" />
+                                    </StackPanel>
+                                    <StackPanel x:Name="LiveSingleStart" Margin="10,0,0,0" Visibility="Collapsed">
+                                        <Button Style="{StaticResource GlassIcon}" Width="34" Height="34" ui:Ext.Icon="display" ui:Ext.IconSize="15"
+                                                Background="{StaticResource Blue}" Tag="{Binding}" Click="LiveStartStream_Click" ToolTip="Stream in Discord starten" />
+                                        <TextBlock Text="Streamen" FontSize="10" Foreground="{StaticResource SubText}" HorizontalAlignment="Center" Margin="0,3,0,0" />
+                                    </StackPanel>
+                                    <StackPanel x:Name="LiveSingleStop" Margin="10,0,0,0">
+                                        <Button Style="{StaticResource GlassIcon}" Width="34" Height="34" ui:Ext.Icon="stop" ui:Ext.IconSize="13"
+                                                Background="{StaticResource Danger}" Tag="{Binding}" Click="LiveStop_Click" />
+                                        <TextBlock Text="Beenden" FontSize="10" Foreground="{StaticResource SubText}" HorizontalAlignment="Center" Margin="0,3,0,0" />
+                                    </StackPanel>
+                                </StackPanel>
+                            </Grid>
+                        </Grid>
+
+                        <!-- ===== MUSIC ===== -->
+                        <Grid x:Name="TabMusic">
+                            <StackPanel x:Name="MusicEmpty" HorizontalAlignment="Center" VerticalAlignment="Center" Visibility="Collapsed">
+                                <ui:SfIcon Kind="music" Size="22" Foreground="{StaticResource FaintText}" HorizontalAlignment="Center" />
+                                <TextBlock Text="Keine Wiedergabe" FontSize="13" FontWeight="SemiBold" HorizontalAlignment="Center" Margin="0,6,0,0" />
+                                <Button Style="{StaticResource PillButton}" Height="24" FontSize="11.5" Padding="11,0" Margin="0,7,0,0" HorizontalAlignment="Center"
+                                        ui:Ext.Icon="play.fill" ui:Ext.IconSize="10" ui:Ext.Hover="{StaticResource Green}" Content="Spotify öffnen" Click="OpenSpotify_Click" />
+                            </StackPanel>
+                            <!-- M2 (approved 2026-11-14): the cover fills the height on the left; title, progress and the buttons stacked on the right -->
+                            <StackPanel x:Name="MusicContent" VerticalAlignment="Center">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+                                    <!-- skipping (user's pick 2026-11-15, "A · Karussell"): inside this frame the old cover slides
+                                         out and the new one comes in – Weiter left → right, Zurück right → left -->
+                                    <Border x:Name="MusicCoverBox" Width="78" Height="78" CornerRadius="12" Background="{StaticResource Card}" VerticalAlignment="Top">
+                                        <Grid>
+                                            <Border x:Name="MusicCoverGhost" CornerRadius="12" Visibility="Collapsed" RenderTransformOrigin="0.5,0.5">
+                                                <Border.Background>
+                                                    <ImageBrush x:Name="MusicCoverGhostImg" Stretch="UniformToFill" />
+                                                </Border.Background>
+                                                <Border.RenderTransform>
+                                                    <TransformGroup>
+                                                        <ScaleTransform x:Name="MusicCoverGhostScale" />
+                                                        <TranslateTransform x:Name="MusicCoverGhostShift" />
+                                                    </TransformGroup>
+                                                </Border.RenderTransform>
+                                            </Border>
+                                            <Border x:Name="MusicCoverFace" CornerRadius="12" RenderTransformOrigin="0.5,0.5">
+                                                <Border.Background>
+                                                    <ImageBrush x:Name="MusicCover" Stretch="UniformToFill" />
+                                                </Border.Background>
+                                                <Border.RenderTransform>
+                                                    <TransformGroup>
+                                                        <ScaleTransform x:Name="MusicCoverScale" />
+                                                        <TranslateTransform x:Name="MusicCoverShift" />
+                                                    </TransformGroup>
+                                                </Border.RenderTransform>
+                                            </Border>
+                                        </Grid>
+                                    </Border>
+                                    <Grid Grid.Column="1" Margin="12,1,0,0" Height="77">
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="Auto" />
+                                            <RowDefinition Height="*" />
+                                            <RowDefinition Height="Auto" />
+                                            <RowDefinition Height="Auto" />
+                                        </Grid.RowDefinitions>
+                                    <!-- the old title / artist while skipping (slides out next to the new one) -->
+                                    <StackPanel x:Name="MusicTextGhost" Visibility="Collapsed" IsHitTestVisible="False">
+                                        <StackPanel.RenderTransform><TranslateTransform x:Name="MusicTextGhostShift" /></StackPanel.RenderTransform>
+                                        <TextBlock x:Name="MusicTitleGhost" FontSize="13.5" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" MaxWidth="250" HorizontalAlignment="Left" />
+                                        <TextBlock x:Name="MusicArtistGhost" FontSize="11" Foreground="{StaticResource SubText}" TextTrimming="CharacterEllipsis" Margin="0,1,0,0" />
+                                    </StackPanel>
+                                    <StackPanel x:Name="MusicText">
+                                        <StackPanel.RenderTransform><TranslateTransform x:Name="MusicTextShift" /></StackPanel.RenderTransform>
+                                        <StackPanel Orientation="Horizontal">
+                                            <TextBlock x:Name="MusicTitle" FontSize="13.5" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" MaxWidth="250" />
+                                            <!-- the little equalizer lives in the pill now; kept hidden for the shared storyboard -->
+                                            <StackPanel x:Name="MusicEq" Orientation="Horizontal" Height="10" VerticalAlignment="Center" Margin="6,0,0,0" Visibility="Collapsed">
+                                                <Rectangle x:Name="MEqBar1" Width="2" Height="10" RadiusX="1" RadiusY="1" Margin="0,0,1.5,0" RenderTransformOrigin="0.5,0.5">
+                                                    <Rectangle.RenderTransform><ScaleTransform x:Name="MEq1" ScaleY="0.5" /></Rectangle.RenderTransform>
+                                                </Rectangle>
+                                                <Rectangle x:Name="MEqBar2" Width="2" Height="10" RadiusX="1" RadiusY="1" Margin="0,0,1.5,0" RenderTransformOrigin="0.5,0.5">
+                                                    <Rectangle.RenderTransform><ScaleTransform x:Name="MEq2" ScaleY="0.8" /></Rectangle.RenderTransform>
+                                                </Rectangle>
+                                                <Rectangle x:Name="MEqBar3" Width="2" Height="10" RadiusX="1" RadiusY="1" Margin="0,0,1.5,0" RenderTransformOrigin="0.5,0.5">
+                                                    <Rectangle.RenderTransform><ScaleTransform x:Name="MEq3" ScaleY="0.4" /></Rectangle.RenderTransform>
+                                                </Rectangle>
+                                                <Rectangle x:Name="MEqBar4" Width="2" Height="10" RadiusX="1" RadiusY="1" RenderTransformOrigin="0.5,0.5">
+                                                    <Rectangle.RenderTransform><ScaleTransform x:Name="MEq4" ScaleY="0.7" /></Rectangle.RenderTransform>
+                                                </Rectangle>
+                                            </StackPanel>
+                                        </StackPanel>
+                                        <!-- artist · where it plays (YouTube, Spotify …) -->
+                                        <TextBlock x:Name="MusicArtist" FontSize="11" Foreground="{StaticResource SubText}" TextTrimming="CharacterEllipsis" Margin="0,1,0,0" />
+                                        <TextBlock x:Name="MusicApp" Visibility="Collapsed" />
+                                    </StackPanel>
+                                <Grid Grid.Row="2" Margin="0,0,0,1">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="32" />
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="34" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock x:Name="MusicPos" FontSize="10" Foreground="{StaticResource SubText}" VerticalAlignment="Center" />
+                                    <ui:SfIcon x:Name="MusicVolIcon" Kind="speaker" Size="13" Foreground="{StaticResource SubText}" HorizontalAlignment="Left" Visibility="Collapsed" />
+                                    <Slider x:Name="MusicProgress" Grid.Column="1" Style="{StaticResource ThinSlider}" Minimum="0" Maximum="1" />
+                                    <Slider x:Name="MusicVolume" Grid.Column="1" Style="{StaticResource ThinSlider}" Minimum="0" Maximum="1" Visibility="Collapsed"
+                                            ValueChanged="MusicVolume_ValueChanged" ToolTip="Nur Spotify – die Systemlautstärke bleibt" />
+                                    <TextBlock x:Name="MusicDur" Grid.Column="2" FontSize="10" Foreground="{StaticResource SubText}" HorizontalAlignment="Right" VerticalAlignment="Center" />
+                                </Grid>
+                                <!-- the buttons under the progress: back · play/pause · forward; on the right source switch, and
+                                     for Spotify its own volume and the queue -->
+                                <Grid Grid.Row="3" Margin="0,0,0,-3">
+                                    <StackPanel HorizontalAlignment="Right" Orientation="Horizontal" VerticalAlignment="Center">
+                                        <!-- Spotify only: turns the progress bar into Spotify's own volume (Windows mixer) -->
+                                        <Button x:Name="MusicVolBtn" Style="{StaticResource SmallIconButton}" ui:Ext.Icon="speaker" ui:Ext.IconSize="13"
+                                                ui:Ext.Hover="{StaticResource Green}" ToolTip="Spotify-Lautstärke" Click="MusicVol_Click" Visibility="Collapsed" />
+                                        <Button x:Name="MusicQueueBtn" Style="{StaticResource SmallIconButton}" ui:Ext.Icon="checklist" ui:Ext.IconSize="13"
+                                                ui:Ext.Hover="{StaticResource Green}" ToolTip="Warteschlange" Click="MusicQueue_Click" Visibility="Collapsed" />
+                                        <Button x:Name="MusicSourceBtn" Style="{StaticResource SmallIconButton}" ui:Ext.Icon="swap" ui:Ext.IconSize="13"
+                                                ui:Ext.Hover="{StaticResource Teal}" ToolTip="Quelle wechseln" Click="MusicSource_Click" />
+                                    </StackPanel>
+                                    <!-- back · play/pause · forward in the middle of the column (user wish) -->
+                                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center" HorizontalAlignment="Center">
+                                        <Button Style="{StaticResource MediaButton}" Width="34" Height="28" ui:Ext.Icon="backward.fill" ui:Ext.IconSize="17" Click="Prev_Click" ToolTip="Zurück" />
+                                        <Button x:Name="PlayPauseBtn" Style="{StaticResource MediaButton}" Width="40" Height="28" ui:Ext.Icon="play.fill" ui:Ext.IconSize="21"
+                                                Margin="4,0,4,0" Click="PlayPause_Click" ToolTip="Wiedergabe / Pause" />
+                                        <Button Style="{StaticResource MediaButton}" Width="34" Height="28" ui:Ext.Icon="forward.fill" ui:Ext.IconSize="17" Click="Next_Click" ToolTip="Weiter" />
+                                    </StackPanel>
+                                </Grid>
+                                    </Grid>
+                                </Grid>
+                                <!-- Spotify queue (own Spotify app): the island grows to 300 px while it is open -->
+                                <StackPanel x:Name="QueueView" Margin="0,10,0,0" Visibility="Collapsed">
+                                    <DockPanel Margin="0,0,0,4">
+                                        <TextBlock x:Name="QueueHint" DockPanel.Dock="Right" FontSize="10.5" Foreground="#73EBEBF5" VerticalAlignment="Center" />
+                                        <TextBlock Text="Als Nächstes" FontSize="11" Foreground="{StaticResource SubText}" />
+                                    </DockPanel>
+                                    <ScrollViewer Height="148" VerticalScrollBarVisibility="Hidden">
+                                        <ItemsControl x:Name="QueueItems" ItemsSource="{Binding Spotify.Queue}">
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate>
+                                                    <Border x:Name="qrow" BorderThickness="0,0,0,0.5" BorderBrush="#1AFFFFFF" Padding="4,4" Background="Transparent" CornerRadius="6"
+                                                            Cursor="Hand" ToolTip="Bis hierhin springen" MouseLeftButtonUp="QueueItem_Click">
+                                                        <Grid>
+                                                            <Grid.ColumnDefinitions>
+                                                                <ColumnDefinition Width="Auto" />
+                                                                <ColumnDefinition Width="*" />
+                                                                <ColumnDefinition Width="Auto" />
+                                                            </Grid.ColumnDefinitions>
+                                                            <Border Width="26" Height="26" CornerRadius="5" Background="{StaticResource Card}">
+                                                                <Border CornerRadius="5">
+                                                                    <Border.Background><ImageBrush ImageSource="{Binding Cover}" Stretch="UniformToFill" /></Border.Background>
+                                                                </Border>
+                                                            </Border>
+                                                            <StackPanel Grid.Column="1" Margin="9,0,6,0" VerticalAlignment="Center">
+                                                                <TextBlock Text="{Binding Name}" FontSize="12" TextTrimming="CharacterEllipsis" />
+                                                                <TextBlock Text="{Binding Artist}" FontSize="10.5" Foreground="{StaticResource SubText}" TextTrimming="CharacterEllipsis" />
+                                                            </StackPanel>
+                                                            <TextBlock Grid.Column="2" Text="{Binding Duration}" FontSize="10.5" Foreground="#73EBEBF5" VerticalAlignment="Center" />
+                                                        </Grid>
+                                                    </Border>
+                                                    <DataTemplate.Triggers>
+                                                        <Trigger SourceName="qrow" Property="IsMouseOver" Value="True">
+                                                            <Setter TargetName="qrow" Property="Background" Value="#14FFFFFF" />
+                                                        </Trigger>
+                                                    </DataTemplate.Triggers>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                    </ScrollViewer>
+                                </StackPanel>
+                            </StackPanel>
+                        </Grid>
+
+                        <!-- ===== CLIPBOARD ===== -->
+                        <Grid x:Name="TabClip" Visibility="Collapsed">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="*" />
+                            </Grid.RowDefinitions>
+                            <!-- no boxes: magnifier + text and plain icons (the filter menu only in layout C – A/B show the filter words) -->
+                            <Border x:Name="ClipHeader" BorderThickness="0" BorderBrush="#1AFFFFFF" Padding="0,0,0,2">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <Button x:Name="ClipClearBtn" Grid.Column="3" Style="{StaticResource TrashMorphButton}" Margin="2,0,0,0"
+                                            ToolTip="Zwischenablage komplett leeren" Click="ClipClearAll_Click" />
+                                    <TextBox x:Name="ClipSearch" Style="{StaticResource PlainSearchBox}" Tag="Suchen" Height="26" MinHeight="26" FontSize="12.5"
+                                             TextChanged="ClipSearch_TextChanged" PreviewKeyDown="ClipSearch_PreviewKeyDown" />
+                                    <Button x:Name="FilterBtn" Grid.Column="1" Style="{StaticResource IconButton}" Width="26" Height="26" Margin="4,0,0,0" ui:Ext.Icon="sliders" ui:Ext.IconSize="15"
+                                            Foreground="#B3FFFFFF" ui:Ext.Hover="{StaticResource Blue}" ToolTip="Filter" Click="FilterBtn_Click" />
+                                    <ToggleButton x:Name="QueueToggle" Grid.Column="2" Style="{StaticResource PlainToggle}" Margin="2,0,0,0" ui:Ext.Icon="stack"
+                                                  Click="QueueToggle_Click" ToolTip="Stapel-Modus: jedes Strg+V fügt das nächste der Reihe nach ein" />
+                                </Grid>
+                            </Border>
+                            <StackPanel Grid.Row="1">
+                                <!-- A / B: the filters as plain words, the active one white and underlined -->
+                                <Border x:Name="ClipChipsRow" BorderThickness="0,0,0,0.5" BorderBrush="#1AFFFFFF">
+                                    <StackPanel x:Name="ClipChips" Orientation="Horizontal" Height="22" />
+                                </Border>
+                                <!-- C: pictures as their own strip; click copies, right click shows it big -->
+                                <Border x:Name="ClipStripRow" BorderThickness="0,0,0,0.5" BorderBrush="#1AFFFFFF" Padding="0,6,0,8" Visibility="Collapsed">
+                                    <StackPanel Orientation="Horizontal">
+                                        <ItemsControl x:Name="ClipStrip">
+                                            <ItemsControl.ItemsPanel>
+                                                <ItemsPanelTemplate>
+                                                    <StackPanel Orientation="Horizontal" />
+                                                </ItemsPanelTemplate>
+                                            </ItemsControl.ItemsPanel>
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate>
+                                                    <Grid Width="62" Height="46" Margin="0,0,6,0" Cursor="Hand" Background="Transparent"
+                                                          ToolTip="Klick: kopieren · Rechtsklick: groß anzeigen"
+                                                          MouseLeftButtonUp="ClipStrip_Click" MouseRightButtonUp="ClipStrip_RightClick">
+                                                        <Border x:Name="pic" CornerRadius="8" BorderBrush="#26FFFFFF" BorderThickness="0.5">
+                                                            <Border.Background>
+                                                                <ImageBrush ImageSource="{Binding Thumb}" Stretch="UniformToFill" />
+                                                            </Border.Background>
+                                                        </Border>
+                                                        <ui:SfIcon Kind="pin" Size="10" Foreground="{StaticResource Orange}" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,4,5,0"
+                                                                   Visibility="{Binding Pinned, Converter={StaticResource BoolVis}}" />
+                                                        <Border x:Name="ok" CornerRadius="8" Background="#99000000" Visibility="Collapsed">
+                                                            <ui:SfIcon Kind="check" Size="18" Weight="2.4" Foreground="{StaticResource Green}" />
+                                                        </Border>
+                                                    </Grid>
+                                                    <DataTemplate.Triggers>
+                                                        <Trigger SourceName="pic" Property="IsMouseOver" Value="True">
+                                                            <Setter TargetName="pic" Property="BorderBrush" Value="White" />
+                                                            <Setter TargetName="pic" Property="BorderThickness" Value="1.5" />
+                                                        </Trigger>
+                                                        <DataTrigger Binding="{Binding JustCopied}" Value="True">
+                                                            <Setter TargetName="ok" Property="Visibility" Value="Visible" />
+                                                        </DataTrigger>
+                                                    </DataTemplate.Triggers>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                        <Border x:Name="ClipStripMore" Width="62" Height="46" CornerRadius="8" Background="#14FFFFFF" Cursor="Hand" ToolTip="Alle Bilder zeigen"
+                                                MouseLeftButtonUp="ClipStripMore_Click">
+                                            <TextBlock x:Name="ClipStripMoreText" FontSize="11" Foreground="{StaticResource SubText}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                        </Border>
+                                    </StackPanel>
+                                </Border>
+                                <DockPanel x:Name="QueuePanel" Margin="2,6,0,0" Visibility="Collapsed">
+                                    <Button DockPanel.Dock="Right" Style="{StaticResource SmallIconButton}" Width="20" Height="20" ui:Ext.Icon="xmark" ui:Ext.IconSize="11"
+                                            ui:Ext.Hover="{StaticResource Danger}" ToolTip="Stapel leeren" Click="ClearQueue_Click" />
+                                    <TextBlock x:Name="QueueHeader" FontSize="11" Foreground="{DynamicResource Accent}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                                </DockPanel>
+                            </StackPanel>
+                            <ItemsControl x:Name="QueueList" Visibility="Collapsed" />
+                            <ListBox x:Name="ClipList" Grid.Row="2" Margin="0,2,0,0" Style="{StaticResource DarkList}" ItemTemplate="{StaticResource ClipTemplate}"
+                                     ItemContainerStyle="{StaticResource ClipRowItem}" ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                                     VirtualizingPanel.IsVirtualizing="True" VirtualizingPanel.IsVirtualizingWhenGrouping="True" KeyboardNavigation.DirectionalNavigation="Cycle">
+                                <!-- A / C: Angeheftet · Heute · Gestern · Diese Woche · Älter -->
+                                <ListBox.GroupStyle>
+                                    <GroupStyle>
+                                        <GroupStyle.HeaderTemplate>
+                                            <DataTemplate>
+                                                <TextBlock Text="{Binding Name}" FontSize="10.5" FontWeight="SemiBold" Foreground="#FF636366" Margin="2,8,0,2" />
+                                            </DataTemplate>
+                                        </GroupStyle.HeaderTemplate>
+                                    </GroupStyle>
+                                </ListBox.GroupStyle>
+                            </ListBox>
+                            <TextBlock x:Name="ClipEmpty" Grid.Row="2" Text="Noch nichts kopiert" Foreground="{StaticResource SubText}" FontSize="12"
+                                       HorizontalAlignment="Center" VerticalAlignment="Center" Visibility="Collapsed" />
+
+                            <!-- "really delete everything?" – an Apple-style alert inside the island -->
+                            <Grid x:Name="ClipConfirm" Grid.RowSpan="3" Margin="-12,-6,-12,-10" Visibility="Collapsed" Background="#B8000000">
+                                <Border x:Name="ClipConfirmCard" Width="250" CornerRadius="18" Background="#FA1C1C1E" Padding="16,16,16,12"
+                                        HorizontalAlignment="Center" VerticalAlignment="Center" RenderTransformOrigin="0.5,0.5">
+                                    <Border.RenderTransform>
+                                        <ScaleTransform x:Name="ClipConfirmScale" />
+                                    </Border.RenderTransform>
+                                    <StackPanel>
+                                        <Border Width="38" Height="38" CornerRadius="19" Background="#33FF453A" HorizontalAlignment="Center">
+                                            <ui:SfIcon Kind="trash" Size="18" Foreground="{StaticResource Danger}" />
+                                        </Border>
+                                        <TextBlock Text="Zwischenablage leeren?" FontSize="13.5" FontWeight="SemiBold" HorizontalAlignment="Center" Margin="0,10,0,0" />
+                                        <TextBlock x:Name="ClipConfirmText" FontSize="11.5" Foreground="{StaticResource SubText}" TextWrapping="Wrap" TextAlignment="Center"
+                                                   HorizontalAlignment="Center" Margin="0,4,0,0" />
+                                        <UniformGrid Columns="2" Margin="0,14,0,0">
+                                            <Button Style="{StaticResource PillButton}" Height="30" Margin="0,0,4,0" Content="Abbrechen" Click="ClipConfirmCancel_Click" />
+                                            <Button Style="{StaticResource PillButton}" Height="30" Margin="4,0,0,0" Background="{StaticResource Danger}" Content="Löschen"
+                                                    Click="ClipConfirmYes_Click" />
+                                        </UniformGrid>
+                                    </StackPanel>
+                                </Border>
+                            </Grid>
+                        </Grid>
+
+                        <!-- ===== SHELF ===== -->
+                        <!-- Ablage (approved 2026-11-14): empty = a calm invitation; with files = tiles, the actions only then -->
+                        <Grid x:Name="TabShelf" Visibility="Collapsed">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="*" />
+                            </Grid.RowDefinitions>
+                            <StackPanel x:Name="ShelfEmpty" Grid.RowSpan="2" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                <Border Width="36" Height="36" CornerRadius="18" Background="#10FFFFFF" HorizontalAlignment="Center">
+                                    <ui:SfIcon Kind="download" Size="17" Foreground="{StaticResource SubText}" />
+                                </Border>
+                                <TextBlock Text="Dateien hier ablegen" FontSize="12.5" FontWeight="SemiBold" HorizontalAlignment="Center" Margin="0,5,0,0" />
+                                <TextBlock FontSize="10.5" Foreground="{StaticResource SubText}" HorizontalAlignment="Center" Margin="0,1,0,0">
+                                    <Run Text="Später in jede App ziehen · " /><Hyperlink Click="ShelfAddLink_Click" Foreground="{StaticResource Blue}" TextDecorations="{x:Null}" Cursor="Hand"><Run Text="Auswählen" /></Hyperlink>
+                                </TextBlock>
+                            </StackPanel>
+                            <DockPanel x:Name="ShelfHeader" Margin="2,0,0,4">
+                                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                                    <Button Style="{StaticResource BareIconButton}" Width="24" Height="22" ui:Ext.Icon="copy" ui:Ext.IconSize="13" Foreground="#FF8E8E93" ui:Ext.Hover="{StaticResource Blue}" Click="ShelfToClipboard_Click" ToolTip="Alle kopieren" />
+                                    <Button Style="{StaticResource BareIconButton}" Width="24" Height="22" ui:Ext.Icon="folder" ui:Ext.IconSize="13" Foreground="#FF8E8E93" ui:Ext.Hover="{StaticResource Yellow}" Click="ShelfCopyTo_Click" ToolTip="In Ordner kopieren" />
+                                    <Button Style="{StaticResource BareIconButton}" Width="24" Height="22" ui:Ext.Icon="trash" ui:Ext.IconSize="13" Foreground="#FF8E8E93" ui:Ext.Hover="{StaticResource Danger}" Click="ShelfClear_Click" ToolTip="Ablage leeren" />
+                                </StackPanel>
+                                <TextBlock x:Name="ShelfSummary" FontSize="11" Foreground="{StaticResource SubText}" VerticalAlignment="Center" />
+                            </DockPanel>
+                            <ScrollViewer x:Name="ShelfScroll" Grid.Row="1" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
+                                <ItemsControl x:Name="ShelfList" ItemsSource="{Binding Shelf.Items}">
+                                    <ItemsControl.ItemsPanel>
+                                        <ItemsPanelTemplate>
+                                            <StackPanel Orientation="Horizontal" />
+                                        </ItemsPanelTemplate>
+                                    </ItemsControl.ItemsPanel>
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Grid x:Name="Tile" Width="62" Margin="0,0,6,0" Background="Transparent" Cursor="Hand"
+                                                  ToolTip="{Binding Path}" MouseLeftButtonDown="ShelfItem_MouseDown" MouseMove="ShelfItem_MouseMove">
+                                                <StackPanel>
+                                                    <Border x:Name="TileBg" Width="42" Height="42" CornerRadius="10" Background="#10FFFFFF">
+                                                        <Image Source="{Binding Icon}" Width="26" Height="26" Stretch="Uniform" RenderOptions.BitmapScalingMode="HighQuality" />
+                                                    </Border>
+                                                    <TextBlock Text="{Binding Name}" FontSize="10" Foreground="#FFD1D1D6" TextAlignment="Center" TextTrimming="CharacterEllipsis" Margin="0,4,0,0" />
+                                                </StackPanel>
+                                                <Button x:Name="TileRemove" Style="{StaticResource GlassIcon}" ui:Ext.Icon="xmark" ui:Ext.IconSize="8" ui:Ext.Hover="{StaticResource Danger}"
+                                                        Width="16" Height="16" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,1,1,0" Visibility="Hidden"
+                                                        ToolTip="Entfernen" Click="ShelfRemove_Click" />
+                                            </Grid>
+                                            <DataTemplate.Triggers>
+                                                <Trigger SourceName="Tile" Property="IsMouseOver" Value="True">
+                                                    <Setter TargetName="TileRemove" Property="Visibility" Value="Visible" />
+                                                    <Setter TargetName="TileBg" Property="Background" Value="#1FFFFFFF" />
+                                                </Trigger>
+                                            </DataTemplate.Triggers>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </ScrollViewer>
+                            <!-- "+" tile after the files: add more -->
+                            <Border x:Name="ShelfAddTile" Grid.Row="1" Width="62" HorizontalAlignment="Left" VerticalAlignment="Top" Background="Transparent" Cursor="Hand"
+                                    MouseLeftButtonUp="ShelfAddTile_Click" ToolTip="Dateien hinzufügen">
+                                <StackPanel>
+                                    <Border Width="42" Height="42" CornerRadius="10" BorderBrush="#FF48484A" BorderThickness="1">
+                                        <Border.Style>
+                                            <Style TargetType="Border"><Setter Property="Background" Value="Transparent" /></Style>
+                                        </Border.Style>
+                                        <ui:SfIcon Kind="plus" Size="15" Foreground="#FF636366" />
+                                    </Border>
+                                    <TextBlock Text="Hinzufügen" FontSize="10" Foreground="#FF636366" TextAlignment="Center" Margin="0,4,0,0" />
+                                </StackPanel>
+                            </Border>
+
+                        </Grid>
+
+                        <!-- ===== GAMES: games and programs the user added – picture + name, one click starts ===== -->
+                        <Grid x:Name="TabGames" Visibility="Collapsed">
+                            <!-- the scroll area is 10 px bigger on every side (and the tiles 10 px further in), so lifted / hovered
+                                 tiles are no longer cut off at its edges – visually everything stays where it was -->
+                            <ScrollViewer x:Name="GamesScroll" HorizontalScrollBarVisibility="Hidden" VerticalScrollBarVisibility="Disabled" VerticalAlignment="Center"
+                                          Margin="-10" PreviewMouseWheel="GamesScroll_PreviewMouseWheel">
+                                <StackPanel Orientation="Horizontal" Margin="10">
+                                    <ItemsControl x:Name="GamesList" ItemsSource="{Binding Launcher.Items}">
+                                        <ItemsControl.ItemsPanel>
+                                            <ItemsPanelTemplate>
+                                                <StackPanel Orientation="Horizontal" />
+                                            </ItemsPanelTemplate>
+                                        </ItemsControl.ItemsPanel>
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <Grid x:Name="Tile" Width="58" Margin="0,0,1,0" Background="Transparent" Cursor="Hand" ToolTip="{Binding Tip}"
+                                                      RenderTransformOrigin="0.5,0.4" MouseLeftButtonUp="Game_Click" MouseRightButtonUp="Game_RightClick">
+                                                    <Grid.RenderTransform>
+                                                        <ScaleTransform />
+                                                    </Grid.RenderTransform>
+                                                    <StackPanel>
+                                                        <Grid Width="46" Height="46">
+                                                            <Border CornerRadius="11" Background="{StaticResource GlassFill}" Visibility="{Binding IsIcon, Converter={StaticResource BoolVis}}" />
+                                                            <Image Source="{Binding Icon}" Width="32" Height="32" Stretch="Uniform" RenderOptions.BitmapScalingMode="HighQuality"
+                                                                   Visibility="{Binding IsIcon, Converter={StaticResource BoolVis}}" />
+                                                            <Border CornerRadius="11" Visibility="{Binding IsCover, Converter={StaticResource BoolVis}}" RenderOptions.BitmapScalingMode="HighQuality">
+                                                                <Border.Background>
+                                                                    <ImageBrush ImageSource="{Binding Icon}" Stretch="UniformToFill" />
+                                                                </Border.Background>
+                                                            </Border>
+                                                        </Grid>
+                                                        <TextBlock Text="{Binding Name}" FontSize="10" TextAlignment="Center" TextTrimming="CharacterEllipsis" Margin="1,4,1,0"
+                                                                   Visibility="{Binding Editing, Converter={StaticResource InvBoolVis}}" />
+                                                        <TextBox Style="{StaticResource PlainSearchBox}" FontSize="10" TextAlignment="Center" Margin="0,3,0,0" Tag="noclick"
+                                                                 Text="{Binding Name, Mode=OneWay}" Visibility="{Binding Editing, Converter={StaticResource BoolVis}}"
+                                                                 IsVisibleChanged="GameRename_IsVisibleChanged" PreviewKeyDown="GameRename_PreviewKeyDown" LostKeyboardFocus="GameRename_LostFocus" />
+                                                    </StackPanel>
+                                                </Grid>
+                                                <DataTemplate.Triggers>
+                                                    <Trigger SourceName="Tile" Property="IsMouseOver" Value="True">
+                                                        <Trigger.EnterActions>
+                                                            <BeginStoryboard>
+                                                                <Storyboard>
+                                                                    <DoubleAnimation Storyboard.TargetName="Tile" Storyboard.TargetProperty="RenderTransform.ScaleX" To="1.07" Duration="0:0:0.16" />
+                                                                    <DoubleAnimation Storyboard.TargetName="Tile" Storyboard.TargetProperty="RenderTransform.ScaleY" To="1.07" Duration="0:0:0.16" />
+                                                                </Storyboard>
+                                                            </BeginStoryboard>
+                                                        </Trigger.EnterActions>
+                                                        <Trigger.ExitActions>
+                                                            <BeginStoryboard>
+                                                                <Storyboard>
+                                                                    <DoubleAnimation Storyboard.TargetName="Tile" Storyboard.TargetProperty="RenderTransform.ScaleX" To="1" Duration="0:0:0.2" />
+                                                                    <DoubleAnimation Storyboard.TargetName="Tile" Storyboard.TargetProperty="RenderTransform.ScaleY" To="1" Duration="0:0:0.2" />
+                                                                </Storyboard>
+                                                            </BeginStoryboard>
+                                                        </Trigger.ExitActions>
+                                                    </Trigger>
+                                                </DataTemplate.Triggers>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                    <!-- "+" tile: program / shortcut or an installed Steam game -->
+                                    <Grid x:Name="GamesAddTile" Width="58" Background="Transparent" Cursor="Hand" ToolTip="Spiel oder Programm hinzufügen" MouseLeftButtonUp="GameAdd_Click">
+                                        <StackPanel>
+                                            <Grid Width="46" Height="46">
+                                                <Rectangle x:Name="GamesAddRect" RadiusX="11" RadiusY="11" Stroke="#40EBEBF5" StrokeDashArray="4 3" StrokeThickness="1" />
+                                                <ui:SfIcon Kind="plus" Size="18" Foreground="{StaticResource SubText}" />
+                                            </Grid>
+                                            <TextBlock Text="Hinzufügen" FontSize="10" TextAlignment="Center" Foreground="{StaticResource SubText}" Margin="0,4,0,0" />
+                                        </StackPanel>
+                                    </Grid>
+                                    <TextBlock x:Name="GamesEmpty" Text="Spiele und Programme hierher ziehen" FontSize="11.5" Foreground="{StaticResource SubText}"
+                                               VerticalAlignment="Center" Margin="10,0,0,14" />
+                                </StackPanel>
+                            </ScrollViewer>
+                        </Grid>
+
+                        <!-- ===== OBS: recording / stream time, start/stop, scenes ===== -->
+                        <Grid x:Name="TabObs" Visibility="Collapsed">
+                            <StackPanel VerticalAlignment="Center" Margin="2,0">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <Border Width="30" Height="30" CornerRadius="8" Background="#FF302E31">
+                                        <ui:SfIcon Kind="record" Size="15" Foreground="White" />
+                                    </Border>
+                                    <StackPanel Grid.Column="1" Margin="10,0,6,0" VerticalAlignment="Center">
+                                        <TextBlock Text="OBS Studio" FontSize="12.5" FontWeight="SemiBold" />
+                                        <TextBlock x:Name="ObsStatus" FontSize="11" Foreground="{StaticResource SubText}" TextTrimming="CharacterEllipsis" />
+                                    </StackPanel>
+                                    <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                                        <Button x:Name="ObsRecBtn" Style="{StaticResource PillButton}" Height="26" Padding="10,0" FontSize="11.5" ui:Ext.Icon="record" ui:Ext.IconSize="11"
+                                                Content="Aufnahme" Click="ObsRec_Click" />
+                                        <Button x:Name="ObsStreamBtn" Style="{StaticResource PillButton}" Height="26" Padding="10,0" Margin="6,0,0,0" FontSize="11.5" ui:Ext.Icon="dot.radiowaves" ui:Ext.IconSize="11"
+                                                Content="Live" Click="ObsStream_Click" />
+                                    </StackPanel>
+                                </Grid>
+                                <TextBlock Text="Szene" FontSize="11" Foreground="{StaticResource SubText}" Margin="0,10,0,5" />
+                                <WrapPanel x:Name="ObsScenePanel" />
+                            </StackPanel>
+                        </Grid>
+
+                        <!-- ===== AI AGENTS: Claude Code's task, current step, progress and time ===== -->
+                        <Grid x:Name="TabAgent" Visibility="Collapsed">
+                            <StackPanel x:Name="AgentEmpty" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                <ui:SfIcon Kind="sparkles" Size="22" Foreground="{StaticResource FaintText}" HorizontalAlignment="Center" />
+                                <TextBlock Text="Kein Agent aktiv" FontSize="13" FontWeight="SemiBold" HorizontalAlignment="Center" Margin="0,6,0,0" />
+                                <TextBlock Text="Claude Code erscheint hier, sobald es arbeitet" FontSize="11" Foreground="{StaticResource SubText}" HorizontalAlignment="Center" Margin="0,2,0,0" />
+                            </StackPanel>
+                            <StackPanel x:Name="AgentCard" DataContext="{Binding Agents.Primary}" VerticalAlignment="Center" Margin="2,0,2,0" Visibility="Collapsed"
+                                        Cursor="Hand" ToolTip="Claude öffnen" MouseLeftButtonUp="AgentCard_Click">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <Border Width="30" Height="30" CornerRadius="8" Background="#FF2A1D17">
+                                        <ui:SfIcon Kind="sparkles" Size="16" Foreground="#E8875B" />
+                                    </Border>
+                                    <StackPanel Grid.Column="1" Margin="10,0,8,0" VerticalAlignment="Center">
+                                        <TextBlock TextTrimming="CharacterEllipsis">
+                                            <Run Text="Claude Code" FontSize="12.5" FontWeight="SemiBold" /><Run Text="{Binding Project, Mode=OneWay, StringFormat=' · {0}'}" FontSize="11" Foreground="{StaticResource SubText}" />
+                                        </TextBlock>
+                                        <TextBlock Text="{Binding Task}" FontSize="11" Foreground="{StaticResource SubText}" TextTrimming="CharacterEllipsis" />
+                                    </StackPanel>
+                                    <StackPanel Grid.Column="2" VerticalAlignment="Center">
+                                        <TextBlock x:Name="AgentTime" Text="{Binding Elapsed}" FontSize="12.5" FontWeight="SemiBold" Foreground="#E8875B" HorizontalAlignment="Right" />
+                                        <TextBlock Text="{Binding Counter}" FontSize="11" Foreground="{StaticResource SubText}" HorizontalAlignment="Right" />
+                                    </StackPanel>
+                                </Grid>
+                                <!-- progress: done / total of Claude's task list, or a moving loader without a list -->
+                                <Grid x:Name="AgentTrack" Height="4" Margin="0,9,0,6" ClipToBounds="True">
+                                    <Border Background="#1FFFFFFF" CornerRadius="2" />
+                                    <Border x:Name="AgentFill" CornerRadius="2" Background="#E8875B" HorizontalAlignment="Left" Width="0" />
+                                    <Border x:Name="AgentIndet" Width="80" CornerRadius="2" Background="#E8875B" HorizontalAlignment="Left" Visibility="Collapsed">
+                                        <Border.RenderTransform><TranslateTransform x:Name="AgentIndetShift" X="-80" /></Border.RenderTransform>
+                                    </Border>
+                                </Grid>
+                                <StackPanel Orientation="Horizontal">
+                                    <Grid Width="12" Height="12" VerticalAlignment="Center">
+                                        <ui:Ring x:Name="AgentSpinner" Value="30" Thickness="1.6" Track="#26FFFFFF" Stroke="#99EBEBF5" RenderTransformOrigin="0.5,0.5">
+                                            <ui:Ring.RenderTransform><RotateTransform x:Name="AgentSpin" /></ui:Ring.RenderTransform>
+                                        </ui:Ring>
+                                        <ui:SfIcon x:Name="AgentStateIcon" Size="12" Visibility="Collapsed" />
+                                    </Grid>
+                                    <TextBlock x:Name="AgentStep" Text="{Binding Step}" FontSize="11" Foreground="{StaticResource SubText}" TextTrimming="CharacterEllipsis"
+                                               Margin="6,0,0,0" MaxWidth="320" VerticalAlignment="Center" />
+                                </StackPanel>
+                            </StackPanel>
+
+                            <!-- several Claude sessions at once: one row each (like the Live tab) -->
+                            <ScrollViewer x:Name="AgentListScroll" VerticalScrollBarVisibility="Hidden" HorizontalScrollBarVisibility="Disabled" Visibility="Collapsed">
+                                <ItemsControl x:Name="AgentList" ItemsSource="{Binding Agents.Sessions}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Grid Height="38" Margin="2,0,0,4" Background="Transparent" Cursor="Hand" ToolTip="Claude öffnen" MouseLeftButtonUp="AgentCard_Click">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="Auto" />
+                                                    <ColumnDefinition Width="*" />
+                                                    <ColumnDefinition Width="Auto" />
+                                                </Grid.ColumnDefinitions>
+                                                <Grid.RowDefinitions>
+                                                    <RowDefinition Height="*" />
+                                                    <RowDefinition Height="Auto" />
+                                                </Grid.RowDefinitions>
+                                                <Border Width="28" Height="28" CornerRadius="7" Background="#FF2A1D17" VerticalAlignment="Center">
+                                                    <Grid>
+                                                        <ui:SfIcon x:Name="ico" Kind="sparkles" Size="15" Foreground="#E8875B" />
+                                                    </Grid>
+                                                </Border>
+                                                <StackPanel Grid.Column="1" Margin="10,0,6,0" VerticalAlignment="Center">
+                                                    <TextBlock FontSize="12" TextTrimming="CharacterEllipsis">
+                                                        <Run Text="{Binding Task, Mode=OneWay}" FontWeight="SemiBold" /><Run Text="{Binding Project, Mode=OneWay, StringFormat='  {0}'}" FontSize="10.5" Foreground="{StaticResource FaintText}" />
+                                                    </TextBlock>
+                                                    <TextBlock x:Name="step" Text="{Binding Step}" FontSize="11" Foreground="{StaticResource SubText}" TextTrimming="CharacterEllipsis" />
+                                                </StackPanel>
+                                                <StackPanel Grid.Column="2" VerticalAlignment="Center" Margin="0,0,2,0">
+                                                    <TextBlock x:Name="time" Text="{Binding Elapsed}" FontSize="12" FontWeight="SemiBold" Foreground="#E8875B" HorizontalAlignment="Right" />
+                                                    <TextBlock Text="{Binding Counter}" FontSize="10.5" Foreground="{StaticResource SubText}" HorizontalAlignment="Right" />
+                                                </StackPanel>
+                                                <!-- thin progress line under the text when Claude keeps a task list -->
+                                                <Grid x:Name="bar" Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="2" Height="2" Margin="10,2,2,0" Visibility="Collapsed">
+                                                    <Border Background="#1FFFFFFF" CornerRadius="1" />
+                                                    <Border x:Name="barFill" Background="#E8875B" CornerRadius="1" RenderTransformOrigin="0,0.5">
+                                                        <Border.RenderTransform>
+                                                            <ScaleTransform ScaleX="{Binding Progress, Mode=OneWay}" />
+                                                        </Border.RenderTransform>
+                                                    </Border>
+                                                </Grid>
+                                            </Grid>
+                                            <DataTemplate.Triggers>
+                                                <DataTrigger Binding="{Binding HasPlan}" Value="True">
+                                                    <Setter TargetName="bar" Property="Visibility" Value="Visible" />
+                                                </DataTrigger>
+                                                <DataTrigger Binding="{Binding IsWaiting}" Value="True">
+                                                    <Setter TargetName="ico" Property="Kind" Value="bell" />
+                                                    <Setter TargetName="step" Property="Foreground" Value="#E8875B" />
+                                                </DataTrigger>
+                                                <DataTrigger Binding="{Binding IsDone}" Value="True">
+                                                    <Setter TargetName="ico" Property="Kind" Value="check" />
+                                                    <Setter TargetName="ico" Property="Foreground" Value="{StaticResource Green}" />
+                                                    <Setter TargetName="time" Property="Foreground" Value="{StaticResource Green}" />
+                                                    <Setter TargetName="barFill" Property="Background" Value="{StaticResource Green}" />
+                                                </DataTrigger>
+                                            </DataTemplate.Triggers>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </ScrollViewer>
+                        </Grid>
+
+                        <!-- ===== NOTIFICATIONS: Windows notifications · price alarms · suggestions ===== -->
+                        <Grid x:Name="TabNotify" Visibility="Collapsed">
+                            <Grid.Resources>
+                                <!-- the parts as plain words like the clipboard filters: active = white + underlined (approved 2026-11-14) -->
+                                <Style x:Key="SegBtn" TargetType="RadioButton">
+                                    <Setter Property="Foreground" Value="#FF8E8E93" />
+                                    <Setter Property="FontSize" Value="11.5" />
+                                    <Setter Property="Cursor" Value="Hand" />
+                                    <Setter Property="Focusable" Value="False" />
+                                    <Setter Property="GroupName" Value="NotifySeg" />
+                                    <Setter Property="Margin" Value="0,0,14,0" />
+                                    <Setter Property="Template">
+                                        <Setter.Value>
+                                            <ControlTemplate TargetType="RadioButton">
+                                                <Border x:Name="b" Background="Transparent" Height="23" BorderThickness="0,0,0,1.5" BorderBrush="Transparent" Margin="0,0,0,-0.5">
+                                                    <ContentPresenter VerticalAlignment="Center" />
+                                                </Border>
+                                                <ControlTemplate.Triggers>
+                                                    <Trigger Property="IsChecked" Value="True">
+                                                        <Setter TargetName="b" Property="BorderBrush" Value="White" />
+                                                        <Setter Property="Foreground" Value="White" />
+                                                        <Setter Property="FontWeight" Value="SemiBold" />
+                                                    </Trigger>
+                                                    <Trigger Property="IsMouseOver" Value="True">
+                                                        <Setter Property="Foreground" Value="White" />
+                                                    </Trigger>
+                                                </ControlTemplate.Triggers>
+                                            </ControlTemplate>
+                                        </Setter.Value>
+                                    </Setter>
+                                </Style>
+                                <!-- something new: just a small red dot, no number (user's wish) -->
+                                <Style x:Key="Badge" TargetType="Border">
+                                    <Setter Property="Background" Value="{StaticResource Danger}" />
+                                    <Setter Property="CornerRadius" Value="3.5" />
+                                    <Setter Property="Width" Value="7" />
+                                    <Setter Property="Height" Value="7" />
+                                    <Setter Property="Margin" Value="4,0,0,7" />
+                                    <Setter Property="VerticalAlignment" Value="Center" />
+                                </Style>
+                                <Style x:Key="FlatBox" TargetType="TextBox" BasedOn="{StaticResource PlainSearchBox}">
+                                    <Setter Property="Template">
+                                        <Setter.Value>
+                                            <ControlTemplate TargetType="TextBox">
+                                                <Border x:Name="bd" Background="Transparent" Padding="2,0">
+                                                    <Grid>
+                                                        <TextBlock x:Name="ph" Text="{TemplateBinding Tag}" Foreground="#66EBEBF5" VerticalAlignment="Center" Padding="2,0,0,0"
+                                                                   Visibility="Collapsed" IsHitTestVisible="False" TextTrimming="CharacterEllipsis" />
+                                                        <ScrollViewer x:Name="PART_ContentHost" VerticalAlignment="Center" />
+                                                    </Grid>
+                                                </Border>
+                                                <ControlTemplate.Triggers>
+                                                    <Trigger Property="Text" Value="">
+                                                        <Setter TargetName="ph" Property="Visibility" Value="Visible" />
+                                                    </Trigger>
+                                                </ControlTemplate.Triggers>
+                                            </ControlTemplate>
+                                        </Setter.Value>
+                                    </Setter>
+                                </Style>
+                            </Grid.Resources>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="*" />
+                            </Grid.RowDefinitions>
+
+                            <Border BorderThickness="0,0,0,0.5" BorderBrush="#1AFFFFFF">
+                                <DockPanel>
+                                    <!-- clearing is a quiet word on the right (only for the notifications part) -->
+                                    <TextBlock x:Name="NotifClearWord" DockPanel.Dock="Right" Text="Alle löschen" FontSize="11" VerticalAlignment="Center" Cursor="Hand"
+                                               MouseLeftButtonUp="NotifClearWord_Click">
+                                        <TextBlock.Style>
+                                            <Style TargetType="TextBlock">
+                                                <Setter Property="Foreground" Value="#FF636366" />
+                                                <Style.Triggers>
+                                                    <Trigger Property="IsMouseOver" Value="True">
+                                                        <Setter Property="Foreground" Value="{StaticResource Danger}" />
+                                                    </Trigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </TextBlock.Style>
+                                    </TextBlock>
+                                    <StackPanel Orientation="Horizontal" Margin="2,0,0,0">
+                                        <RadioButton x:Name="SegNotif" Style="{StaticResource SegBtn}" IsChecked="True" Checked="NotifySeg_Checked" Tag="notif">
+                                            <StackPanel Orientation="Horizontal">
+                                                <TextBlock Text="Mitteilungen" VerticalAlignment="Center" />
+                                                <Border x:Name="NotifBadge" Style="{StaticResource Badge}" Visibility="Collapsed">
+                                                    <TextBlock x:Name="NotifBadgeText" Visibility="Collapsed" />
+                                                </Border>
+                                            </StackPanel>
+                                        </RadioButton>
+                                        <RadioButton x:Name="SegAlarm" Style="{StaticResource SegBtn}" Checked="NotifySeg_Checked" Tag="alarm" Content="Preisalarme" />
+                                        <RadioButton x:Name="SegSuggest" Style="{StaticResource SegBtn}" Checked="NotifySeg_Checked" Tag="suggest">
+                                            <StackPanel Orientation="Horizontal">
+                                                <TextBlock Text="Vorschläge" VerticalAlignment="Center" />
+                                                <Border x:Name="SuggestBadge" Style="{StaticResource Badge}" Visibility="Collapsed">
+                                                    <TextBlock x:Name="SuggestBadgeText" Visibility="Collapsed" />
+                                                </Border>
+                                            </StackPanel>
+                                        </RadioButton>
+                                    </StackPanel>
+                                </DockPanel>
+                            </Border>
+
+                            <!-- Mitteilungen -->
+                            <Grid x:Name="NotifPanel" Grid.Row="1" Margin="0,6,0,0">
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="*" />
+                                    <RowDefinition Height="Auto" />
+                                </Grid.RowDefinitions>
+                                <ListBox x:Name="NotifList" Style="{StaticResource DarkList}" ItemsSource="{Binding Notifications.Items}">
+                                    <ListBox.ItemContainerStyle>
+                                        <Style TargetType="ListBoxItem" BasedOn="{StaticResource SeparatedListItem}">
+                                            <Setter Property="Padding" Value="14,0,4,0" />
+                                            <EventSetter Event="MouseLeftButtonUp" Handler="NotifItem_Click" />
+                                        </Style>
+                                    </ListBox.ItemContainerStyle>
+                                    <ListBox.ItemTemplate>
+                                        <DataTemplate>
+                                            <Grid x:Name="row" Height="44" Background="Transparent">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="Auto" />
+                                                    <ColumnDefinition Width="*" />
+                                                    <ColumnDefinition Width="Auto" />
+                                                </Grid.ColumnDefinitions>
+                                                <!-- unread: a blue dot on the left (fades once seen) -->
+                                                <Ellipse x:Name="unreadDot" Width="7" Height="7" Fill="#FF0A84FF" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="-10,0,0,0" Opacity="0" />
+                                                <Border Width="28" Height="28" CornerRadius="7" Background="{StaticResource Card}">
+                                                    <Grid>
+                                                        <Image Source="{Binding Icon}" Width="22" Height="22" RenderOptions.BitmapScalingMode="HighQuality" />
+                                                        <ui:SfIcon x:Name="kindIcon" Kind="{Binding IconKind}" Size="15" Foreground="{Binding Accent}" Visibility="Collapsed" />
+                                                    </Grid>
+                                                </Border>
+                                                <StackPanel Grid.Column="1" Margin="10,0,6,0" VerticalAlignment="Center">
+                                                    <TextBlock x:Name="hdr" Text="{Binding Header}" FontSize="12" TextTrimming="CharacterEllipsis" />
+                                                    <TextBlock Text="{Binding Text}" FontSize="11" Foreground="{StaticResource SubText}" TextTrimming="CharacterEllipsis" />
+                                                </StackPanel>
+                                                <Grid Grid.Column="2" VerticalAlignment="Center">
+                                                    <TextBlock x:Name="ago" Text="{Binding Ago}" FontSize="10.5" Foreground="#73EBEBF5" />
+                                                    <Button x:Name="del" Style="{StaticResource SmallIconButton}" Width="22" Height="22" ui:Ext.Icon="xmark" ui:Ext.IconSize="11"
+                                                            ui:Ext.Hover="{StaticResource Danger}" ToolTip="Entfernen" Click="NotifDismiss_Click" Visibility="Collapsed" />
+                                                </Grid>
+                                            </Grid>
+                                            <DataTemplate.Triggers>
+                                                <DataTrigger Binding="{Binding HasImage}" Value="False">
+                                                    <Setter TargetName="kindIcon" Property="Visibility" Value="Visible" />
+                                                </DataTrigger>
+                                                <DataTrigger Binding="{Binding Unread}" Value="True">
+                                                    <Setter TargetName="hdr" Property="FontWeight" Value="SemiBold" />
+                                                    <Setter TargetName="ago" Property="Foreground" Value="#FF0A84FF" />
+                                                    <Setter TargetName="unreadDot" Property="Opacity" Value="1" />
+                                                    <DataTrigger.ExitActions>
+                                                        <BeginStoryboard>
+                                                            <Storyboard>
+                                                                <DoubleAnimation Storyboard.TargetName="unreadDot" Storyboard.TargetProperty="Opacity" From="1" To="0" Duration="0:0:0.5" />
+                                                            </Storyboard>
+                                                        </BeginStoryboard>
+                                                    </DataTrigger.ExitActions>
+                                                </DataTrigger>
+                                                <Trigger SourceName="row" Property="IsMouseOver" Value="True">
+                                                    <Setter TargetName="ago" Property="Visibility" Value="Collapsed" />
+                                                    <Setter TargetName="del" Property="Visibility" Value="Visible" />
+                                                </Trigger>
+                                            </DataTemplate.Triggers>
+                                        </DataTemplate>
+                                    </ListBox.ItemTemplate>
+                                </ListBox>
+                                <StackPanel x:Name="NotifEmpty" HorizontalAlignment="Center" VerticalAlignment="Center" IsHitTestVisible="False">
+                                    <ui:SfIcon Kind="bell.badge" Size="22" Foreground="{StaticResource FaintText}" HorizontalAlignment="Center" />
+                                    <TextBlock Text="Keine Mitteilungen" FontSize="13" FontWeight="SemiBold" HorizontalAlignment="Center" Margin="0,6,0,0" />
+                                </StackPanel>
+                            </Grid>
+
+                            <!-- Preisalarme -->
+                            <Grid x:Name="AlarmPanel" Grid.Row="1" Margin="0,6,0,0" Visibility="Collapsed">
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="*" />
+                                </Grid.RowDefinitions>
+                                <!-- no boxes – like the clipboard search: a plus, the text, a quiet "Ziel", hairline below -->
+                                <Grid Margin="0,2,0,0">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <Border Grid.ColumnSpan="4" BorderThickness="0,0,0,0.5" BorderBrush="#1AFFFFFF" IsHitTestVisible="False" />
+                                    <ui:SfIcon Kind="plus" Size="13" Foreground="#FF8E8E93" VerticalAlignment="Center" Margin="2,0,4,0" />
+                                    <TextBox x:Name="AlarmInput" Grid.Column="1" Style="{StaticResource FlatBox}" Height="28" FontSize="11.5" Tag="Link, BTC, AAPL, Spielname, epic …"
+                                             KeyDown="AlarmInput_KeyDown" ToolTip="Produktlink · Krypto (BTC) · Aktie (AAPL) · Steam-Spiel · „epic“ für Gratis-Spiele · twitch:kanal" />
+                                    <TextBox x:Name="AlarmRule" Grid.Column="2" Style="{StaticResource FlatBox}" Width="62" Height="28" FontSize="11.5" Margin="6,0,0,0" Tag="Ziel"
+                                             KeyDown="AlarmInput_KeyDown" ToolTip="Optional: &lt;150 (unter), &gt;100000 (über), 5% (Tagesbewegung)" />
+                                    <Button x:Name="AlarmAddBtn" Grid.Column="3" Style="{StaticResource IconButton}" Width="26" Height="26" Margin="4,0,0,0"
+                                            ui:Ext.Icon="check" ui:Ext.IconSize="14" Foreground="{DynamicResource Accent}" ToolTip="Alarm anlegen (Enter)" Click="AlarmAdd_Click" />
+                                </Grid>
+                                <TextBlock x:Name="AlarmError" Grid.Row="1" FontSize="11" Foreground="{StaticResource Danger}" Margin="2,4,0,0" Visibility="Collapsed" />
+                                <ListBox x:Name="AlarmList" Grid.Row="2" Margin="0,4,0,0" Style="{StaticResource DarkList}" ItemsSource="{Binding Prices.Items}">
+                                    <ListBox.ItemContainerStyle>
+                                        <Style TargetType="ListBoxItem" BasedOn="{StaticResource SeparatedListItem}">
+                                            <Setter Property="Padding" Value="4,0" />
+                                            <EventSetter Event="MouseLeftButtonUp" Handler="AlarmItem_Click" />
+                                        </Style>
+                                    </ListBox.ItemContainerStyle>
+                                    <ListBox.ItemTemplate>
+                                        <DataTemplate>
+                                            <Grid x:Name="row" Margin="0,6" Background="Transparent">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="Auto" />
+                                                    <ColumnDefinition Width="*" />
+                                                    <ColumnDefinition Width="Auto" />
+                                                </Grid.ColumnDefinitions>
+                                                <Border Width="28" Height="28" CornerRadius="7" Background="{StaticResource Card}" VerticalAlignment="Top">
+                                                    <ui:SfIcon Kind="{Binding IconKind}" Size="15" Foreground="#E8E8ED" />
+                                                </Border>
+                                                <StackPanel Grid.Column="1" Margin="10,0,6,0">
+                                                    <TextBlock TextTrimming="CharacterEllipsis">
+                                                        <Run Text="{Binding Name, Mode=OneWay}" FontSize="12" FontWeight="SemiBold" /><Run x:Name="chg" Text="{Binding ChangeText, Mode=OneWay, StringFormat='  {0}'}" FontSize="11" Foreground="{StaticResource Green}" />
+                                                    </TextBlock>
+                                                    <TextBlock FontSize="11" Foreground="{StaticResource SubText}" TextTrimming="CharacterEllipsis">
+                                                        <Run Text="{Binding PriceText, Mode=OneWay}" /><Run Text=" · " /><Run Text="{Binding RuleText, Mode=OneWay}" /><Run Text=" · " /><Run x:Name="st" Text="{Binding Status, Mode=OneWay}" />
+                                                    </TextBlock>
+                                                    <Grid x:Name="bar" Height="3" Margin="0,4,0,0" Visibility="Collapsed">
+                                                        <Border Background="#1FFFFFFF" CornerRadius="1.5" />
+                                                        <Border Background="{StaticResource Orange}" CornerRadius="1.5" RenderTransformOrigin="0,0.5">
+                                                            <Border.RenderTransform>
+                                                                <ScaleTransform ScaleX="{Binding Closeness, Mode=OneWay}" />
+                                                            </Border.RenderTransform>
+                                                        </Border>
+                                                    </Grid>
+                                                </StackPanel>
+                                                <Button x:Name="del" Grid.Column="2" Style="{StaticResource SmallIconButton}" Width="22" Height="22" ui:Ext.Icon="trash" ui:Ext.IconSize="11"
+                                                        ui:Ext.Hover="{StaticResource Danger}" ToolTip="Alarm löschen" Click="AlarmDelete_Click" Visibility="Hidden" VerticalAlignment="Center" />
+                                            </Grid>
+                                            <DataTemplate.Triggers>
+                                                <DataTrigger Binding="{Binding ChangeUp}" Value="False">
+                                                    <Setter TargetName="chg" Property="Foreground" Value="{StaticResource Danger}" />
+                                                </DataTrigger>
+                                                <DataTrigger Binding="{Binding HasBar}" Value="True">
+                                                    <Setter TargetName="bar" Property="Visibility" Value="Visible" />
+                                                </DataTrigger>
+                                                <DataTrigger Binding="{Binding Triggered}" Value="True">
+                                                    <Setter TargetName="st" Property="Foreground" Value="{StaticResource Green}" />
+                                                </DataTrigger>
+                                                <DataTrigger Binding="{Binding Error}" Value="True">
+                                                    <Setter TargetName="st" Property="Foreground" Value="{StaticResource Orange}" />
+                                                </DataTrigger>
+                                                <Trigger SourceName="row" Property="IsMouseOver" Value="True">
+                                                    <Setter TargetName="del" Property="Visibility" Value="Visible" />
+                                                </Trigger>
+                                            </DataTemplate.Triggers>
+                                        </DataTemplate>
+                                    </ListBox.ItemTemplate>
+                                </ListBox>
+                                <TextBlock x:Name="AlarmEmpty" Grid.Row="2" Text="Noch keine Preisalarme" FontSize="12" Foreground="{StaticResource SubText}"
+                                           HorizontalAlignment="Center" VerticalAlignment="Center" IsHitTestVisible="False" />
+                            </Grid>
+
+                            <!-- Vorschläge -->
+                            <Grid x:Name="SuggestPanel" Grid.Row="1" Margin="0,6,0,0" Visibility="Collapsed">
+                                <ListBox x:Name="SuggestList" Style="{StaticResource DarkList}" ItemsSource="{Binding Suggestions.Items}">
+                                    <ListBox.ItemContainerStyle>
+                                        <Style TargetType="ListBoxItem" BasedOn="{StaticResource SeparatedListItem}">
+                                            <Setter Property="Padding" Value="4,0" />
+                                            <Setter Property="Cursor" Value="Arrow" />
+                                        </Style>
+                                    </ListBox.ItemContainerStyle>
+                                    <ListBox.ItemTemplate>
+                                        <DataTemplate>
+                                            <Grid Height="46">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="Auto" />
+                                                    <ColumnDefinition Width="*" />
+                                                    <ColumnDefinition Width="Auto" />
+                                                    <ColumnDefinition Width="Auto" />
+                                                </Grid.ColumnDefinitions>
+                                                <Border Width="28" Height="28" CornerRadius="7" Background="{StaticResource Card}">
+                                                    <ui:SfIcon Kind="{Binding IconKind}" Size="15" Foreground="#E8E8ED" />
+                                                </Border>
+                                                <StackPanel Grid.Column="1" Margin="10,0,6,0" VerticalAlignment="Center">
+                                                    <TextBlock Text="{Binding Title}" FontSize="12" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                                                    <TextBlock Text="{Binding Text}" FontSize="11" Foreground="{StaticResource SubText}" TextTrimming="CharacterEllipsis" />
+                                                </StackPanel>
+                                                <Button Grid.Column="2" Style="{StaticResource AccentButton}" Height="26" Padding="11,0" FontSize="11.5" Content="Aktivieren"
+                                                        Click="SuggestActivate_Click" VerticalAlignment="Center" />
+                                                <Button Grid.Column="3" Style="{StaticResource SmallIconButton}" Width="22" Height="22" Margin="4,0,0,0" ui:Ext.Icon="xmark" ui:Ext.IconSize="11"
+                                                        ui:Ext.Hover="{StaticResource Danger}" ToolTip="Nein danke" Click="SuggestDismiss_Click" VerticalAlignment="Center" />
+                                            </Grid>
+                                        </DataTemplate>
+                                    </ListBox.ItemTemplate>
+                                </ListBox>
+                                <StackPanel x:Name="SuggestEmpty" HorizontalAlignment="Center" VerticalAlignment="Center" IsHitTestVisible="False">
+                                    <ui:SfIcon Kind="sparkles" Size="22" Foreground="{StaticResource FaintText}" HorizontalAlignment="Center" />
+                                    <TextBlock Text="Keine Vorschläge" FontSize="13" FontWeight="SemiBold" HorizontalAlignment="Center" Margin="0,6,0,0" />
+                                    <TextBlock Text="Öffne z. B. ein Amazon-Produkt oder einen Twitch-Kanal" FontSize="11" Foreground="{StaticResource SubText}" HorizontalAlignment="Center" Margin="0,2,0,0" />
+                                </StackPanel>
+                            </Grid>
+                        </Grid>
+
+                        <!-- ===== TIMER: Apple-style wheels to set, ring while running ===== -->
+                        <Grid x:Name="TabTimer" Visibility="Collapsed">
+                            <!-- W3 (approved 2026-11-14): compact wheels on the left, Start and the quick picks on the right -->
+                            <Grid x:Name="TimerSetup">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <Grid Margin="6,0,0,0">
+                                    <!-- selection band behind the centre row, like iOS -->
+                                    <Border Height="26" VerticalAlignment="Center" Margin="-6,0,-6,0" Background="{StaticResource GlassFill}"
+                                            CornerRadius="{Binding ActualHeight, RelativeSource={RelativeSource Self}, Converter={StaticResource HalfRadius}}" />
+                                    <StackPanel Orientation="Horizontal">
+                                        <ui:WheelPicker x:Name="HourWheel" Width="30" Height="81" Minimum="0" Maximum="23" Loop="False" ItemHeight="25" />
+                                        <TextBlock x:Name="TimerUnitH" Text="h" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,0,8,0" />
+                                        <ui:WheelPicker x:Name="MinuteWheel" Width="30" Height="81" Minimum="0" Maximum="59" Loop="False" ItemHeight="25" />
+                                        <TextBlock x:Name="TimerUnitM" Text="m" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,0,8,0" />
+                                        <ui:WheelPicker x:Name="SecondWheel" Width="30" Height="81" Minimum="0" Maximum="59" Loop="False" ItemHeight="25" />
+                                        <TextBlock x:Name="TimerUnitS" Text="s" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center" />
+                                    </StackPanel>
+                                </Grid>
+                                <StackPanel Grid.Column="1" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                    <Button x:Name="TimerStartBtn" Style="{StaticResource PillButton}" Height="30" Padding="28,0" HorizontalAlignment="Center"
+                                            Background="#3D30D158" Foreground="{StaticResource Green}" Content="Start" Click="TimerStart_Click" />
+                                    <StackPanel x:Name="TimerPresets" Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,9,0,0" />
+                                    <!-- Wecker: quick times, and when it rings -->
+                                    <StackPanel x:Name="AlarmPresets" Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,9,0,0" Visibility="Collapsed" />
+                                    <TextBlock x:Name="AlarmStatus" FontSize="11" Foreground="{StaticResource SubText}" HorizontalAlignment="Center" Margin="0,5,0,0" Visibility="Collapsed" />
+                                </StackPanel>
+                            </Grid>
+                            <Grid x:Name="TimerRunning" Visibility="Collapsed">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <Grid Width="74" Height="74" Margin="8,0,0,0">
+                                    <ui:Ring Thickness="5" Value="{Binding Timer.RemainingPercent, Mode=OneWay}" Stroke="{StaticResource Orange}" />
+                                    <TextBlock Text="{Binding Timer.RemainingText}" FontSize="15" FontWeight="SemiBold" Foreground="{StaticResource Orange}"
+                                               HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                </Grid>
+                                <TextBlock Grid.Column="1" Text="{Binding Timer.ModeText}" FontSize="12" Foreground="{StaticResource SubText}" VerticalAlignment="Center" Margin="14,0,0,0" />
+                                <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                                    <Button Style="{StaticResource PillButton}" Height="30" Padding="14,0" Content="Abbrechen" Click="TimerCancel_Click" />
+                                    <Button Style="{StaticResource PillButton}" Height="30" Padding="16,0" Margin="6,0,0,0" Background="#40FF9F0A" Foreground="{StaticResource Orange}"
+                                            Content="{Binding Timer.StartPauseText}" Click="TimerPause_Click" />
+                                </StackPanel>
+                            </Grid>
+                        </Grid>
+
+                        <!-- ===== REMINDERS ===== -->
+                        <Grid x:Name="TabRemind" Visibility="Collapsed">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="*" />
+                            </Grid.RowDefinitions>
+                            <!-- one line, no boxes (approved 2026-11-14): time and repeat come from the sentence and show as an orange preview -->
+                            <Border BorderThickness="0,0,0,0.5" BorderBrush="#1AFFFFFF" Padding="0,0,0,2">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <Button Style="{StaticResource BareIconButton}" Width="22" Height="26" ui:Ext.Icon="plus" ui:Ext.IconSize="14" Foreground="{StaticResource Orange}"
+                                            ui:Ext.Hover="{StaticResource Orange}" Click="RemindAdd_Click" ToolTip="Hinzufügen (Enter)" />
+                                    <TextBox x:Name="RemindText" Grid.Column="1" Style="{StaticResource BareBox}" Tag="Neue Erinnerung – z. B. „Arzt morgen 9 Uhr“" KeyDown="RemindText_KeyDown"
+                                             TextChanged="RemindText_TextChanged" Height="26" MinHeight="26" FontSize="12.5" Margin="4,0,0,0"
+                                             ToolTip="Versteht z. B. „Wäsche in 20 min“, „Meeting um 14:30“, „Müll jeden Dienstag 19 Uhr“, „täglich 8 Uhr Tabletten“" />
+                                    <TextBlock x:Name="RemindPreview" Grid.Column="2" FontSize="10.5" Foreground="{StaticResource Orange}" VerticalAlignment="Center" Margin="6,0,2,0" />
+                                    <Button Grid.Column="3" Style="{StaticResource BareIconButton}" Width="24" Height="26" ui:Ext.Icon="clock" ui:Ext.IconSize="13" Foreground="#FF636366"
+                                            ui:Ext.Hover="{StaticResource Orange}" Click="RemindQuickMenu_Click" ToolTip="Schnell: in 5 Min, 15 Min, 1 Std …" />
+                                </Grid>
+                            </Border>
+                            <Grid Grid.Row="2" Margin="0,5,0,0">
+                                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                                    <ItemsControl x:Name="RemindList" ItemsSource="{Binding Reminders.Items}">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <Grid x:Name="RRow" Background="Transparent" Height="32">
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="Auto" />
+                                                        <ColumnDefinition Width="*" />
+                                                        <ColumnDefinition Width="Auto" />
+                                                        <ColumnDefinition Width="Auto" />
+                                                    </Grid.ColumnDefinitions>
+                                                    <CheckBox Style="{StaticResource RoundCheck}" Margin="2,0,10,0" Click="RemindDone_Click" ToolTip="Erledigt" />
+                                                    <TextBlock Grid.Column="1" Text="{Binding Text}" FontSize="12.5" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+                                                    <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center" Margin="6,0,0,0">
+                                                        <ui:SfIcon x:Name="RepIcon" Kind="refresh" Size="10" Foreground="{StaticResource FaintText}" Margin="0,0,3,0" Visibility="{Binding IsRepeating, Converter={StaticResource BoolVis}}" />
+                                                        <TextBlock x:Name="Due" Text="{Binding DueText}" FontSize="10.5" Foreground="{StaticResource FaintText}" />
+                                                    </StackPanel>
+                                                    <Button x:Name="RDel" Grid.Column="3" Style="{StaticResource SmallIconButton}" Width="20" Height="20" ui:Ext.IconSize="12" ui:Ext.Icon="trash"
+                                                            ui:Ext.Hover="{StaticResource Danger}" ToolTip="Löschen" Click="RemindDelete_Click" Visibility="Collapsed" Margin="4,0,0,0" />
+                                                </Grid>
+                                                <DataTemplate.Triggers>
+                                                    <DataTrigger Binding="{Binding IsSoon}" Value="True">
+                                                        <Setter TargetName="Due" Property="Foreground" Value="{StaticResource Orange}" />
+                                                    </DataTrigger>
+                                                    <DataTrigger Binding="{Binding IsOverdue}" Value="True">
+                                                        <Setter TargetName="Due" Property="Foreground" Value="{StaticResource Danger}" />
+                                                    </DataTrigger>
+                                                    <Trigger SourceName="RRow" Property="IsMouseOver" Value="True">
+                                                        <Setter TargetName="RDel" Property="Visibility" Value="Visible" />
+                                                    </Trigger>
+                                                </DataTemplate.Triggers>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </ScrollViewer>
+                                <StackPanel x:Name="RemindEmpty" HorizontalAlignment="Center" VerticalAlignment="Center" IsHitTestVisible="False">
+                                    <TextBlock Text="Keine Erinnerungen" FontSize="12.5" FontWeight="SemiBold" HorizontalAlignment="Center" />
+                                    <TextBlock Text="Schreib einfach, was und wann – z. B. „Wäsche in 20 min“" FontSize="10.5" Foreground="{StaticResource SubText}"
+                                               HorizontalAlignment="Center" Margin="0,2,0,0" />
+                                </StackPanel>
+                            </Grid>
+                        </Grid>
+
+                        <!-- ===== CONTROL CENTER ===== -->
+                        <!-- a little more room above and below than the page has (no visible change): the round switches
+                             were cut off at the top because the row was a few pixels taller than its slot -->
+                        <StackPanel x:Name="TabControls" Visibility="Collapsed" VerticalAlignment="Center" Margin="0,-6,0,-6">
+                            <!-- one row of round switches with labels -->
+                            <UniformGrid Columns="7" Rows="1">
+                                <ToggleButton x:Name="WifiTile" Style="{StaticResource CCToggle}" ui:Ext.Icon="wifi" Content="WLAN" Click="WifiTile_Click" ToolTip="WLAN an/aus" />
+                                <ToggleButton x:Name="BtTile" Style="{StaticResource CCToggle}" ui:Ext.Icon="bluetooth" Content="Bluetooth" Click="BtTile_Click" ToolTip="Bluetooth an/aus" />
+                                <ToggleButton x:Name="MicTile" Style="{StaticResource CCToggle}" ui:Ext.Icon="mic.slash" Content="Mikro" Background="{StaticResource Danger}"
+                                              Click="MicTile_Click" ToolTip="Alle Mikrofone stummschalten" />
+                                <ToggleButton Style="{StaticResource CCToggle}" ui:Ext.Icon="moon" Content="Fokus" Tag="ms-settings:quiethours" Click="SettingsTile_Click" ToolTip="Fokus / Nicht stören" />
+                                <ToggleButton Style="{StaticResource CCToggle}" ui:Ext.Icon="sun" Content="Nachtlicht" Tag="ms-settings:nightlight" Click="SettingsTile_Click" ToolTip="Nachtlicht" />
+                                <ToggleButton x:Name="PowerTile" Style="{StaticResource CCToggle}" ui:Ext.Icon="bolt" Content="Energie" Background="{StaticResource Orange}"
+                                              Click="PowerTile_Click" ToolTip="Energiemodus wechseln" />
+                                <ToggleButton Style="{StaticResource CCToggle}" ui:Ext.Icon="lock" Content="Sperren" Click="LockTile_Click" ToolTip="PC sperren" />
+                            </UniformGrid>
+                            <!-- wide sliders -->
+                            <Grid Margin="2,9,2,0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition x:Name="SliderGap" Width="8" />
+                                    <ColumnDefinition x:Name="BrightnessCol" Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <Slider Style="{StaticResource CCHSlider}" Tag="speaker" Value="{Binding Audio.Volume, Mode=TwoWay}" ToolTip="Lautstärke" />
+                                <Slider x:Name="BrightnessSlider" Grid.Column="2" Style="{StaticResource CCHSlider}" Tag="sun" Value="{Binding Brightness.Level, Mode=TwoWay}" ToolTip="Helligkeit" />
+                            </Grid>
+                        </StackPanel>
+                    </Grid>
+                </Grid>
+            </Grid>
+        </Border>
+    </Grid>
+</Window>
