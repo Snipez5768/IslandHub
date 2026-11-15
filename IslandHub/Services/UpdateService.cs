@@ -33,7 +33,8 @@ public sealed class UpdateService
 
     public void Start()
     {
-        if (!App.Settings.UpdateCheck || Repo.StartsWith("Snipez5768/")) return;
+        // (1.0.0 still had a leftover guard here that was always true – the automatic check never ran, only the button)
+        if (!App.Settings.UpdateCheck) return;
         _t = new System.Windows.Threading.DispatcherTimer { Interval = TimeSpan.FromHours(6) };
         _t.Tick += async (_, _) => await CheckAsync();
         _t.Start();
