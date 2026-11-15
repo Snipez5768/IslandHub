@@ -2,9 +2,11 @@
 
 **Eine Dynamic Island für Windows 10 und 11.** Eine kleine schwarze Insel oben in der Mitte des Bildschirms zeigt, was gerade passiert – Musik, Nachrichten, Timer, Downloads, wer dein Mikrofon nutzt – und öffnet sich zu kleinen Seiten, wenn du mit der Maus darauf zeigst.
 
-<p align="center"><img src="docs/img/island-open.svg" alt="Die Insel öffnet sich zur Musik-Seite" width="520"></p>
+<p align="center"><a href="https://snipez5768.github.io/IslandHub/#feder"><img src="docs/img/island-open.svg" alt="Die Insel öffnet sich zur Musik-Seite" width="100%"></a></p>
 
-**[▶ Alle Animationen zum Ausprobieren – mit Reglern](https://Snipez5768.github.io/IslandHub/)** · **[⬇ Download](https://github.com/Snipez5768/IslandHub/releases/latest)**
+**[▶ Alle Animationen zum Ausprobieren – mit Reglern](https://snipez5768.github.io/IslandHub/)** · **[⬇ Download](https://github.com/Snipez5768/IslandHub/releases/latest)**
+
+> GitHub zeigt hier nur Bilder. **Klick auf eine Animation** – dann öffnet sie sich auf der Demo-Seite zum Selbst-Ausprobieren.
 
 ---
 
@@ -27,18 +29,37 @@
 
 Alles bewegt sich auf einer Feder wie bei iOS – nichts fliegt über den Bildschirm, alles passiert an der Insel.
 
-<table>
-<tr>
-<td align="center"><img src="docs/img/notification.svg" width="400" alt="Nachricht"><br><sub>Nachricht: Glocke → Laufzeile → Karte</sub></td>
-<td align="center"><img src="docs/img/song-skip.svg" width="400" alt="Song überspringen"><br><sub>Überspringen: Weiter → · ← Zurück</sub></td>
-</tr>
-<tr>
-<td align="center"><img src="docs/img/timer-wecker.svg" width="400" alt="Timer und Wecker"><br><sub>Timer | Wecker</sub></td>
-<td align="center"><img src="docs/img/settings-anim.png" width="400" alt="Einstellungen › Animationen"><br><sub>Einstellungen › Animationen: jede Animation zum Abspielen</sub></td>
-</tr>
-</table>
+### Nachricht
+Erst schwingt eine Glocke, dann wird die Insel zu einer schmalen Laufzeile. Mit der Maus darauf öffnet sich die ganze Karte.
 
-Geschwindigkeit, Dämpfung und mehr kannst du auf der **[Demo-Seite](https://Snipez5768.github.io/IslandHub/)** selbst einstellen.
+<a href="https://snipez5768.github.io/IslandHub/#nachricht"><img src="docs/img/notification.svg" width="100%" alt="Nachricht: Glocke, Laufzeile, Karte"></a>
+
+### Überspringen
+**Weiter:** der Balken läuft bis zum Ende, das Cover schiebt sich von links nach rechts. **Zurück:** der Balken springt auf voll und läuft nach links, das Cover kommt von rechts.
+
+<a href="https://snipez5768.github.io/IslandHub/#skip"><img src="docs/img/song-skip.svg" width="100%" alt="Song überspringen"></a>
+
+### Neuer Song
+In der geschlossenen Insel gleitet das alte Cover raus, das neue federt rein, wird kurz größer und färbt die Insel.
+
+<a href="https://snipez5768.github.io/IslandHub/#song"><img src="docs/img/song-change.svg" width="100%" alt="Neuer Song"></a>
+
+### Timer | Wecker
+Der Seitenname ist ein eingefräster Umschalter – dieselben Räder stellen eine Dauer oder eine Uhrzeit.
+
+<a href="https://snipez5768.github.io/IslandHub/#wecker"><img src="docs/img/timer-wecker.svg" width="100%" alt="Timer und Wecker"></a>
+
+### … hört zu
+Nutzt eine App dein Mikrofon, sagt die Insel es selbst. Danach bleibt eine Welle als kleine Blase, die sich nur bewegt, wenn du sprichst.
+
+<a href="https://snipez5768.github.io/IslandHub/#mikro"><img src="docs/img/listening.svg" width="100%" alt="Claude hört zu"></a>
+
+### In den Einstellungen
+Unter **Animationen** spielt jede Karte ihre Animation ab – mit „Auf der Insel ansehen“ auch auf der echten Insel.
+
+<img src="docs/img/settings-anim.png" width="525" alt="Einstellungen › Animationen">
+
+Geschwindigkeit, Dämpfung und mehr kannst du auf der **[Demo-Seite](https://snipez5768.github.io/IslandHub/)** selbst einstellen.
 
 ## Installieren
 
