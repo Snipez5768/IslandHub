@@ -12,8 +12,9 @@
     <text x="222" y="31" fill="#636366" font-size="11">♪  Musik</text>
     <!-- covers: 0–.4 Weiter (A out right, B in from left) · .5–.9 Zurück (B out left, A in from right) -->
     <g clip-path="url(#frame)">
-      <rect x="84" y="36" width="78" height="78" rx="12" fill="url(#a)"><animateTransform attributeName="transform" type="translate" dur="6s" repeatCount="indefinite" calcMode="spline" keyTimes="0;.08;.16;.5;.58;.66;1" values="0 0;0 0;80 0;80 0;80 0;0 0;0 0" keySplines="0 0 1 1;.5 0 .9 .5;0 0 1 1;0 0 1 1;.3 1.3 .5 1;0 0 1 1"/></rect>
-      <rect x="84" y="36" width="78" height="78" rx="12" fill="url(#b)"><animateTransform attributeName="transform" type="translate" dur="6s" repeatCount="indefinite" calcMode="spline" keyTimes="0;.09;.19;.5;.58;1" values="-80 0;-80 0;0 0;0 0;-80 0;-80 0" keySplines="0 0 1 1;.3 1.3 .5 1;0 0 1 1;.5 0 .9 .5;0 0 1 1"/></rect>
+      <!-- (spline control points must stay within 0…1 – the overshoot is an extra key frame instead) -->
+      <rect x="84" y="36" width="78" height="78" rx="12" fill="url(#a)"><animateTransform attributeName="transform" type="translate" dur="6s" repeatCount="indefinite" calcMode="spline" keyTimes="0;.08;.16;.5;.56;.64;.7;1" values="0 0;0 0;80 0;80 0;80 0;-5 0;0 0;0 0" keySplines="0 0 1 1;.5 0 .9 .5;0 0 1 1;0 0 1 1;.2 .6 .4 1;.4 0 .6 1;0 0 1 1"/></rect>
+      <rect x="84" y="36" width="78" height="78" rx="12" fill="url(#b)"><animateTransform attributeName="transform" type="translate" dur="6s" repeatCount="indefinite" calcMode="spline" keyTimes="0;.09;.17;.22;.5;.58;1" values="-80 0;-80 0;5 0;0 0;0 0;-80 0;-80 0" keySplines="0 0 1 1;.2 .6 .4 1;.4 0 .6 1;0 0 1 1;.5 0 .9 .5;0 0 1 1"/></rect>
     </g>
     <g clip-path="url(#txt)">
       <g><animateTransform attributeName="transform" type="translate" dur="6s" repeatCount="indefinite" keyTimes="0;.08;.13;.5;.6;.66;1" values="0 0;0 0;30 0;30 0;30 0;0 0;0 0"/><animate attributeName="opacity" dur="6s" repeatCount="indefinite" keyTimes="0;.08;.13;.58;.66;1" values="1;1;0;0;1;1"/>
@@ -23,7 +24,7 @@
     </g>
     <rect x="176" y="80" width="250" height="4" rx="2" fill="#2c2c2e"/>
     <!-- bar: Weiter = runs on to the end, then the new song starts · Zurück = jumps full, runs right → left -->
-    <rect x="176" y="80" height="4" rx="2" fill="#fff" width="100"><animate attributeName="width" dur="6s" repeatCount="indefinite" keyTimes="0;.06;.12;.16;.17;.45;.5;.58;.62;1" values="100;100;250;250;2;60;250;0;2;100"/></rect>
+    <rect x="176" y="80" height="4" rx="2" fill="#fff" width="100"><animate attributeName="width" dur="6s" repeatCount="indefinite" keyTimes="0;.06;.12;.16;.17;.495;.5;.58;.62;1" values="100;100;250;250;2;60;250;0;2;100"/></rect>
     <g fill="#fff"><path d="M262 96 l-9 6 9 6z M252 96 l-9 6 9 6z"/><rect x="290" y="95" width="4" height="14" rx="1"/><rect x="298" y="95" width="4" height="14" rx="1"/><path d="M330 96 l9 6 -9 6z M340 96 l9 6 -9 6z"/></g>
     <circle cx="345" cy="102" r="17" fill="#fff" opacity="0"><animate attributeName="opacity" dur="6s" repeatCount="indefinite" keyTimes="0;.02;.05;1" values="0;.18;0;0"/></circle>
     <circle cx="247" cy="102" r="17" fill="#fff" opacity="0"><animate attributeName="opacity" dur="6s" repeatCount="indefinite" keyTimes="0;.5;.52;.55;1" values="0;0;.18;0;0"/></circle>

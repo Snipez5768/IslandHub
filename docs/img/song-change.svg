@@ -15,7 +15,12 @@
     <!-- new cover springs in from the right, swells once -->
     <g opacity="0"><animate attributeName="opacity" dur="4s" repeatCount="indefinite" keyTimes="0;.27;.35;.96;1" values="0;0;1;1;0"/>
       <g><animateTransform attributeName="transform" type="translate" dur="4s" repeatCount="indefinite" calcMode="spline" keyTimes="0;.27;.42;.48;.55;1" values="30 0;30 0;-3 0;1 0;0 0;0 0" keySplines="0 0 1 1;.3 0 .3 1;.4 0 .6 1;.4 0 .6 1;0 0 1 1"/>
-        <rect x="178" y="45" width="20" height="20" rx="5" fill="url(#b)"><animateTransform attributeName="transform" type="scale" additive="sum" dur="4s" repeatCount="indefinite" keyTimes="0;.36;.42;.5;1" values="1;1;1.3;1;1"/></rect>
+        <!-- grows around its own middle (188, 55), not around the picture's corner -->
+        <g transform="translate(188 55)">
+          <g><animateTransform attributeName="transform" type="scale" dur="4s" repeatCount="indefinite" calcMode="spline" keyTimes="0;.36;.42;.5;1" values="1;1;1.3;1;1" keySplines="0 0 1 1;.4 0 .6 1;.3 0 .3 1;0 0 1 1"/>
+            <rect x="-10" y="-10" width="20" height="20" rx="5" fill="url(#b)"/>
+          </g>
+        </g>
       </g>
     </g>
     <g fill="#fff">
