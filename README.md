@@ -42,7 +42,7 @@ Erst schwingt eine Glocke, dann wird die Insel zu einer schmalen Laufzeile. Mit 
 ### Neuer Song
 In der geschlossenen Insel gleitet das alte Cover raus, das neue federt rein, wird kurz größer und färbt die Insel.
 
-<a href="https://snipez5768.github.io/IslandHub/#song"><img src="docs/img/song-change-v2.svg" width="100%" alt="Neuer Song"></a>
+<a href="https://snipez5768.github.io/IslandHub/#song"><img src="docs/img/song-change-v3.svg" width="100%" alt="Neuer Song"></a>
 
 ### Timer | Wecker
 Der Seitenname ist ein eingefräster Umschalter – dieselben Räder stellen eine Dauer oder eine Uhrzeit.
@@ -52,7 +52,7 @@ Der Seitenname ist ein eingefräster Umschalter – dieselben Räder stellen ein
 ### … hört zu
 Nutzt eine App dein Mikrofon, sagt die Insel es selbst. Danach bleibt eine Welle als kleine Blase, die sich nur bewegt, wenn du sprichst.
 
-<a href="https://snipez5768.github.io/IslandHub/#mikro"><img src="docs/img/listening-v2.svg" width="100%" alt="Claude hört zu"></a>
+<a href="https://snipez5768.github.io/IslandHub/#mikro"><img src="docs/img/listening-v3.svg" width="100%" alt="Claude hört zu"></a>
 
 ### In den Einstellungen
 Unter **Animationen** spielt jede Karte ihre Animation ab – mit „Auf der Insel ansehen“ auch auf der echten Insel.
