@@ -5801,11 +5801,24 @@ public partial class IslandWindow : Window
                 Key = "update", Icon = "download", GlyphBrush = (Brush)FindResource("Blue"),
                 Source = "IslandHub · Update", SourceIcon = "download", SourceBrush = (Brush)FindResource("Blue"), Ticker = true,
                 Title = $"Version {rel.Version.ToString(3)} ist da",
-                Text = string.IsNullOrWhiteSpace(rel.Notes) ? $"Du hast {UpdateService.Current.ToString(3)}" : rel.Notes.Split('\n')[0].Trim().TrimStart('#', '-', '*', ' '),
+                Text = FirstNoteLine(rel.Notes) ?? $"Du hast {UpdateService.Current.ToString(3)}",
                 TimeoutMs = 12000
             }
             .Button("open", "Was ist neu", () => { try { Process.Start(new ProcessStartInfo(rel.Page) { UseShellExecute = true }); } catch { } })
             .Button("download", "Installieren", () => _ = InstallUpdate(rel), (Brush)FindResource("Blue")));
+    }
+
+    /// <summary>The first real line of the release notes – headings ("## Behoben") are skipped, markdown marks removed.</summary>
+    private static string FirstNoteLine(string notes)
+    {
+        foreach (var raw in (notes ?? "").Split('\n'))
+        {
+            var line = raw.Trim();
+            if (line.Length == 0 || line.StartsWith('#') || line.StartsWith('>')) continue;
+            line = Regex.Replace(line.TrimStart('-', '*', ' '), @"\*\*|__|`|\[([^\]]*)\]\([^)]*\)", m => m.Groups[1].Success ? m.Groups[1].Value : "");
+            return line.Length > 0 ? line : null;
+        }
+        return null;
     }
 
     private async Task InstallUpdate(UpdateService.Release rel)
