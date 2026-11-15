@@ -16,7 +16,7 @@
 
 ### YouTube im Vollbild
 
-<img src="docs/img/video-v1.svg" width="100%" alt="Video im Vollbild: die Insel fährt hoch, am oberen Rand kommt sie runter">
+<img src="docs/img/video-v2.svg" width="100%" alt="Video im Vollbild: die Insel fährt hoch, am oberen Rand kommt sie runter">
 
 ## Animationen
 

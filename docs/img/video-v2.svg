@@ -53,7 +53,7 @@
     </g>
     <!-- Esc to leave fullscreen -->
     <g opacity="0">
-      <animate attributeName="opacity" dur="9s" repeatCount="indefinite" keyTimes="0;.83;.85;.93;.96;1" values="0;0;1;1;0;0"/>
+      <animate attributeName="opacity" dur="9s" repeatCount="indefinite" keyTimes="0;.82;.84;.87;.89;1" values="0;0;1;1;0;0"/>
       <rect x="240" y="160" width="40" height="26" rx="6" fill="#1c1c1e" stroke="#fff" stroke-opacity=".3"/>
       <text x="260" y="177.5" fill="#fff" font-size="12" text-anchor="middle">Esc</text>
     </g>
