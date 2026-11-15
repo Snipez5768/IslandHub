@@ -192,6 +192,9 @@ public partial class App : Application
         int sgt = Array.IndexOf(e.Args, "--song-test");
         if (sgt >= 0 && sgt + 1 < e.Args.Length) { _ = Island.SongTestAsync(e.Args[sgt + 1]); return; }
 
+        int tour = Array.IndexOf(e.Args, "--settings-tour");
+        if (tour >= 0 && tour + 1 < e.Args.Length) { TestRun = true; _ = SettingsWindow.TourAsync(e.Args[tour + 1]); return; }
+
         int sett = Array.IndexOf(e.Args, "--settings-test");
         if (sett >= 0 && sett + 1 < e.Args.Length) { _ = SettingsWindow.TestAsync(e.Args[sett + 1]); return; }
 

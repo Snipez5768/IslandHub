@@ -139,6 +139,71 @@ public partial class SettingsWindow : Window
     }
 #endif
 
+#if DEBUG
+    /// <summary>
+    /// Pictures of the whole window for the README's settings tour (only pages without personal data: no Info –
+    /// the data folder holds the user name –, no Widgets – the weather place –, no Bildschirmfoto – the folder).
+    /// Also writes where the clicked things sit, for the pointer in the animation.
+    /// </summary>
+    public static async Task TourAsync(string dir)
+    {
+        Directory.CreateDirectory(dir);
+        S.Animations = AnimationLevel.An;
+        S.TabBar = TabBarStyle.Titel;
+        S.TabBarAutoHide = false;
+        ShowSingle("Look");
+        var w = _instance;
+        w.Width = 800; w.Height = 600; w.Left = 40; w.Top = 40;
+        await Task.Delay(1500);
+        var spots = new System.Text.StringBuilder();
+        int n = 0;
+        void Shot(string name)
+        {
+            var e = w.RootGrid;
+            int pw = (int)e.ActualWidth, ph = (int)e.ActualHeight;
+            var rtb = new System.Windows.Media.Imaging.RenderTargetBitmap(pw, ph, 96, 96, PixelFormats.Pbgra32);
+            var dv = new DrawingVisual();
+            using (var dc = dv.RenderOpen())
+            {
+                dc.DrawRectangle(new SolidColorBrush(Color.FromRgb(0x1E, 0x1E, 0x1E)), null, new Rect(0, 0, pw, ph));
+                dc.DrawRectangle(new SolidColorBrush(Color.FromRgb(0x2B, 0x2B, 0x2D)), null, new Rect(0, 0, w.Sidebar.ActualWidth, ph));
+                dc.DrawRectangle(new VisualBrush(e) { Stretch = Stretch.None, AlignmentX = AlignmentX.Left, AlignmentY = AlignmentY.Top }, null, new Rect(0, 0, pw, ph));
+            }
+            rtb.Render(dv);
+            var enc = new System.Windows.Media.Imaging.JpegBitmapEncoder { QualityLevel = 82 };
+            enc.Frames.Add(System.Windows.Media.Imaging.BitmapFrame.Create(rtb));
+            using var fs = File.Create(System.IO.Path.Combine(dir, $"{n++:00}_{name}.jpg"));
+            enc.Save(fs);
+        }
+        string Spot(FrameworkElement el)
+        {
+            var p = el.TranslatePoint(new Point(el.ActualWidth / 2, el.ActualHeight / 2), w.RootGrid);
+            return $"{p.X:0},{p.Y:0}";
+        }
+        RadioButton Nav(string tag) => w.Nav.Children.OfType<RadioButton>().First(r => (string)r.Tag == tag);
+
+        // Erscheinungsbild: the preview through a few pages (chips), then the style tiles
+        Shot("look_music");
+        foreach (var v in new[] { "banner", "timer", "clip" })
+        {
+            spots.AppendLine($"{n} chip {Spot(w._chips[v])}");
+            w._chips[v].IsChecked = true;
+            await Task.Delay(900);
+            Shot("look_" + v);
+        }
+        foreach (var (tag, name) in new[] { ("Anim", "anim"), ("Clip", "clip"), ("General", "general"), ("Keys", "keys") })
+        {
+            spots.AppendLine($"{n} nav {Spot(Nav(tag))}");
+            w.ShowPage(tag);
+            await Task.Delay(tag == "Anim" ? 2600 : 900); // the gallery plays once on its first visit
+            Shot(name);
+        }
+        spots.AppendLine($"{n} nav {Spot(Nav("Look"))}");
+        File.WriteAllText(System.IO.Path.Combine(dir, "spots.txt"), spots.ToString());
+        App.Quit();
+    }
+#endif
+
     // ---------- island preview: chips to click through the pages ----------
 
     private readonly Dictionary<string, RadioButton> _chips = new();
