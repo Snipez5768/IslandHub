@@ -4919,6 +4919,12 @@ public partial class IslandWindow : Window
         if (n == 0) h += ClipStripRow.Visibility == Visibility.Visible ? 0 : 44;
         else if (S.ClipLayout == ClipLayout.Kacheln) h += 8 + Math.Ceiling(n / 2.0) * 82;
         else h += 2 + n * 40 + (_clipView.Groups?.Count ?? 0) * 25;
+        // "Zwischenablage leeren?" needs its whole card (user report 2026-11-16: with only pictures the buttons were cut off)
+        if (ClipConfirm.Visibility == Visibility.Visible)
+        {
+            ClipConfirmCard.Measure(new Size(ExpW, double.PositiveInfinity));
+            h = Math.Max(h, ClipConfirmCard.DesiredSize.Height + 7 + 10 + 24 + 6);
+        }
         return Math.Clamp(Math.Ceiling(h), ExpH, 300);
     }
 
@@ -5167,6 +5173,7 @@ public partial class IslandWindow : Window
                                + (pinned > 0 ? $" – auch {(pinned == 1 ? "der angeheftete" : $"{pinned} angeheftete")}." : ".");
         _sticky = true; // moving the pointer away must not close the island while asking
         ClipConfirm.Visibility = Visibility.Visible;
+        UpdateClipHeight(); // the island opens far enough for the whole question
         ClipConfirm.BeginAnimation(OpacityProperty, new DoubleAnimation(0, 1, TimeSpan.FromMilliseconds(140)));
         var spring = new DoubleAnimation(0.86, 1, TimeSpan.FromMilliseconds(380)) { EasingFunction = new ElasticEase { Oscillations = 1, Springiness = 6 } };
         ClipConfirmScale.BeginAnimation(ScaleTransform.ScaleXProperty, spring);
@@ -5177,7 +5184,7 @@ public partial class IslandWindow : Window
     {
         if (ClipConfirm.Visibility != Visibility.Visible) return;
         var fade = new DoubleAnimation(0, TimeSpan.FromMilliseconds(120));
-        fade.Completed += (_, _) => { if (ClipConfirm.Opacity < 0.05) ClipConfirm.Visibility = Visibility.Collapsed; };
+        fade.Completed += (_, _) => { if (ClipConfirm.Opacity < 0.05) { ClipConfirm.Visibility = Visibility.Collapsed; UpdateClipHeight(); } };
         ClipConfirm.BeginAnimation(OpacityProperty, fade);
         var shrink = new DoubleAnimation(0.92, TimeSpan.FromMilliseconds(120));
         ClipConfirmScale.BeginAnimation(ScaleTransform.ScaleXProperty, shrink);

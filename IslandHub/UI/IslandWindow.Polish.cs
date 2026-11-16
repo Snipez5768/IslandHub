@@ -590,6 +590,49 @@ public partial class IslandWindow
                     File.WriteAllText(Path.Combine(dir, "lyrics.txt"), $"{LyricsHint.Text}\n{_lyrics.Count} Zeilen\nSpotify verbunden: {H.Spotify.Connected}, neu verbinden nötig: {H.Spotify.NeedsReconnect}");
                     MusicLyrics_Click(null, null);
                     break;
+                case "agentring":
+                {
+                    // Claude works (no plan): the ring turns – the bubble is refilled again and again, the angle must keep going
+                    var log = new System.Text.StringBuilder();
+                    H.Agents.Demo("Test", "Bearbeitet Datei", 0, 0, 30, AgentState.Running);
+                    await Task.Delay(1500);
+                    var (ring, icon) = Bubble.Tag is Act.Agent ? (BubbleRing, BubbleIcon) : (Bubble2Ring, Bubble2Icon);
+                    for (int i = 0; i < 16; i++)
+                    {
+                        UpdatePill(true); // what the half-second refresh does
+                        await Task.Delay(120);
+                        double ra = (ring.RenderTransform as RotateTransform)?.Angle ?? -1, ia = (icon.RenderTransform as RotateTransform)?.Angle ?? -1;
+                        log.AppendLine($"{i,2}: Ring {ra,6:0.0}°  Stern {ia,6:0.0}°");
+                    }
+                    File.WriteAllText(Path.Combine(dir, "angles.txt"), log.ToString());
+                    H.Agents.EndDemo();
+                    break;
+                }
+                case "clipconfirm":
+                {
+                    // only pictures in the clipboard history (test copy – nothing is saved), then "Alles löschen"
+                    fh = 320;
+                    H.Clipboard.Items.Clear();
+                    for (int i = 0; i < 3; i++)
+                    {
+                        var pic = Pic(Color.FromRgb((byte)(60 + i * 60), 120, 200), Color.FromRgb(240, (byte)(80 + i * 40), 90));
+                        var f = Path.Combine(dir, $"pic{i}.png");
+                        var enc = new PngBitmapEncoder(); enc.Frames.Add(BitmapFrame.Create(pic));
+                        using (var fs = File.Create(f)) enc.Save(fs);
+                        H.Clipboard.Items.Add(new ClipItem { Kind = ClipKind.Image, ImageFile = f, ImageWidth = 64, ImageHeight = 64, Source = "Test" });
+                    }
+                    Expand("Clip", true);
+                    await Task.Delay(1200);
+                    Frame();
+                    ShowClipConfirm(3, 0);
+                    await Task.Delay(900);
+                    Frame();
+                    Save("1_clip_confirm");
+                    ClipConfirmCard.Measure(new Size(ExpW, double.PositiveInfinity));
+                    File.WriteAllText(Path.Combine(dir, "heights.txt"), $"Insel {Island.ActualHeight:0} px, Karte {ClipConfirmCard.DesiredSize.Height:0} px");
+                    HideClipConfirm();
+                    break;
+                }
                 case "today":
                     Expand("Today", true);
                     await Task.Delay(1200);
