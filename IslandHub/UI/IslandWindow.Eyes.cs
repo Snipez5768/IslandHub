@@ -14,7 +14,7 @@ namespace IslandHub.UI;
 /// </summary>
 public partial class IslandWindow
 {
-    private const double EyesRoom = 24;                     // what the island grows to the left
+    private const double EyesRoom = 30;                     // what the island grows to the left (eyes + a 9 px gap to the cover)
     private static readonly TimeSpan EyesLinger = TimeSpan.FromSeconds(6);
 
     private readonly DispatcherTimer _eyeTimer = new() { Interval = TimeSpan.FromMilliseconds(66) };
