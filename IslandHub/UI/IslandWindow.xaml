@@ -385,18 +385,16 @@
                 <StackPanel x:Name="Eyes" Orientation="Horizontal" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="10,0,0,0"
                             Visibility="Collapsed" IsHitTestVisible="False" RenderTransformOrigin="0.5,0.5" Panel.ZIndex="5">
                     <StackPanel.RenderTransform>
-                        <TransformGroup>
-                            <ScaleTransform x:Name="EyesPop" />
-                            <ScaleTransform x:Name="EyesBlink" />
-                        </TransformGroup>
+                        <ScaleTransform x:Name="EyesPop" />
                     </StackPanel.RenderTransform>
-                    <Grid Width="6.5" Height="10.5" Margin="0,0,3.5,0">
+                    <!-- each eye is cut by its lid (a curved shape taken out of the oval – fits every island theme) -->
+                    <Grid x:Name="EyeBallL" Width="6.5" Height="10.5" Margin="0,0,3.5,0">
                         <Ellipse Fill="White" />
                         <Ellipse Width="2.6" Height="5.6" Fill="#FF9A9AA0">
                             <Ellipse.RenderTransform><TranslateTransform x:Name="EyeL" /></Ellipse.RenderTransform>
                         </Ellipse>
                     </Grid>
-                    <Grid Width="6.5" Height="10.5">
+                    <Grid x:Name="EyeBallR" Width="6.5" Height="10.5">
                         <Ellipse Fill="White" />
                         <Ellipse Width="2.6" Height="5.6" Fill="#FF9A9AA0">
                             <Ellipse.RenderTransform><TranslateTransform x:Name="EyeR" /></Ellipse.RenderTransform>

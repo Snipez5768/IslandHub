@@ -562,12 +562,69 @@ public partial class IslandWindow
                     H.Media.Fake("Nachtlicht", "Lena Ost", orange, false);
                     await Task.Delay(1500);
                     Frame();
+                    var zoom = new List<BitmapSource>();
+                    async Task Zoom(int count, int ms)
+                    {
+                        // 4× around the island's left end: the lids, the blink and the gaze are a few pixels only
+                        for (int i = 0; i < count; i++)
+                        {
+                            var dpi = VisualTreeHelper.GetDpi(this);
+                            var full = new RenderTargetBitmap((int)(ActualWidth * dpi.DpiScaleX), (int)(fh * dpi.DpiScaleY), dpi.PixelsPerInchX, dpi.PixelsPerInchY, PixelFormats.Pbgra32);
+                            var bgv = new DrawingVisual();
+                            using (var dc = bgv.RenderOpen()) dc.DrawRectangle(new SolidColorBrush(Color.FromRgb(0x3D, 0x4A, 0x63)), null, new Rect(0, 0, ActualWidth, fh));
+                            full.Render(bgv); full.Render(Root);
+                            var l = Island.TranslatePoint(new Point(0, 0), Root);
+                            int x0 = (int)Math.Max(0, (l.X - 8) * dpi.DpiScaleX), y0 = (int)Math.Max(0, (l.Y - 6) * dpi.DpiScaleY);
+                            int cw = (int)Math.Min(90 * dpi.DpiScaleX, full.PixelWidth - x0), ch = (int)Math.Min(46 * dpi.DpiScaleY, full.PixelHeight - y0);
+                            var crop = new CroppedBitmap(full, new Int32Rect(x0, y0, cw, ch));
+                            var big = new TransformedBitmap(crop, new ScaleTransform(4 / dpi.DpiScaleX, 4 / dpi.DpiScaleY));
+                            big.Freeze(); zoom.Add(big);
+                            await Task.Delay(ms);
+                        }
+                    }
+                    void SaveZoom(string name)
+                    {
+                        if (zoom.Count == 0) return;
+                        int cols = 4, rows = (zoom.Count + cols - 1) / cols;
+                        double zw = zoom[0].PixelWidth, zh = zoom[0].PixelHeight;
+                        var dv = new DrawingVisual();
+                        using (var dc = dv.RenderOpen())
+                            for (int i = 0; i < zoom.Count; i++)
+                            {
+                                int c = i % cols, r = i / cols;
+                                dc.DrawImage(zoom[i], new Rect(c * zw, r * zh, zw, zh));
+                                dc.DrawText(new FormattedText((i + 1).ToString(), System.Globalization.CultureInfo.InvariantCulture, FlowDirection.LeftToRight, new Typeface("Segoe UI"), 14, Brushes.White, 1), new Point(c * zw + 6, r * zh + 4));
+                            }
+                        var all = new RenderTargetBitmap((int)(cols * zw), (int)(rows * zh), 96, 96, PixelFormats.Pbgra32);
+                        all.Render(dv);
+                        var enc = new PngBitmapEncoder(); enc.Frames.Add(BitmapFrame.Create(all));
+                        using var fs = File.Create(Path.Combine(dir, name + ".png")); enc.Save(fs);
+                        zoom.Clear();
+                    }
+                    // the real pointer must not open the island or move the eyes meanwhile
+                    Root.IsHitTestVisible = false;
+                    _eyeTimer.Stop();
+                    if (_state != State.Collapsed) { Collapse(); await Task.Delay(900); }
+                    _eyeLast = new Native.POINT { X = 0, Y = 2000 }; // the pointer sits low and left
+                    ShowEyes();
+                    await Zoom(28, 40);
+                    SaveZoom("0_wake_zoom");
+                    _blinkAt = DateTime.Now; StartMotion();
+                    await Zoom(8, 25);
+                    SaveZoom("0_blink_zoom");
+                    _eyesUntil = DateTime.Now;
+                    HideEyes();
+                    await Zoom(28, 40);
+                    SaveZoom("0_sleep_zoom");
+                    await Task.Delay(600);
                     ShowEyes();
                     await Film(12, 45);
-                    EyeL.X = EyeR.X = -1.8; EyeL.Y = EyeR.Y = 1.5; Frame();
+                    Glance(-1.3, 1.5, 0); Frame();
                     _eyesUntil = DateTime.Now; // as if the pointer had left a while ago
-                    await Film(12, 45);
+                    HideEyes();
+                    await Film(14, 45);
                     Save("1_eyes_music");
+                    Root.IsHitTestVisible = true;
                     File.WriteAllLines(Path.Combine(dir, "edges.txt"), xs);
                     H.Media.FakePlaying(false);
                     await Task.Delay(900);

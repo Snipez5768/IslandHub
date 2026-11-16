@@ -252,7 +252,10 @@ public sealed class PrivacyService : ObservableObject
                             if (DateTime.Now - since < ScreenDebounce) continue;
                         }
                         // a crashed app can leave "in use" behind – only count desktop apps that still run
-                        if (exe != null && Process.GetProcessesByName(Path.GetFileNameWithoutExtension(exe)).Length == 0) continue;
+                        // – and exactly that file: Discord lives in a version folder (…\app-1.0.9268\Discord.exe); an
+                        // update during a call leaves the old version "in use" forever while the new one runs (a friend's
+                        // island showed Discord twice, "Mikrofon 3:32:30", 2026-11-16)
+                        if (exe != null && !RunsAt(exe)) continue;
 
                         var h = Mark(exe ?? pkg, exe, pkg);
                         if (kind == 'm') { h.M = true; h.MSince = since; }
@@ -485,6 +488,26 @@ public sealed class PrivacyService : ObservableObject
             }
         }
         return ids;
+    }
+
+    /// <summary>A process runs from exactly this file. If no path can be read (an elevated app), the name has to do.</summary>
+    private static bool RunsAt(string exe)
+    {
+        var procs = Process.GetProcessesByName(Path.GetFileNameWithoutExtension(exe));
+        try
+        {
+            if (procs.Length == 0) return false;
+            bool anyPath = false;
+            foreach (var p in procs)
+            {
+                var path = ProcessPath(p.Id);
+                if (path == null) continue;
+                anyPath = true;
+                if (path.Equals(exe, StringComparison.OrdinalIgnoreCase)) return true;
+            }
+            return !anyPath;
+        }
+        finally { foreach (var p in procs) p.Dispose(); }
     }
 
     private static string ProcessPath(int pid)
