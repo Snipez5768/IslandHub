@@ -19,6 +19,9 @@ public sealed class QueueItem
     public string Artist { get; init; }
     public string Duration { get; init; }
     public ImageSource Cover { get; init; }
+    /// <summary>spotify:track:… – for adding it to the queue.</summary>
+    public string Uri { get; init; }
+    public string CoverUrl { get; init; }
 }
 
 /// <summary>
@@ -29,7 +32,8 @@ public sealed class SpotifyService : ObservableObject
 {
     public const int Port = 47824;
     public static string RedirectUri => $"http://127.0.0.1:{Port}/callback";
-    private const string Scopes = "user-read-playback-state user-read-currently-playing";
+    // 2026-11-16: + adding to the queue and liking songs (older connections are asked to connect once more)
+    private const string Scopes = "user-read-playback-state user-read-currently-playing user-modify-playback-state user-library-read user-library-modify";
     private static readonly HttpClient Http = new() { Timeout = TimeSpan.FromSeconds(15) };
 
     private string _access, _refresh, _status = "Nicht verbunden";
@@ -43,6 +47,7 @@ public sealed class SpotifyService : ObservableObject
 
     public void Start()
     {
+        LoadIslandQueue();
         var t = LoadToken();
         if (t != null && Configured)
         {
@@ -110,6 +115,8 @@ public sealed class SpotifyService : ObservableObject
         var j = JsonNode.Parse(await resp.Content.ReadAsStringAsync());
         _access = j?["access_token"]?.GetValue<string>();
         _refresh = j?["refresh_token"]?.GetValue<string>() ?? _refresh;
+        _scope = j?["scope"]?.GetValue<string>() ?? _scope;
+        Raise(nameof(NeedsReconnect));
         _expires = DateTime.Now.AddSeconds((j?["expires_in"]?.GetValue<int>() ?? 3600) - 60);
         if (_access == null) return false;
         SaveToken();
@@ -154,33 +161,13 @@ public sealed class SpotifyService : ObservableObject
             }
             var items = new List<QueueItem>();
             foreach (var t in (j?["queue"] as JsonArray ?? new JsonArray()).Take(12))
-            {
-                if (t == null) continue;
-                var artists = t["artists"] is JsonArray a ? string.Join(", ", a.Select(x => x?["name"]?.GetValue<string>()).Where(x => x != null))
-                            : t["show"]?["name"]?.GetValue<string>() ?? "";
-                var images = (t["album"]?["images"] ?? t["images"]) as JsonArray;
-                var img = images?.OrderBy(i => i?["width"]?.GetValue<int>() ?? 999).FirstOrDefault()?["url"]?.GetValue<string>();
-                var ms = t["duration_ms"]?.GetValue<double>() ?? 0;
-                ImageSource cover = null;
-                if (img != null)
-                {
-                    try
-                    {
-                        var bi = new BitmapImage();
-                        bi.BeginInit();
-                        bi.UriSource = new Uri(img);
-                        bi.DecodePixelWidth = 52;
-                        bi.EndInit();
-                        cover = bi;
-                    }
-                    catch { }
-                }
-                var d = TimeSpan.FromMilliseconds(ms);
-                items.Add(new QueueItem { Name = t["name"]?.GetValue<string>() ?? "", Artist = artists, Duration = d.ToString(@"m\:ss"), Cover = cover });
-            }
+                if (t != null) items.Add(Item(t));
             Queue.Clear();
             foreach (var i in items) Queue.Add(i);
             Raise(nameof(Queue));
+            // the song playing now: for the heart
+            var curId = j?["currently_playing"]?["id"]?.GetValue<string>();
+            if (curId != CurrentId) { CurrentId = curId; _ = RefreshLikedAsync(); }
         }
         catch (Exception ex) { App.Log(ex); }
         finally { _busy = false; }
@@ -188,6 +175,137 @@ public sealed class SpotifyService : ObservableObject
     }
 
     private string _again;
+
+    private static QueueItem Item(JsonNode t)
+    {
+        var artists = t["artists"] is JsonArray a ? string.Join(", ", a.Select(x => x?["name"]?.GetValue<string>()).Where(x => x != null))
+                    : t["show"]?["name"]?.GetValue<string>() ?? "";
+        var images = (t["album"]?["images"] ?? t["images"]) as JsonArray;
+        var img = images?.OrderBy(i => i?["width"]?.GetValue<int>() ?? 999).FirstOrDefault()?["url"]?.GetValue<string>();
+        var ms = t["duration_ms"]?.GetValue<double>() ?? 0;
+        return new QueueItem
+        {
+            Name = t["name"]?.GetValue<string>() ?? "", Artist = artists, Duration = TimeSpan.FromMilliseconds(ms).ToString(@"m\:ss"),
+            Cover = Picture(img), CoverUrl = img, Uri = t["uri"]?.GetValue<string>()
+        };
+    }
+
+    private static ImageSource Picture(string url)
+    {
+        if (url == null) return null;
+        try
+        {
+            var bi = new BitmapImage();
+            bi.BeginInit();
+            bi.UriSource = new Uri(url);
+            bi.DecodePixelWidth = 52;
+            bi.EndInit();
+            return bi;
+        }
+        catch { return null; }
+    }
+
+    // ---------- 2026-11-16: like, search, add to the queue, the island's own queue ----------
+
+    private string _scope = "";
+    private string _currentId;
+    private bool _liked;
+
+    /// <summary>Connected before liking / adding existed: one more "Verbinden" gives the new rights.</summary>
+    public bool NeedsReconnect => Connected && !_scope.Contains("user-library-modify");
+    public string CurrentId { get => _currentId; private set => Set(ref _currentId, value); }
+    public bool Liked { get => _liked; private set => Set(ref _liked, value); }
+
+    /// <summary>The island's own queue (sorted freely); it hands Spotify the next song shortly before a song ends.</summary>
+    public ObservableCollection<QueueItem> IslandQueue { get; } = new();
+
+    private async Task<HttpResponseMessage> Call(HttpMethod method, string url)
+    {
+        if (!Connected || !await EnsureToken()) return null;
+        using var req = new HttpRequestMessage(method, url);
+        req.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _access);
+        if (method == HttpMethod.Put || method == HttpMethod.Post) req.Content = new StringContent("");
+        try { return await Http.SendAsync(req); } catch { return null; }
+    }
+
+    /// <summary>Asks Spotify for the song playing now and whether it is in the user's library.</summary>
+    public async Task RefreshLikedAsync()
+    {
+        if (CurrentId == null)
+        {
+            using var cur = await Call(HttpMethod.Get, "https://api.spotify.com/v1/me/player/currently-playing");
+            if (cur is { IsSuccessStatusCode: true } && cur.StatusCode != HttpStatusCode.NoContent)
+                CurrentId = JsonNode.Parse(await cur.Content.ReadAsStringAsync())?["item"]?["id"]?.GetValue<string>();
+        }
+        if (CurrentId == null) { Liked = false; return; }
+        using var r = await Call(HttpMethod.Get, $"https://api.spotify.com/v1/me/tracks/contains?ids={CurrentId}");
+        if (r is { IsSuccessStatusCode: true } && JsonNode.Parse(await r.Content.ReadAsStringAsync()) is JsonArray a && a.Count > 0)
+            Liked = a[0]?.GetValue<bool>() == true;
+    }
+
+    /// <summary>A new song plays: forget the old id and ask again (the heart follows the song).</summary>
+    public Task TrackChangedAsync()
+    {
+        CurrentId = null;
+        Liked = false;
+        return RefreshLikedAsync();
+    }
+
+    /// <summary>The heart: adds the song to (or removes it from) "Lieblingssongs". false = Spotify said no.</summary>
+    public async Task<bool> ToggleLikeAsync()
+    {
+        if (CurrentId == null) await RefreshLikedAsync();
+        if (CurrentId == null) return false;
+        bool want = !Liked;
+        using var r = await Call(want ? HttpMethod.Put : HttpMethod.Delete, $"https://api.spotify.com/v1/me/tracks?ids={CurrentId}");
+        if (r is not { IsSuccessStatusCode: true }) return false;
+        Liked = want;
+        return true;
+    }
+
+    public async Task<List<QueueItem>> SearchAsync(string q)
+    {
+        var list = new List<QueueItem>();
+        if (string.IsNullOrWhiteSpace(q)) return list;
+        using var r = await Call(HttpMethod.Get, $"https://api.spotify.com/v1/search?type=track&limit=5&q={Uri.EscapeDataString(q.Trim())}");
+        if (r is not { IsSuccessStatusCode: true }) return list;
+        foreach (var t in JsonNode.Parse(await r.Content.ReadAsStringAsync())?["tracks"]?["items"] as JsonArray ?? new JsonArray())
+            if (t != null) list.Add(Item(t));
+        return list;
+    }
+
+    /// <summary>Spotify's own queue: appended at the end (Spotify lets apps only add, not sort).</summary>
+    public async Task<bool> AddToQueueAsync(QueueItem item)
+    {
+        if (item?.Uri == null) return false;
+        using var r = await Call(HttpMethod.Post, $"https://api.spotify.com/v1/me/player/queue?uri={Uri.EscapeDataString(item.Uri)}");
+        return r is { IsSuccessStatusCode: true };
+    }
+
+    private string _fedFor;
+
+    /// <summary>
+    /// Island queue: shortly before the song ends, its first song goes to Spotify (once per song). Songs put into
+    /// Spotify's own queue directly in Spotify play before it – Spotify only lets apps add at the end.
+    /// </summary>
+    public async Task FeedAsync(string playingTitle, TimeSpan left)
+    {
+        if (IslandQueue.Count == 0 || left > TimeSpan.FromSeconds(15) || left <= TimeSpan.Zero || _fedFor == playingTitle) return;
+        _fedFor = playingTitle;
+        var next = IslandQueue[0];
+        if (await AddToQueueAsync(next)) { IslandQueue.Remove(next); SaveIslandQueue(); }
+    }
+
+    public void SaveIslandQueue() =>
+        Storage.Save("spotify_island_queue.json", IslandQueue.Select(i => new SavedSong(i.Name, i.Artist, i.Duration, i.Uri, i.CoverUrl)).ToList());
+
+    public void LoadIslandQueue()
+    {
+        foreach (var s in Storage.Load<List<SavedSong>>("spotify_island_queue.json") ?? new())
+            IslandQueue.Add(new QueueItem { Name = s.Name, Artist = s.Artist, Duration = s.Duration, Uri = s.Uri, CoverUrl = s.Cover, Cover = Picture(s.Cover) });
+    }
+
+    public sealed record SavedSong(string Name, string Artist, string Duration, string Uri, string Cover);
 
     private static bool Same(string a, string b)
     {
@@ -208,14 +326,15 @@ public sealed class SpotifyService : ObservableObject
     // ---------- storage (DPAPI) ----------
 
     private void SaveToken() =>
-        File.WriteAllText(Storage.PathOf("spotify_token.bin"), DiscordService.Protect($"{_access}\n{_refresh}\n{_expires.Ticks}"));
+        File.WriteAllText(Storage.PathOf("spotify_token.bin"), DiscordService.Protect($"{_access}\n{_refresh}\n{_expires.Ticks}\n{_scope}"));
 
-    private static (string, string, DateTime)? LoadToken()
+    private (string, string, DateTime)? LoadToken()
     {
         var p = Storage.PathOf("spotify_token.bin");
         if (!File.Exists(p)) return null;
         var parts = DiscordService.Unprotect(File.ReadAllText(p)).Split('\n');
-        return parts.Length == 3 && long.TryParse(parts[2], out var ticks) ? (parts[0], parts[1], new DateTime(ticks)) : null;
+        if (parts.Length >= 4) _scope = parts[3]; // older files have no rights stored → "connect once more" for liking
+        return parts.Length >= 3 && long.TryParse(parts[2], out var ticks) ? (parts[0], parts[1], new DateTime(ticks)) : null;
     }
 
     private static string B64Url(byte[] b) => Convert.ToBase64String(b).TrimEnd('=').Replace('+', '-').Replace('/', '_');

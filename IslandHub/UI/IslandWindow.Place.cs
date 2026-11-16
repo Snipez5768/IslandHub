@@ -1,4 +1,5 @@
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Interop;
 using System.Windows.Media;
@@ -158,8 +159,7 @@ public partial class IslandWindow
 
     private void UpdateTodayUi()
     {
-        var c = H.Calendar;
-        // today's match of the followed team sits on top of the appointments
+        // today's match of the followed team sits on top of the calendar
         var m = H.Feeds.Match;
         TodayMatch.Visibility = m != null ? Visibility.Visible : Visibility.Collapsed;
         if (m != null)
@@ -168,12 +168,42 @@ public partial class IslandWindow
             TodayMatchState.Text = m.State;
             TodayMatchState.Foreground = m.Live ? (Brush)FindResource("Green") : (Brush)FindResource("SubText");
         }
-        bool none = c.Upcoming.Count == 0;
-        TodayEvents.Visibility = none ? Visibility.Collapsed : Visibility.Visible;
-        TodayEmpty.Visibility = none ? Visibility.Visible : Visibility.Collapsed;
-        TodayEmpty.Text = !c.HasLinks ? "Kalender in den Einstellungen verbinden (Allgemein › Kalender)."
-                        : !string.IsNullOrEmpty(c.Status) ? c.Status
-                        : "Heute keine Termine mehr.";
+        BuildCalendar(m != null ? 2 : 3);
+    }
+
+    /// <summary>
+    /// A calendar widget like iOS (user wish 2026-11-16 – days only, no appointments): the month, the weekday
+    /// letters, this week and the next ones. Today is a red circle, the days already gone this week are dimmed.
+    /// </summary>
+    private void BuildCalendar(int weeks)
+    {
+        var de = System.Globalization.CultureInfo.GetCultureInfo("de-DE");
+        var today = DateTime.Today;
+        var monday = today.AddDays(-(((int)today.DayOfWeek + 6) % 7));
+        var last = monday.AddDays(weeks * 7 - 1);
+        string Month(DateTime d) => d.ToString("MMMM", de);
+        CalMonth.Text = monday.Month == last.Month ? $"{Month(today)} {today.Year}" : $"{Month(monday)} · {Month(last)}";
+        CalGrid.Children.Clear();
+        var sub = (Brush)FindResource("SubText");
+        foreach (var letter in new[] { "M", "D", "M", "D", "F", "S", "S" })
+            CalGrid.Children.Add(new TextBlock { Text = letter, FontSize = 9, FontWeight = FontWeights.SemiBold, Foreground = sub, HorizontalAlignment = HorizontalAlignment.Center, Margin = new Thickness(0, 0, 0, 2) });
+        for (int i = 0; i < weeks * 7; i++)
+        {
+            var d = monday.AddDays(i);
+            var cell = new Grid { Height = 17 };
+            if (d == today) cell.Children.Add(new System.Windows.Shapes.Ellipse { Width = 17, Height = 17, Fill = (Brush)FindResource("Danger") });
+            cell.Children.Add(new TextBlock
+            {
+                // the first day of a new month shows its short name, so the change is easy to see
+                Text = d.Day == 1 && d != today ? d.ToString("MMM", de).TrimEnd('.') : d.Day.ToString(),
+                FontSize = d.Day == 1 && d != today ? 9 : 10.5,
+                FontWeight = d == today ? FontWeights.Bold : FontWeights.Normal,
+                Foreground = d < today ? sub : Brushes.White,
+                Opacity = d < today ? 0.6 : 1,
+                HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center
+            });
+            CalGrid.Children.Add(cell);
+        }
     }
 
     /// <summary>A goal, a stream that went live, a parcel that moved: a ticker; with "Öffnen" when there is a page.</summary>
@@ -191,20 +221,6 @@ public partial class IslandWindow
             p.Button("open", "Öffnen", () => { try { System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(m.Link) { UseShellExecute = true }); } catch { } }, brush);
         if (m.Kind == "sport" && m.Title == "Tor!" && S.Animations != AnimationLevel.Aus) Ripples(((SolidColorBrush)brush).Color);
         ShowPeek(p);
-    }
-
-    /// <summary>10 minutes before an appointment: a ticker like a message, in the calendar's colour.</summary>
-    private void OnAppointmentSoon(CalendarEvent e)
-    {
-        var mins = Math.Max(1, (int)Math.Round((e.Start - DateTime.Now).TotalMinutes));
-        ShowPeek(new PeekInfo
-        {
-            Key = "cal", Icon = "calendar", GlyphBrush = e.Color ?? (Brush)FindResource("Blue"),
-            Source = "Kalender", SourceIcon = "calendar", SourceBrush = e.Color ?? (Brush)FindResource("Blue"), Ticker = true,
-            Title = e.Title,
-            Text = $"in {mins} Min · {e.Start:HH:mm}" + (string.IsNullOrEmpty(e.Location) ? "" : $" · {e.Location}"),
-            TimeoutMs = 12000
-        });
     }
 
     /// <summary>Back to the middle of the main screen.</summary>

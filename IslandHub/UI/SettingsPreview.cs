@@ -196,6 +196,15 @@ public sealed class HintPic : Border
             }
             case "mail": c = Pv.Icon("envelope", 17, Pv.Res("Blue")); break;
             case "calendar": c = Pv.Icon("calendar", 17, Pv.Res("Blue")); break;
+            case "reply": c = Pv.Icon("reply", 16, Pv.Res("Blue")); break;
+            case "eyes":
+            {
+                var p = Pill(46, 14, 0);
+                Ellipse Eye() => new Ellipse { Width = 4, Height = 6, Fill = Brushes.White, Margin = new Thickness(0, 0, 2, 0) };
+                p.Child = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(6, 0, 0, 0), VerticalAlignment = VerticalAlignment.Center, Children = { Eye(), Eye() } };
+                c = p;
+                break;
+            }
             case "sportpic": c = Pv.Icon("sport", 17, Pv.Res("Green")); break;
             case "twitch": c = Pv.Icon("record", 16, Pv.B("#FF9146FF")); break;
             case "youtube": c = Pv.Icon("play.fill", 15, Pv.B("#FFFF0033")); break;

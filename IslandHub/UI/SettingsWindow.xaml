@@ -213,6 +213,16 @@
                                     </StackPanel>
                                 </DockPanel>
                             </Border>
+                            <Border Style="{StaticResource Row}">
+                                <DockPanel>
+                                    <ToggleButton x:Name="OptReplySend" DockPanel.Dock="Right" Style="{StaticResource Switch}" Click="Opt_Click" VerticalAlignment="Center" />
+                                    <ui:HintPic Kind="reply" />
+                                    <StackPanel Margin="0,0,12,0" VerticalAlignment="Center">
+                                        <TextBlock Text="Antwort gleich senden" />
+                                        <TextBlock Style="{StaticResource Desc}" Text="Antworten aus der Insel: die Insel öffnet den Chat über die Suche der App und fügt den Text ein. Aus: du drückst selbst Enter (sicherer – bei gleichen Namen kann die Suche einen anderen Chat treffen). An: sie sendet gleich." />
+                                    </StackPanel>
+                                </DockPanel>
+                            </Border>
                             <Border Style="{StaticResource LastRow}">
                                 <DockPanel>
                                     <ToggleButton x:Name="OptPower" DockPanel.Dock="Right" Style="{StaticResource Switch}" Click="Opt_Click" VerticalAlignment="Center" />
@@ -417,29 +427,6 @@
                     </Border>
 
                     <!-- verification codes: open the mails -->
-                    <TextBlock Text="Kalender" Style="{StaticResource GroupHeader}" />
-                    <Border Style="{StaticResource SettingCard}">
-                        <StackPanel>
-                            <Border Style="{StaticResource Row}">
-                                <DockPanel>
-                                    <ui:HintPic Kind="calendar" />
-                                    <StackPanel Margin="0,0,12,0" VerticalAlignment="Center">
-                                        <TextBlock Text="Kalender-Links (iCal)" />
-                                        <TextBlock Style="{StaticResource Desc}" Text="Google: Kalender-Einstellungen › „Privatadresse im iCal-Format“. Outlook: Kalender › Freigeben › Veröffentlichen › ICS-Link. Ein Link pro Zeile – nur lesen, keine Anmeldung. Der Tab „Heute“ zeigt die Termine, 10 Minuten vorher meldet sich die Insel." />
-                                    </StackPanel>
-                                </DockPanel>
-                            </Border>
-                            <Border Style="{StaticResource LastRow}">
-                                <DockPanel>
-                                    <Button DockPanel.Dock="Right" Style="{StaticResource MacAccentButton}" Content="Prüfen" Margin="8,0,0,0" VerticalAlignment="Top" Click="CalendarCheck_Click" />
-                                    <TextBox x:Name="OptCalendarUrls" Style="{StaticResource MacTextBox}" AcceptsReturn="True" TextWrapping="NoWrap" MinHeight="44"
-                                             VerticalScrollBarVisibility="Auto" Tag="https://calendar.google.com/calendar/ical/…/basic.ics" LostFocus="CalendarUrls_LostFocus" />
-                                </DockPanel>
-                            </Border>
-                            <TextBlock x:Name="CalendarStatus" Style="{StaticResource Desc}" Margin="14,0,14,10" Visibility="Collapsed" />
-                        </StackPanel>
-                    </Border>
-
                     <TextBlock Text="Live-Dienste" Style="{StaticResource GroupHeader}" />
                     <Border Style="{StaticResource SettingCard}">
                         <StackPanel>
@@ -581,6 +568,16 @@
                     <TextBlock Text="Größe und Platz" Style="{StaticResource GroupHeader}" />
                     <Border Style="{StaticResource SettingCard}">
                         <StackPanel>
+                            <Border Style="{StaticResource Row}">
+                                <DockPanel>
+                                    <ToggleButton x:Name="OptEyes" DockPanel.Dock="Right" Style="{StaticResource Switch}" Click="Opt_Click" VerticalAlignment="Center" />
+                                    <ui:HintPic Kind="eyes" />
+                                    <StackPanel Margin="0,0,12,0" VerticalAlignment="Center">
+                                        <TextBlock Text="Augen in der Insel" />
+                                        <TextBlock Style="{StaticResource Desc}" Text="Zwei kleine Augen links in der ruhenden Insel – sie schauen dem Mauszeiger nach und blinzeln ab und zu." />
+                                    </StackPanel>
+                                </DockPanel>
+                            </Border>
                             <Border Style="{StaticResource Row}">
                                 <DockPanel>
                                     <TextBlock x:Name="IslandSizeText" DockPanel.Dock="Right" Foreground="{StaticResource SubText}" Width="54" TextAlignment="Right" VerticalAlignment="Center" />

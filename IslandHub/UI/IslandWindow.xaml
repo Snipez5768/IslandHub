@@ -387,6 +387,23 @@
                         <ColumnDefinition Width="*" />
                         <ColumnDefinition Width="Auto" />
                     </Grid.ColumnDefinitions>
+                    <!-- two little eyes (user wish 2026-11-16): on the left while nothing else is shown there, they follow the pointer -->
+                    <StackPanel x:Name="Eyes" Orientation="Horizontal" VerticalAlignment="Center" HorizontalAlignment="Left" Margin="6,0,0,0"
+                                Visibility="Collapsed" IsHitTestVisible="False" RenderTransformOrigin="0.5,0.5">
+                        <StackPanel.RenderTransform><ScaleTransform x:Name="EyesBlink" /></StackPanel.RenderTransform>
+                        <Grid Width="8" Height="11" Margin="0,0,3,0">
+                            <Ellipse Fill="White" />
+                            <Ellipse Width="4.4" Height="4.4" Fill="Black">
+                                <Ellipse.RenderTransform><TranslateTransform x:Name="EyeL" /></Ellipse.RenderTransform>
+                            </Ellipse>
+                        </Grid>
+                        <Grid Width="8" Height="11">
+                            <Ellipse Fill="White" />
+                            <Ellipse Width="4.4" Height="4.4" Fill="Black">
+                                <Ellipse.RenderTransform><TranslateTransform x:Name="EyeR" /></Ellipse.RenderTransform>
+                            </Ellipse>
+                        </Grid>
+                    </StackPanel>
                     <StackPanel x:Name="Lead" Orientation="Horizontal" VerticalAlignment="Center">
                         <Grid>
                             <!-- new song: the old cover slides out to the left while the new one comes in from the right -->
@@ -610,6 +627,15 @@
                             <TextBlock x:Name="PeekTitle" FontWeight="SemiBold" FontSize="13" TextTrimming="CharacterEllipsis" />
                         </DockPanel>
                         <TextBlock x:Name="PeekText" Foreground="#FFAEAEB2" FontSize="11.5" TextTrimming="CharacterEllipsis" />
+                        <!-- answer right here (2026-11-16): a message field like iMessage, the blue arrow sends -->
+                        <Border x:Name="PeekReply" Visibility="Collapsed" Margin="0,8,0,0" CornerRadius="15" Background="#FF1C1C1E" BorderBrush="#40FFFFFF" BorderThickness="0.5" MinHeight="30">
+                            <DockPanel>
+                                <Button x:Name="PeekReplySend" DockPanel.Dock="Right" Width="24" Height="24" Margin="0,0,3,0" Padding="0" Style="{StaticResource GlassIcon}"
+                                        Background="{StaticResource Blue}" BorderBrush="Transparent" Foreground="White" ui:Ext.Icon="send" ui:Ext.IconSize="12" ToolTip="Senden" Click="PeekReplySend_Click" />
+                                <TextBox x:Name="PeekReplyBox" Style="{StaticResource DarkTextBox}" Background="Transparent" BorderThickness="0" Padding="10,4" FontSize="12"
+                                         Tag="Antworten …" VerticalContentAlignment="Center" KeyDown="PeekReplyBox_KeyDown" />
+                            </DockPanel>
+                        </Border>
                         <WrapPanel x:Name="PeekActions" Orientation="Horizontal" Margin="0,8,0,0" />
                     </StackPanel>
                     <StackPanel x:Name="PeekActionsRight" Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center" Margin="8,0,0,0" />
@@ -963,6 +989,13 @@
                                 <!-- the buttons under the progress: back · play/pause · forward; on the right source switch, and
                                      for Spotify its own volume and the queue -->
                                 <Grid Grid.Row="3" Margin="0,0,0,-3">
+                                    <StackPanel HorizontalAlignment="Left" Orientation="Horizontal" VerticalAlignment="Center">
+                                        <!-- 2026-11-16: like the song (Spotify) · song text (any player) -->
+                                        <Button x:Name="MusicLikeBtn" Style="{StaticResource SmallIconButton}" ui:Ext.Icon="heart" ui:Ext.IconSize="13"
+                                                ui:Ext.Hover="{StaticResource Danger}" ToolTip="Zu Lieblingssongs" Click="MusicLike_Click" Visibility="Collapsed" />
+                                        <Button x:Name="MusicLyricsBtn" Style="{StaticResource SmallIconButton}" ui:Ext.Icon="quote" ui:Ext.IconSize="13"
+                                                ui:Ext.Hover="{StaticResource Blue}" ToolTip="Songtext" Click="MusicLyrics_Click" />
+                                    </StackPanel>
                                     <StackPanel HorizontalAlignment="Right" Orientation="Horizontal" VerticalAlignment="Center">
                                         <!-- Spotify only: turns the progress bar into Spotify's own volume (Windows mixer) -->
                                         <Button x:Name="MusicVolBtn" Style="{StaticResource SmallIconButton}" ui:Ext.Icon="speaker" ui:Ext.IconSize="13"
@@ -986,9 +1019,62 @@
                                 <StackPanel x:Name="QueueView" Margin="0,10,0,0" Visibility="Collapsed">
                                     <DockPanel Margin="0,0,0,4">
                                         <TextBlock x:Name="QueueHint" DockPanel.Dock="Right" FontSize="10.5" Foreground="#73EBEBF5" VerticalAlignment="Center" />
-                                        <TextBlock Text="Als Nächstes" FontSize="11" Foreground="{StaticResource SubText}" />
+                                        <!-- 2026-11-16: Spotify's own queue (add only) or the island's own (sort freely) -->
+                                        <StackPanel Orientation="Horizontal">
+                                            <TextBlock x:Name="QueueModeSpotify" Text="Spotify" FontSize="11" FontWeight="SemiBold" Cursor="Hand" Margin="0,0,10,0" MouseLeftButtonUp="QueueMode_Click" Tag="spotify" />
+                                            <TextBlock x:Name="QueueModeIsland" Text="Insel" FontSize="11" FontWeight="SemiBold" Cursor="Hand" MouseLeftButtonUp="QueueMode_Click" Tag="island" />
+                                        </StackPanel>
                                     </DockPanel>
-                                    <ScrollViewer Height="148" VerticalScrollBarVisibility="Hidden">
+                                    <!-- search a song and add it (to Spotify's queue or the island's) -->
+                                    <Border CornerRadius="9" Background="#FF1C1C1E" Margin="0,0,0,4" Height="24">
+                                        <TextBox x:Name="QueueSearch" Style="{StaticResource DarkTextBox}" Background="Transparent" BorderThickness="0" Padding="8,2" FontSize="11.5"
+                                                 Tag="Titel suchen und hinzufügen …" VerticalContentAlignment="Center" KeyDown="QueueSearch_KeyDown" />
+                                    </Border>
+                                    <TextBlock x:Name="IslandQueueNote" FontSize="9.5" Foreground="#73EBEBF5" TextWrapping="Wrap" Margin="0,0,0,4" Visibility="Collapsed"
+                                               Text="Die Insel gibt Spotify den nächsten Titel kurz vor Songende. Was du direkt in Spotify einreihst, spielt davor." />
+                                    <ItemsControl x:Name="QueueResults" Visibility="Collapsed">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <Border x:Name="rrow" Padding="4,3" Background="Transparent" CornerRadius="6" Cursor="Hand" ToolTip="Hinzufügen" MouseLeftButtonUp="QueueResult_Click">
+                                                    <DockPanel>
+                                                        <ui:SfIcon DockPanel.Dock="Right" Kind="plus" Size="11" Foreground="{StaticResource Green}" VerticalAlignment="Center" />
+                                                        <Border Width="22" Height="22" CornerRadius="4" Margin="0,0,8,0">
+                                                            <Border.Background><ImageBrush ImageSource="{Binding Cover}" Stretch="UniformToFill" /></Border.Background>
+                                                        </Border>
+                                                        <TextBlock FontSize="11.5" TextTrimming="CharacterEllipsis" VerticalAlignment="Center">
+                                                            <Run Text="{Binding Name, Mode=OneWay}" /><Run Text="  " /><Run Text="{Binding Artist, Mode=OneWay}" Foreground="{StaticResource SubText}" />
+                                                        </TextBlock>
+                                                    </DockPanel>
+                                                </Border>
+                                                <DataTemplate.Triggers>
+                                                    <Trigger SourceName="rrow" Property="IsMouseOver" Value="True"><Setter TargetName="rrow" Property="Background" Value="#14FFFFFF" /></Trigger>
+                                                </DataTemplate.Triggers>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                    <!-- the island's own queue: drag to sort, × to remove -->
+                                    <ScrollViewer x:Name="IslandQueueScroll" Height="118" VerticalScrollBarVisibility="Hidden" Visibility="Collapsed">
+                                        <ItemsControl x:Name="IslandQueueItems" ItemsSource="{Binding Spotify.IslandQueue}">
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate>
+                                                    <Border Padding="4,3" Background="Transparent" CornerRadius="6" Cursor="SizeNS" ToolTip="Ziehen zum Sortieren">
+                                                        <DockPanel>
+                                                            <Button DockPanel.Dock="Right" Style="{StaticResource SmallIconButton}" Width="18" Height="18" ui:Ext.Icon="xmark" ui:Ext.IconSize="9"
+                                                                    ui:Ext.Hover="{StaticResource Danger}" ToolTip="Entfernen" Click="IslandQueueRemove_Click" />
+                                                            <ui:SfIcon DockPanel.Dock="Left" Kind="sliders" Size="10" Foreground="#59FFFFFF" Margin="0,0,6,0" VerticalAlignment="Center" />
+                                                            <Border Width="22" Height="22" CornerRadius="4" Margin="0,0,8,0">
+                                                                <Border.Background><ImageBrush ImageSource="{Binding Cover}" Stretch="UniformToFill" /></Border.Background>
+                                                            </Border>
+                                                            <TextBlock FontSize="11.5" TextTrimming="CharacterEllipsis" VerticalAlignment="Center">
+                                                                <Run Text="{Binding Name, Mode=OneWay}" /><Run Text="  " /><Run Text="{Binding Artist, Mode=OneWay}" Foreground="{StaticResource SubText}" />
+                                                            </TextBlock>
+                                                        </DockPanel>
+                                                    </Border>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                    </ScrollViewer>
+                                    <ScrollViewer x:Name="SpotifyQueueScroll" Height="118" VerticalScrollBarVisibility="Hidden">
                                         <ItemsControl x:Name="QueueItems" ItemsSource="{Binding Spotify.Queue}">
                                             <ItemsControl.ItemTemplate>
                                                 <DataTemplate>
@@ -1021,6 +1107,11 @@
                                             </ItemsControl.ItemTemplate>
                                         </ItemsControl>
                                     </ScrollViewer>
+                                </StackPanel>
+                                <!-- song text (2026-11-16): the line sung now in white, around it dimmed – follows the song -->
+                                <StackPanel x:Name="LyricsView" Margin="0,12,0,0" Visibility="Collapsed">
+                                    <TextBlock x:Name="LyricsHint" FontSize="10.5" Foreground="#73EBEBF5" Margin="0,0,0,6" />
+                                    <StackPanel x:Name="LyricsLines" />
                                 </StackPanel>
                             </StackPanel>
                         </Grid>
@@ -1817,7 +1908,7 @@
                                 <TextBlock Text="{Binding Weather.Status}" FontSize="11" Foreground="{StaticResource SubText}" TextWrapping="Wrap" VerticalAlignment="Center"
                                            Visibility="{Binding Weather.HasData, Converter={StaticResource InvBoolVis}}" />
                             </Grid>
-                            <!-- appointments -->
+                            <!-- calendar -->
                             <Grid Grid.Column="1">
                                 <Border Width="1" Background="#FF2C2C2E" HorizontalAlignment="Left" Margin="-6,4,0,4" />
                                 <DockPanel Margin="6,0,0,0">
@@ -1827,27 +1918,12 @@
                                     <TextBlock x:Name="TodayMatchState" DockPanel.Dock="Right" FontSize="10" FontWeight="SemiBold" VerticalAlignment="Center" />
                                     <TextBlock x:Name="TodayMatchText" FontSize="11.5" FontWeight="SemiBold" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
                                 </DockPanel>
-                                <ItemsControl x:Name="TodayEvents" ItemsSource="{Binding Calendar.Upcoming}">
-                                    <ItemsControl.ItemTemplate>
-                                        <DataTemplate>
-                                            <Grid Height="26" Margin="0,0,0,2">
-                                                <Grid.ColumnDefinitions>
-                                                    <ColumnDefinition Width="Auto" />
-                                                    <ColumnDefinition Width="*" />
-                                                </Grid.ColumnDefinitions>
-                                                <Border Width="3" CornerRadius="1.5" Background="{Binding Color}" Margin="0,2,7,2" />
-                                                <StackPanel Grid.Column="1" VerticalAlignment="Center">
-                                                    <TextBlock Text="{Binding Title}" FontSize="11.5" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
-                                                    <TextBlock FontSize="9.5" Foreground="{StaticResource SubText}" TextTrimming="CharacterEllipsis">
-                                                        <Run Text="{Binding When, Mode=OneWay}" /><Run Text=" " /><Run Text="{Binding Location, Mode=OneWay}" />
-                                                    </TextBlock>
-                                                </StackPanel>
-                                            </Grid>
-                                        </DataTemplate>
-                                    </ItemsControl.ItemTemplate>
-                                </ItemsControl>
+                                <!-- calendar widget (user wish 2026-11-16): the month, this week and the next ones, today in red -->
+                                <StackPanel x:Name="TodayCalendar">
+                                    <TextBlock x:Name="CalMonth" FontSize="11" FontWeight="SemiBold" Foreground="{StaticResource Danger}" Margin="2,0,0,2" />
+                                    <UniformGrid x:Name="CalGrid" Columns="7" />
+                                </StackPanel>
                                 </DockPanel>
-                                <TextBlock x:Name="TodayEmpty" Margin="6,22,0,0" FontSize="11" Foreground="{StaticResource SubText}" TextWrapping="Wrap" VerticalAlignment="Center" />
                             </Grid>
                         </Grid>
 

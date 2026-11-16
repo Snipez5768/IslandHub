@@ -175,6 +175,9 @@ public sealed class PeekInfo
     /// <summary>Round symbol buttons on the right: icon, tooltip, fill (null = glass), dark glyph on a light fill.</summary>
     public List<(string Icon, string Tip, System.Windows.Media.Brush Fill, bool DarkGlyph, Action Act)> Buttons { get; } = new();
 
+    /// <summary>Messengers: the card gets "Antworten" – the text typed in the island is handed to this (2026-11-16).</summary>
+    public Action<string> Reply { get; set; }
+
     public PeekInfo Button(string icon, string tip, Action act, System.Windows.Media.Brush fill = null, bool darkGlyph = false)
     {
         Buttons.Add((icon, tip, fill, darkGlyph, act));

@@ -48,6 +48,8 @@ public sealed class DesktopWidgetState
     public string Kind { get; set; }
     public double Left { get; set; }
     public double Top { get; set; }
+    /// <summary>S (1×1), M (2×1), L (2×2) – iOS sizes (2026-11-16).</summary>
+    public string Size { get; set; } = "S";
 }
 
 public sealed class AppSettings
@@ -82,8 +84,12 @@ public sealed class AppSettings
     public bool UpdateCheck { get; set; } = true;
     /// <summary>Volume (and laptop brightness) changes show a level bar in the island.</summary>
     public bool LevelInIsland { get; set; } = true;
-    /// <summary>Secret iCal links (Google "Privatadresse im iCal-Format", Outlook "ICS") – read-only, no login.</summary>
-    public List<string> CalendarUrls { get; set; } = new();
+    /// <summary>Music page queue: "spotify" (Spotify's own – view and add) or "island" (the island's own, sorted freely).</summary>
+    public string SpotifyQueueMode { get; set; } = "spotify";
+    /// <summary>Two little eyes on the left of the resting island that follow the pointer.</summary>
+    public bool IslandEyes { get; set; } = true;
+    /// <summary>Answer from the island: off = the text waits in the chat (you press Enter), on = sent right away.</summary>
+    public bool ReplyAutoSend { get; set; }
     /// <summary>Football (OpenLigaDB): league code (bl1, bl2, bl3, dfb …) and the team to follow (name or short name).</summary>
     public string SportLeague { get; set; } = "bl1";
     public string SportTeam { get; set; } = "";

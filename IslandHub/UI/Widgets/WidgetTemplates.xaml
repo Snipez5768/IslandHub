@@ -162,6 +162,84 @@
     </DataTemplate>
 
     <!-- ===================================================================
+         Detail parts for the MEDIUM (right of the small part) and LARGE (below it) sizes – 2026-11-16
+         =================================================================== -->
+
+    <!-- clock: the world clocks next to it -->
+    <DataTemplate x:Key="X_Clock">
+        <ItemsControl ItemsSource="{Binding WorldClocks}" VerticalAlignment="Center">
+            <ItemsControl.ItemTemplate>
+                <DataTemplate>
+                    <DockPanel Margin="0,3">
+                        <TextBlock DockPanel.Dock="Right" Text="{Binding Time}" FontSize="15" FontFamily="{StaticResource DisplayFont}" VerticalAlignment="Center" />
+                        <TextBlock Text="{Binding City}" FontSize="12" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+                    </DockPanel>
+                </DataTemplate>
+            </ItemsControl.ItemTemplate>
+        </ItemsControl>
+    </DataTemplate>
+
+    <!-- world clock: today's date big -->
+    <DataTemplate x:Key="X_World">
+        <StackPanel VerticalAlignment="Center">
+            <TextBlock Text="{Binding WeekdayText}" Foreground="{StaticResource Danger}" FontSize="12" FontWeight="SemiBold" />
+            <TextBlock Text="{Binding DayText}" FontSize="30" FontWeight="Light" FontFamily="{StaticResource DisplayFont}" />
+            <TextBlock Text="{Binding TimeText}" FontSize="12" Foreground="{StaticResource SubText}" />
+        </StackPanel>
+    </DataTemplate>
+
+    <!-- weather: the next hours -->
+    <DataTemplate x:Key="X_Weather">
+        <StackPanel VerticalAlignment="Center">
+            <ItemsControl ItemsSource="{Binding Hours}">
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate><UniformGrid Rows="1" /></ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <StackPanel HorizontalAlignment="Center">
+                            <TextBlock Text="{Binding Time}" FontSize="10.5" Foreground="{StaticResource SubText}" HorizontalAlignment="Center" />
+                            <TextBlock Text="{Binding Icon}" FontSize="16" FontFamily="Segoe UI Symbol" HorizontalAlignment="Center" Margin="0,3" />
+                            <TextBlock Text="{Binding Temp}" FontSize="12" FontWeight="SemiBold" HorizontalAlignment="Center" />
+                        </StackPanel>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+            <TextBlock Text="{Binding Detail}" FontSize="10.5" Foreground="{StaticResource SubText}" TextWrapping="Wrap" Margin="0,10,0,0" />
+        </StackPanel>
+    </DataTemplate>
+
+    <!-- PC stats: the numbers in words -->
+    <DataTemplate x:Key="X_Stats">
+        <StackPanel VerticalAlignment="Center">
+            <DockPanel Margin="0,3"><TextBlock DockPanel.Dock="Right" Text="{Binding CpuText}" FontWeight="SemiBold" /><TextBlock Text="Prozessor" Foreground="{StaticResource SubText}" /></DockPanel>
+            <DockPanel Margin="0,3"><TextBlock DockPanel.Dock="Right" Text="{Binding GpuText}" FontWeight="SemiBold" /><TextBlock Text="Grafik" Foreground="{StaticResource SubText}" /></DockPanel>
+            <DockPanel Margin="0,3"><TextBlock DockPanel.Dock="Right" Text="{Binding RamText}" FontWeight="SemiBold" /><TextBlock Text="Arbeitsspeicher" Foreground="{StaticResource SubText}" /></DockPanel>
+        </StackPanel>
+    </DataTemplate>
+
+    <!-- battery: in words -->
+    <DataTemplate x:Key="X_Battery">
+        <StackPanel VerticalAlignment="Center">
+            <TextBlock Text="{Binding BatteryPercentText}" FontSize="30" FontWeight="Light" FontFamily="{StaticResource DisplayFont}" />
+            <TextBlock Text="{Binding BatteryText}" FontSize="12" Foreground="{StaticResource SubText}" TextWrapping="Wrap" />
+        </StackPanel>
+    </DataTemplate>
+
+    <!-- focus timer: more lengths -->
+    <DataTemplate x:Key="X_Timer">
+        <StackPanel VerticalAlignment="Center">
+            <TextBlock Text="{Binding ModeText}" FontSize="12" FontWeight="SemiBold" Margin="0,0,0,8" />
+            <WrapPanel>
+                <Button Style="{StaticResource ChipButton}" Content="10 Min" Command="{Binding PresetCommand}" CommandParameter="10" Margin="0,0,4,4" />
+                <Button Style="{StaticResource ChipButton}" Content="15 Min" Command="{Binding PresetCommand}" CommandParameter="15" Margin="0,0,4,4" />
+                <Button Style="{StaticResource ChipButton}" Content="45 Min" Command="{Binding PresetCommand}" CommandParameter="45" Margin="0,0,4,4" />
+                <Button Style="{StaticResource ChipButton}" Content="60 Min" Command="{Binding PresetCommand}" CommandParameter="60" Margin="0,0,4,4" />
+            </WrapPanel>
+        </StackPanel>
+    </DataTemplate>
+
+    <!-- ===================================================================
          Compact variants for the flat island (card 128 × 81, 10 px padding)
          =================================================================== -->
 

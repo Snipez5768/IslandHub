@@ -26,13 +26,17 @@ public static class WidgetRegistry
     public static WidgetDef Get(string kind) => All.FirstOrDefault(w => w.Kind == kind);
 
     /// <summary>Builds an iOS "small" widget (150 × 150, continuous corners). The pin button only appears on hover.</summary>
-    public static FrameworkElement BuildCard(WidgetDef d, bool desktop, Action pinAction)
+    /// <summary>iOS sizes on the desktop (2026-11-16): small 1×1, medium 2×1 (detail to the right), large 2×2 (detail below).</summary>
+    public static (double W, double H) SizeOf(string size) => size switch { "M" => (330, 158), "L" => (330, 330), _ => (158, 158) };
+
+    public static FrameworkElement BuildCard(WidgetDef d, bool desktop, Action pinAction, string size = "S")
     {
         // inside the flat island the cards use compact templates ("C_…"), on the desktop the full ones ("W_…")
+        var (cw, ch) = desktop ? SizeOf(size) : (128, 81);
         var card = new Border
         {
-            Width = desktop ? 158 : 128,
-            Height = desktop ? 158 : 81,
+            Width = cw,
+            Height = ch,
             CornerRadius = new CornerRadius(desktop ? 24 : 18),
             Padding = new Thickness(desktop ? 14 : 10),
             Margin = desktop ? new Thickness(12) : new Thickness(0, 0, 8, 0),
@@ -56,7 +60,23 @@ public static class WidgetRegistry
             Foreground = Brushes.White
         };
         content.SetResourceReference(TextElement.FontFamilyProperty, "TextFont");
-        grid.Children.Add(content);
+        bool big = desktop && size is "M" or "L";
+        var detailKey = "X_" + d.TemplateKey[2..];
+        if (big && d.Kind != "todo" && Application.Current.TryFindResource(detailKey) is DataTemplate detail)
+        {
+            // the small widget keeps its place (left / top), the detail fills the rest
+            var parts = new Grid();
+            var extra = new ContentControl { Content = d.Content(), ContentTemplate = detail, Foreground = Brushes.White };
+            extra.SetResourceReference(TextElement.FontFamilyProperty, "TextFont");
+            content.Width = 130; content.Height = 130;
+            content.HorizontalAlignment = HorizontalAlignment.Left; content.VerticalAlignment = VerticalAlignment.Top;
+            if (size == "M") { parts.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(130) }); parts.ColumnDefinitions.Add(new ColumnDefinition()); Grid.SetColumn(extra, 1); extra.Margin = new Thickness(18, 0, 0, 0); }
+            else { parts.RowDefinitions.Add(new RowDefinition { Height = new GridLength(130) }); parts.RowDefinitions.Add(new RowDefinition()); Grid.SetRow(extra, 1); extra.Margin = new Thickness(0, 18, 0, 0); }
+            parts.Children.Add(content);
+            parts.Children.Add(extra);
+            grid.Children.Add(parts);
+        }
+        else grid.Children.Add(content); // the to-do list simply gets more room
 
         var pin = new Button
         {
@@ -105,6 +125,19 @@ public sealed class DesktopWidgetWindow : Window
         else { App.Island.EndModeHint(); SaveAll(); }
     }
 
+    /// <summary>Another size: the card is built anew and finds a free place in the grid for its new size.</summary>
+    private void SetSize(string size)
+    {
+        if (size == Size) return;
+        Size = size;
+        if (Content is Grid root && root.Children.Count > 0)
+        {
+            root.Children.RemoveAt(0);
+            root.Children.Insert(0, WidgetRegistry.BuildCard(_def, true, Unpin, Size));
+        }
+        Dispatcher.BeginInvoke(new Action(() => SnapToGrid(true)), System.Windows.Threading.DispatcherPriority.Loaded);
+    }
+
     /// <summary>The card's top-left goes to the nearest free grid cell of the screen it is on (animated on release).</summary>
     private void SnapToGrid(bool animate)
     {
@@ -112,12 +145,21 @@ public sealed class DesktopWidgetWindow : Window
         var centre = new System.Drawing.Point((int)((Left + ActualWidth / 2) * dpi.DpiScaleX), (int)((Top + ActualHeight / 2) * dpi.DpiScaleY));
         var wa = System.Windows.Forms.Screen.FromPoint(centre).WorkingArea;
         double ax = wa.Left / dpi.DpiScaleX + Edge, ay = wa.Top / dpi.DpiScaleY + Edge;
-        int maxCol = Math.Max(0, (int)((wa.Width / dpi.DpiScaleX - 2 * Edge - CardSize) / Cell));
-        int maxRow = Math.Max(0, (int)((wa.Height / dpi.DpiScaleY - 2 * Edge - CardSize) / Cell));
+        var (cw, ch) = WidgetRegistry.SizeOf(Size);
+        int spanX = cw > CardSize ? 2 : 1, spanY = ch > CardSize ? 2 : 1;
+        int maxCol = Math.Max(0, (int)((wa.Width / dpi.DpiScaleX - 2 * Edge - cw) / Cell));
+        int maxRow = Math.Max(0, (int)((wa.Height / dpi.DpiScaleY - 2 * Edge - ch) / Cell));
         int col = Math.Clamp((int)Math.Round((Left + CardInset - ax) / Cell), 0, maxCol);
         int row = Math.Clamp((int)Math.Round((Top + CardInset - ay) / Cell), 0, maxRow);
-        // a taken cell: the nearest free one (rings around it)
-        bool Taken(int c, int r) => Open.Any(o => o != this && Math.Abs(o.Left + CardInset - (ax + c * Cell)) < 2 && Math.Abs(o.Top + CardInset - (ay + r * Cell)) < 2);
+        // taken: any other widget's cells overlap ours (medium = 2 cells, large = 4) → the nearest free place
+        bool Taken(int c, int r) => Open.Any(o =>
+        {
+            if (o == this) return false;
+            var (ow, oh) = WidgetRegistry.SizeOf(o.Size);
+            int oc = (int)Math.Round((o.Left + CardInset - ax) / Cell), or = (int)Math.Round((o.Top + CardInset - ay) / Cell);
+            int osx = ow > CardSize ? 2 : 1, osy = oh > CardSize ? 2 : 1;
+            return c < oc + osx && oc < c + spanX && r < or + osy && or < r + spanY;
+        });
         if (Taken(col, row))
         {
             var best = (c: col, r: row, d: double.MaxValue);
@@ -141,7 +183,10 @@ public sealed class DesktopWidgetWindow : Window
         BeginAnimation(TopProperty, ay2);
     }
 
-    private DesktopWidgetWindow(WidgetDef def, double left, double top)
+    public string Size { get; private set; } = "S";
+    private readonly WidgetDef _def;
+
+    private DesktopWidgetWindow(WidgetDef def, double left, double top, string size = "S")
     {
         Kind = def.Kind;
         WindowStyle = WindowStyle.None;
@@ -159,7 +204,9 @@ public sealed class DesktopWidgetWindow : Window
         Title = "IslandHub – " + def.Title;
         // the card plus a dashed outline that only shows while arranging (2026-11-16)
         var root = new Grid();
-        root.Children.Add(WidgetRegistry.BuildCard(def, true, Unpin));
+        Size = size is "M" or "L" ? size : "S";
+        _def = def;
+        root.Children.Add(WidgetRegistry.BuildCard(def, true, Unpin, Size));
         _outline = new System.Windows.Shapes.Rectangle
         {
             Margin = new Thickness(8), RadiusX = 27, RadiusY = 27, StrokeThickness = 1.6, IsHitTestVisible = false,
@@ -203,6 +250,16 @@ public sealed class DesktopWidgetWindow : Window
         var unpin = new MenuItem { Header = "Vom Desktop lösen" };
         unpin.Click += (_, _) => Unpin();
         menu.Items.Add(arrange);
+        // iOS sizes: small, medium (wide), large
+        var sizes = new MenuItem { Header = "Größe" };
+        foreach (var (key, name) in new[] { ("S", "Klein"), ("M", "Mittel"), ("L", "Groß") })
+        {
+            var item = new MenuItem { Header = name, IsCheckable = true, Tag = key };
+            item.Click += (_, _) => SetSize(key);
+            sizes.Items.Add(item);
+        }
+        menu.Items.Add(sizes);
+        menu.Opened += (_, _) => { foreach (MenuItem i in sizes.Items) i.IsChecked = (string)i.Tag == Size; };
         menu.Items.Add(unpin);
         menu.Opened += (_, _) => arrange.Header = Arranging ? "Fertig (Widgets fixieren)" : "Widgets anordnen";
         ContextMenu = menu;
@@ -254,7 +311,7 @@ public sealed class DesktopWidgetWindow : Window
             if (def == null || Open.Any(o => o.Kind == s.Kind)) continue;
             double left = Math.Clamp(s.Left, SystemParameters.VirtualScreenLeft, SystemParameters.VirtualScreenLeft + SystemParameters.VirtualScreenWidth - 100);
             double top = Math.Clamp(s.Top, SystemParameters.VirtualScreenTop, SystemParameters.VirtualScreenTop + SystemParameters.VirtualScreenHeight - 100);
-            var w = new DesktopWidgetWindow(def, left, top);
+            var w = new DesktopWidgetWindow(def, left, top, s.Size);
             Open.Add(w);
             w.Show();
         }
@@ -263,7 +320,7 @@ public sealed class DesktopWidgetWindow : Window
 
     private static void SaveAll()
     {
-        App.Settings.DesktopWidgets = Open.Select(o => new DesktopWidgetState { Kind = o.Kind, Left = o.Left, Top = o.Top }).ToList();
+        App.Settings.DesktopWidgets = Open.Select(o => new DesktopWidgetState { Kind = o.Kind, Left = o.Left, Top = o.Top, Size = o.Size }).ToList();
         App.SaveSettings();
     }
 }

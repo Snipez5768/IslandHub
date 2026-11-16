@@ -379,6 +379,7 @@ public partial class IslandWindow
         bool peek = S.TrackPeek;
         S.TrackPeek = false;
         var frames = new List<BitmapSource>();
+        var xs = new List<string>(); // island centre per frame – horizontal sloshing shows here
         double fh = 200;
         void Frame()
         {
@@ -387,6 +388,7 @@ public partial class IslandWindow
             var bg = new DrawingVisual();
             using (var dc = bg.RenderOpen()) dc.DrawRectangle(new SolidColorBrush(Color.FromRgb(0x3D, 0x4A, 0x63)), null, new Rect(0, 0, ActualWidth, fh));
             rtb.Render(bg); rtb.Render(Root); rtb.Freeze(); frames.Add(rtb);
+            try { var c = Island.TranslatePoint(new Point(Island.ActualWidth / 2, 0), Root); xs.Add($"{frames.Count}: centre {c.X:0.0}  w {Island.ActualWidth:0}"); } catch { }
         }
         async Task Film(int count, int ms) { for (int i = 0; i < count; i++) { Frame(); await Task.Delay(ms); } }
         void Save(string name)
@@ -537,30 +539,93 @@ public partial class IslandWindow
                     File.WriteAllText(Path.Combine(dir, "place.txt"), log.ToString());
                     break;
                 }
+                case "reply":
+                    // the card with "Antworten" and the open message field – nothing is sent
+                    fh = 170;
+                    OnNotificationArrived(new IslandNotification { Id = 0, AppName = "WhatsApp", Title = "Anna", Text = "Kommst du heute noch vorbei?", Time = DateTime.Now });
+                    await Task.Delay(2200);
+                    OpenTicker();
+                    await Task.Delay(900);
+                    Frame(); Save("1_card");
+                    OpenReplyBox();
+                    PeekReplyBox.Text = "Ja, so gegen 7!";
+                    await Task.Delay(700);
+                    Frame(); Save("2_reply_box");
+                    _sticky = false;
+                    EndPeek();
+                    break;
+                case "eyes":
+                    // the eyes as on a quiet island (here something else plays, so they are shown directly)
+                    fh = 60;
+                    _sticky = false;
+                    Collapse();
+                    await Task.Delay(1500);
+                    _uiTimer.Stop(); // the periodic pill update would put the music back meanwhile
+                    LeadCover.Visibility = Visibility.Collapsed; Equalizer.Visibility = Visibility.Collapsed; Trail.Visibility = Visibility.Collapsed;
+                    HideBubbleNow(Bubble); HideBubbleNow(Bubble2);
+                    AnimateSize(IdleW, PillH + NotchExtra, PillH / 2, true);
+                    UpdateEyes(true);
+                    await Task.Delay(700);
+                    Lead.Visibility = Visibility.Collapsed; HideBubbleNow(Bubble); HideBubbleNow(Bubble2);
+                    Eyes.Visibility = Visibility.Visible;
+                    UpdateLayout();
+                    _eyeLast = default;
+                    LookAtPointer();
+                    Frame();
+                    EyeL.X = EyeR.X = -1.8; EyeL.Y = EyeR.Y = -1.5; Frame(); // looking up left
+                    EyeL.X = EyeR.X = 1.8; EyeL.Y = EyeR.Y = 2.2; Frame();   // down right
+                    Blink();
+                    await Task.Delay(80);
+                    Frame();
+                    Lead.Visibility = Visibility.Visible;
+                    Save("1_eyes");
+                    break;
+                case "lyrics":
+                    fh = 320;
+                    H.Media.Fake("Bohemian Rhapsody", "Queen", orange, true);
+                    Expand("Music", true);
+                    await Task.Delay(900);
+                    MusicLyrics_Click(null, null);
+                    for (int i = 0; i < 30 && LyricsHint.Text.Contains("gesucht"); i++) await Task.Delay(300);
+                    if (_state != State.Expanded) { Expand("Music", true); await Task.Delay(300); if (!_lyricsOpen) MusicLyrics_Click(null, null); }
+                    await Task.Delay(1000);
+                    Frame(); Save("1_lyrics");
+                    File.WriteAllText(Path.Combine(dir, "lyrics.txt"), $"{LyricsHint.Text}\n{_lyrics.Count} Zeilen\nSpotify verbunden: {H.Spotify.Connected}, neu verbinden nötig: {H.Spotify.NeedsReconnect}");
+                    MusicLyrics_Click(null, null);
+                    break;
                 case "today":
-                {
-                    var d = DateTime.Today;
-                    string Utc(DateTime t) => t.ToUniversalTime().ToString("yyyyMMdd'T'HHmmss'Z'");
-                    var nowish = DateTime.Now.AddMinutes(9);
-                    var ics = string.Join("\r\n",
-                        "BEGIN:VCALENDAR",
-                        "BEGIN:VEVENT", $"DTSTART:{Utc(nowish)}", $"DTEND:{Utc(nowish.AddMinutes(30))}", "SUMMARY:Zahnarzt", "LOCATION:Praxis am Markt", "END:VEVENT",
-                        "BEGIN:VEVENT", $"DTSTART;TZID=Europe/Berlin:{d:yyyyMMdd}T{Math.Min(22, DateTime.Now.Hour + 2):00}0000", $"DTEND;TZID=Europe/Berlin:{d:yyyyMMdd}T{Math.Min(23, DateTime.Now.Hour + 3):00}0000",
-                        "SUMMARY:Training", "RRULE:FREQ=WEEKLY;BYDAY=MO,TU,WE,TH,FR,SA,SU", "END:VEVENT",
-                        "BEGIN:VEVENT", $"DTSTART;VALUE=DATE:{d.AddDays(1):yyyyMMdd}", "SUMMARY:Geburtstag Mia", "END:VEVENT",
-                        "END:VCALENDAR");
-                    var events = CalendarService.Parse(ics, d.AddDays(-1), d.AddDays(8), (Brush)FindResource("Blue"));
-                    File.WriteAllText(Path.Combine(dir, "parsed.txt"), string.Join("\n", events.Select(e => $"{e.Title} | {e.Start:ddd dd.MM HH:mm} – {e.End:HH:mm} | allday={e.AllDay}")));
-                    H.Calendar.Demo(events);
                     Expand("Today", true);
                     await Task.Delay(1200);
                     fh = 160;
                     Frame(); Save("1_today");
+                    break;
+                case "reverse":
+                    // open, change your mind after 0.12 s, change it again after 0.15 s – nothing may jump
+                    fh = 150;
+                    Expand("Music", true);
+                    await Film(3, 40);
                     Collapse();
-                    await Task.Delay(800);
-                    OnAppointmentSoon(events.First());
-                    await Film(6, 300);
-                    Save("2_soon");
+                    await Film(4, 40);
+                    Expand("Music", true);
+                    await Film(11, 40);
+                    Save("1_reverse");
+                    File.WriteAllLines(Path.Combine(dir, "centre.txt"), xs);
+                    break;
+                case "wsizes":
+                {
+                    var panel = new System.Windows.Controls.WrapPanel { Width = 1100, Background = new SolidColorBrush(Color.FromRgb(0x3D, 0x4A, 0x63)) };
+                    foreach (var kind in new[] { "weather", "clock", "stats", "todo" })
+                        foreach (var sz in new[] { "S", "M", "L" })
+                            panel.Children.Add(WidgetRegistry.BuildCard(WidgetRegistry.Get(kind), true, null, sz));
+                    panel.Measure(new Size(1100, double.PositiveInfinity));
+                    panel.Arrange(new Rect(panel.DesiredSize));
+                    panel.UpdateLayout();
+                    await Task.Delay(300);
+                    var rtb = new RenderTargetBitmap((int)panel.ActualWidth, (int)panel.ActualHeight, 96, 96, PixelFormats.Pbgra32);
+                    rtb.Render(panel);
+                    var enc = new PngBitmapEncoder();
+                    enc.Frames.Add(BitmapFrame.Create(rtb));
+                    using (var fs = File.Create(Path.Combine(dir, "sizes.png"))) enc.Save(fs);
                     break;
                 }
                 case "queue2":

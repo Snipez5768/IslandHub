@@ -63,7 +63,7 @@ public partial class IslandWindow : Window
     private bool _queueOpen;
     private double TabHeight(string tab) => tab == "Clip" ? ClipHeight()
         : tab == "Notify" ? NotifyHeight()
-        : tab == "Music" && _queueOpen ? 300
+        : tab == "Music" && (_queueOpen || _lyricsOpen) ? 300
         : tab == "Live" && H.Privacy.InUse && AnyDl ? 152 // call + download: a little taller, nothing cut off
         : ExpH;
 
@@ -195,13 +195,12 @@ public partial class IslandWindow : Window
         };
         H.Downloads.Finished += (name, path, size) => Ui.Run(() => OnFileDownloaded(name, path, size));
         H.Downloads.Stuck += OnDownloadStuck;
-        H.Calendar.Soon += OnAppointmentSoon;
         H.Feeds.Moment += OnFeedMoment;
         H.Feeds.PropertyChanged += (_, e) => { if (e.PropertyName == nameof(LiveFeeds.Match) && _tab == "Today") UpdateTodayUi(); };
-        H.Calendar.Upcoming.CollectionChanged += (_, _) => { if (_tab == "Today") UpdateTodayUi(); };
         H.Room.CodeWanted += OnCodeWanted;
         H.Spotify.PropertyChanged += (_, _) => Ui.Run(UpdateMusicUi);
-        H.Media.TrackChanged += () => Ui.Run(() => { if (_queueOpen && !_queueSkipping) _ = RefreshQueueNow(); });
+        H.Media.TrackChanged += () => Ui.Run(() => { if (_queueOpen && !_queueSkipping) _ = RefreshQueueNow(); if (IsSpotify && H.Spotify.Connected) _ = H.Spotify.TrackChangedAsync(); });
+        H.Spotify.PropertyChanged += (_, e) => { if (e.PropertyName is nameof(SpotifyService.Liked) or nameof(SpotifyService.Connected)) UpdateMusicExtras(); };
         H.Suggestions.Items.CollectionChanged += (_, _) => UpdateNotifyUi();
         H.Game.PropertyChanged += (_, _) => { H.Stats.WantGpu = H.Game.IsFullscreen || DesktopWidgetWindow.IsPinned("stats"); UpdatePill(true); };
         H.Radios.PropertyChanged += (_, _) => UpdateControlsUi();
@@ -1042,7 +1041,8 @@ public partial class IslandWindow : Window
 
     /// <summary>Island and bubbles slide left together so the whole group stays centred on the screen.</summary>
     private readonly TranslateTransform _centreShift = new();
-    private readonly Spring _centre = new(0, 0.26, 1, 0.05);
+    // same spring as the shape (polish 2026-11-16): a faster centring sloshed sideways on its own when you changed your mind mid-move
+    private readonly Spring _centre = new(0, Spring.IslandResponse, 1, 0.05);
     private readonly Dictionary<Border, Grid> _bubbleInner = new();
     private readonly Dictionary<Border, ScaleTransform> _innerScale = new();
     private System.Windows.Shapes.Rectangle _ghost;
@@ -1823,6 +1823,7 @@ public partial class IslandWindow : Window
 
         UpdateBubble(!game && acts.Count > 1 ? acts[1] : null, !game && acts.Count > 2 ? acts[2] : null);
 
+        UpdateEyes(!game && acts.Count == 0); // the little eyes sit on the left only while nothing else is there
         double w, h = (game ? 26 : PillH) + NotchExtra;
         if (game || acts.Count > 0)
         {
@@ -2707,8 +2708,20 @@ public partial class IslandWindow : Window
             b.Click += (_, e) => { e.Handled = true; EndPeek(); a?.Invoke(); };
             PeekActionsRight.Children.Add(b);
         }
+        // messengers: "Antworten" opens a message field in the card (it does not close the card)
+        PeekReply.Visibility = Visibility.Collapsed;
+        PeekReplyBox.Text = "";
+        if (_peek.Reply != null)
+        {
+            var rb = new Button { ToolTip = "Antworten", Margin = new Thickness(6, 0, 0, 0), Width = 30, Height = 30, Padding = new Thickness(0) };
+            rb.SetResourceReference(StyleProperty, "GlassIcon");
+            Ext.SetIcon(rb, "reply");
+            Ext.SetIconSize(rb, 14);
+            rb.Click += (_, e) => { e.Handled = true; OpenReplyBox(); };
+            PeekActionsRight.Children.Insert(0, rb);
+        }
         PeekActions.Visibility = !right && _peek.Actions.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
-        PeekActionsRight.Visibility = right && _peek.Actions.Count > 0 || _peek.Buttons.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
+        PeekActionsRight.Visibility = right && _peek.Actions.Count > 0 || _peek.Buttons.Count > 0 || _peek.Reply != null ? Visibility.Visible : Visibility.Collapsed;
 
         ShowPanel(PeekPanel);
         PeekPanel.Measure(new Size(PeekW - 20, double.PositiveInfinity));
@@ -3730,7 +3743,8 @@ public partial class IslandWindow : Window
                 Avatar = person ? n.Title.Trim()[..1].ToUpperInvariant() : null, AvatarBrush = person ? AvatarColor(n.Title) : null,
                 Title = person ? n.Title : string.IsNullOrWhiteSpace(n.Title) ? n.AppName : n.Title,
                 Text = n.Text, TimeoutMs = messenger ? 6000 : 4500,
-                Click = () => { H.Notifications.Open(n); n.Unread = false; }
+                Click = () => { H.Notifications.Open(n); n.Unread = false; },
+                Reply = person ? text => { n.Unread = false; _ = ReplyService.SendAsync(n, text, S.ReplyAutoSend); } : null
             }
             .Button("check", "Gelesen", () => { n.Unread = false; UpdateNotifyUi(); })
             .Button("open", "Öffnen", () => { H.Notifications.Open(n); n.Unread = false; }, (Brush)FindResource("Green"), darkGlyph: true));
@@ -4007,7 +4021,9 @@ public partial class IslandWindow : Window
                 .Action("Einstellungen", () => SettingsWindow.ShowSingle("General"), true));
             return;
         }
+        if (!_queueOpen && _lyricsOpen) MusicLyrics_Click(null, null); // one of the two at a time
         _queueOpen = !_queueOpen;
+        if (_queueOpen) ApplyQueueMode();
         QueueView.Visibility = _queueOpen ? Visibility.Visible : Visibility.Collapsed;
         MusicContent.VerticalAlignment = _queueOpen ? VerticalAlignment.Top : VerticalAlignment.Center;
         MusicQueueBtn.Foreground = _queueOpen ? (Brush)FindResource("Green") : null;
@@ -4511,7 +4527,8 @@ public partial class IslandWindow : Window
 
     private void PeriodicUi()
     {
-        if (_state == State.Expanded && _tab == "Music") UpdateMusicPosition();
+        if (_state == State.Expanded && _tab == "Music") { UpdateMusicPosition(); if (_lyricsOpen) UpdateLyrics(); }
+        FeedIslandQueue();
         if (_state == State.Expanded && _tab == "Controls" && DateTime.Now.Second % 2 == 0) { H.Audio.Refresh(); UpdateControlsUi(); }
         if (_state == State.Collapsed && (H.Timer.Active || H.Privacy.InUse || _recordingText != null || (H.Game.IsFullscreen && S.Fullscreen == FullscreenMode.StatsBar))) UpdatePill();
     }
@@ -4556,6 +4573,7 @@ public partial class IslandWindow : Window
         MusicQueueBtn.Visibility = IsSpotify ? Visibility.Visible : Visibility.Collapsed;
         if (!IsSpotify && _queueOpen) MusicQueue_Click(null, null);
         if (!ownVolume || _volApp != null && _volApp != PlayerProcess(m.AppName)) ExitVolMode();
+        UpdateMusicExtras();
         UpdateMusicPosition();
     }
 
