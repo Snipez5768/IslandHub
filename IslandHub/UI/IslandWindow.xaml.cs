@@ -1173,6 +1173,7 @@ public partial class IslandWindow : Window
         bool bottom = o.V == VerticalAlignment.Bottom;
         p.VerticalAlignment = bottom ? VerticalAlignment.Bottom : VerticalAlignment.Top;
         p.Margin = new Thickness(o.Margin.Left, bottom ? 0 : top, o.Margin.Right, bottom ? o.Margin.Bottom : 0);
+        if (p == PillPanel) PadPill();
         _pinned.Add(p);
     }
 
@@ -1188,6 +1189,7 @@ public partial class IslandWindow : Window
         p.HorizontalAlignment = HorizontalAlignment.Center;
         p.VerticalAlignment = VerticalAlignment.Top;
         p.Margin = new Thickness(o.Margin.Left, y, o.Margin.Right, 0);
+        if (p == PillPanel) PadPill();
         _pinned.Add(p);
     }
 
@@ -1197,6 +1199,7 @@ public partial class IslandWindow : Window
         var o = _panelLayout[p];
         p.Width = p.Height = double.NaN;
         p.Margin = o.Margin;
+        if (p == PillPanel) PadPill();
         p.VerticalAlignment = o.V;
         p.HorizontalAlignment = o.Hz;
     }
@@ -1246,7 +1249,8 @@ public partial class IslandWindow : Window
 
         // shape: width, height and corner radius on the same spring
         _sw.Step(dt); _sh.Step(dt); _sr.Step(dt);
-        double w = Math.Max(8, _sw.Value), h = Math.Max(8, _sh.Value);
+        StepEyes(dt); // the eyes widen the island to the left (2026-11-16)
+        double w = Math.Max(8, _sw.Value) + EyesExt, h = Math.Max(8, _sh.Value);
         Island.Width = w;
         Island.Height = h;
         Island.CornerRadius = new CornerRadius(Math.Clamp(_sr.Value, 0, Math.Min(w, h) / 2));
@@ -1286,12 +1290,12 @@ public partial class IslandWindow : Window
         PlaceBubbles();
         _centre.Target = -BubbleExtent() / 2;
         _centre.Step(dt);
-        _centreShift.X = _centre.Value;
+        _centreShift.X = _centre.Value - EyesExt / 2; // grows to the left only: the right edge stays
         UpdateBridges();
         UpdateGhost();
         StepCoverFlight(dt);
 
-        bool done = !_flying && _sw.Settled && _sh.Settled && _sr.Settled && _panelFade.Count == 0 && _centre.Settled
+        bool done = !_flying && EyesSettled && _sw.Settled && _sh.Settled && _sr.Settled && _panelFade.Count == 0 && _centre.Settled
                     && _bm1.Gap.Settled && _bm1.Fade.Settled && _bm1.Size.Settled && _bm1.Birth < 0
                     && _bm2.Gap.Settled && _bm2.Fade.Settled && _bm2.Size.Settled && _bm2.Birth < 0;
         if (!done) return;

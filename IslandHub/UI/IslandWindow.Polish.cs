@@ -388,7 +388,7 @@ public partial class IslandWindow
             var bg = new DrawingVisual();
             using (var dc = bg.RenderOpen()) dc.DrawRectangle(new SolidColorBrush(Color.FromRgb(0x3D, 0x4A, 0x63)), null, new Rect(0, 0, ActualWidth, fh));
             rtb.Render(bg); rtb.Render(Root); rtb.Freeze(); frames.Add(rtb);
-            try { var c = Island.TranslatePoint(new Point(Island.ActualWidth / 2, 0), Root); xs.Add($"{frames.Count}: centre {c.X:0.0}  w {Island.ActualWidth:0}"); } catch { }
+            try { var c = Island.TranslatePoint(new Point(Island.ActualWidth / 2, 0), Root); var l = Island.TranslatePoint(new Point(0, 0), Root); var cv = LeadCover.TranslatePoint(new Point(0, 0), Root); xs.Add($"{frames.Count}: centre {c.X:0.0}  w {Island.ActualWidth:0}  left {l.X:0.0}  right {l.X + Island.ActualWidth:0.0}  cover {cv.X:0.0}"); } catch { }
         }
         async Task Film(int count, int ms) { for (int i = 0; i < count; i++) { Frame(); await Task.Delay(ms); } }
         void Save(string name)
@@ -563,11 +563,12 @@ public partial class IslandWindow
                     await Task.Delay(1500);
                     Frame();
                     ShowEyes();
-                    await Film(6, 70);
+                    await Film(12, 45);
                     EyeL.X = EyeR.X = -1.8; EyeL.Y = EyeR.Y = 1.5; Frame();
                     _eyesUntil = DateTime.Now; // as if the pointer had left a while ago
-                    await Film(5, 70);
+                    await Film(12, 45);
                     Save("1_eyes_music");
+                    File.WriteAllLines(Path.Combine(dir, "edges.txt"), xs);
                     H.Media.FakePlaying(false);
                     await Task.Delay(900);
                     Frame();
