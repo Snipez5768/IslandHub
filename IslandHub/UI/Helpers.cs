@@ -197,6 +197,10 @@ public sealed class TrayIcon : IDisposable
         menu.Items.Add(_queueItem);
         _hideItem = new WF.ToolStripMenuItem("Insel ausblenden", null, (_, _) => App.Island.ToggleHidden());
         menu.Items.Add(_hideItem);
+        menu.Items.Add("Insel verschieben", null, (_, _) => App.Island.EnterMoveMode());
+        var arrange = new WF.ToolStripMenuItem("Widgets anordnen", null, (_, _) => DesktopWidgetWindow.SetArranging(!DesktopWidgetWindow.Arranging));
+        menu.Items.Add(arrange);
+        menu.Opening += (_, _) => arrange.Text = DesktopWidgetWindow.Arranging ? "Widgets fixieren" : "Widgets anordnen";
         menu.Items.Add(new WF.ToolStripSeparator());
         menu.Items.Add("Einstellungen", null, (_, _) => SettingsWindow.ShowSingle());
         menu.Items.Add("Beenden", null, (_, _) => App.Quit());

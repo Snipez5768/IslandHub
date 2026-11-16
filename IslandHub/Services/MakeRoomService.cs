@@ -36,6 +36,9 @@ public sealed class MakeRoomService : ObservableObject
     public bool YouTubeFullscreen { get => _youTube; private set { if (Set(ref _youTube, value)) Raise(nameof(Active)); } }
     public bool Active => AddressBar || YouTubeFullscreen;
 
+    /// <summary>The monitor the island is on (set by the island; empty = the main screen).</summary>
+    public static System.Drawing.Rectangle IslandBounds { get; set; }
+
     public void Start()
     {
         _thread = new Thread(Loop) { IsBackground = true, Name = "IslandHub make-room" };
@@ -205,7 +208,13 @@ public sealed class MakeRoomService : ObservableObject
         fills = false;
         var mon = Native.MonitorFromWindow(h, Native.MONITOR_DEFAULTTONEAREST);
         var mi = new Native.MONITORINFO { cbSize = System.Runtime.InteropServices.Marshal.SizeOf<Native.MONITORINFO>() };
-        if (!Native.GetMonitorInfo(mon, ref mi) || (mi.dwFlags & Native.MONITORINFOF_PRIMARY) == 0) return false;
+        if (!Native.GetMonitorInfo(mon, ref mi)) return false;
+        // the screen the island sits on (it can be moved to another monitor since 2026-11-16)
+        var ib = IslandBounds;
+        bool islandScreen = ib.IsEmpty
+            ? (mi.dwFlags & Native.MONITORINFOF_PRIMARY) != 0
+            : mi.rcMonitor.Left == ib.Left && mi.rcMonitor.Top == ib.Top && mi.rcMonitor.Right == ib.Right && mi.rcMonitor.Bottom == ib.Bottom;
+        if (!islandScreen) return false;
         if (Native.GetWindowRect(h, out var r))
         {
             var m = mi.rcMonitor;

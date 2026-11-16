@@ -195,6 +195,11 @@ public sealed class HintPic : Border
                 break;
             }
             case "mail": c = Pv.Icon("envelope", 17, Pv.Res("Blue")); break;
+            case "calendar": c = Pv.Icon("calendar", 17, Pv.Res("Blue")); break;
+            case "sportpic": c = Pv.Icon("sport", 17, Pv.Res("Green")); break;
+            case "twitch": c = Pv.Icon("record", 16, Pv.B("#FF9146FF")); break;
+            case "youtube": c = Pv.Icon("play.fill", 15, Pv.B("#FFFF0033")); break;
+            case "parcel": c = Pv.Icon("cart", 16, Pv.B("#FFFFCC00")); break;
             case "level":
             {
                 var p = Pill(52, 12, 6);
@@ -202,6 +207,28 @@ public sealed class HintPic : Border
                 track.Child = new Border { Width = 16, Height = 3, CornerRadius = new CornerRadius(1.5), Background = white, HorizontalAlignment = HorizontalAlignment.Left };
                 p.Child = Pv.Row(3, Pv.Icon("speaker", 8, white), track);
                 c = p;
+                break;
+            }
+            case "size":
+            {
+                var small = Pill(26, 8, 0);
+                var big = Pill(40, 12, 0);
+                c = Pv.Row(5, small, Pv.T("→", 10, Pv.Sub), big);
+                break;
+            }
+            case "screen":
+            {
+                var mon = new Border { Width = 46, Height = 30, CornerRadius = new CornerRadius(3), Background = Pv.Wall, BorderBrush = Pv.B("#FF636366"), BorderThickness = new Thickness(1) };
+                mon.Child = new Border { Width = 18, Height = 5, CornerRadius = new CornerRadius(2.5), Background = Brushes.Black, VerticalAlignment = VerticalAlignment.Top, Margin = new Thickness(0, 2, 0, 0) };
+                c = mon;
+                break;
+            }
+            case "move":
+            {
+                var p = Pill(30, 9, 0);
+                p.BorderBrush = Pv.Res("Blue");
+                p.BorderThickness = new Thickness(1);
+                c = Pv.Row(3, Pv.T("‹", 12, Pv.Res("Blue")), p, Pv.T("›", 12, Pv.Res("Blue")));
                 break;
             }
             case "headphones": c = Pv.Row(4, Pv.Icon("headphones", 15, white), new Ring { Width = 12, Height = 12, Thickness = 2, Value = 80, Stroke = Pv.Res("Green"), Track = Pv.B("#3330D158") }); break;

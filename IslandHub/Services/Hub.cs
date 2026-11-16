@@ -36,6 +36,8 @@ public sealed class Hub
     public AlarmService Alarm { get; private set; }
     public UpdateService Updates { get; private set; }
     public DeviceMoments Devices { get; private set; }
+    public CalendarService Calendar { get; private set; }
+    public LiveFeeds Feeds { get; private set; }
     public ClockModel Clock { get; private set; }
 
     public void Init()
@@ -113,6 +115,10 @@ public sealed class Hub
         Downloads.Start();
         Updates = new UpdateService(); // started by the island once it listens (see IslandWindow)
         Devices = new DeviceMoments(); // started by the island once it listens
+        Calendar = new CalendarService();
+        Calendar.Start();
+        Feeds = new LiveFeeds();
+        Feeds.Start();
     }
 
     public void Shutdown()

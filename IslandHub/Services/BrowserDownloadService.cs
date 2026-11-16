@@ -16,6 +16,14 @@ public interface IDownload
     string Speed { get; }
     string Eta { get; }
     System.Windows.Media.ImageSource Icon { get; }
+    /// <summary>Where it downloads: "in Steam", "in Chrome" … (2026-11-16)</summary>
+    string Where { get; }
+    /// <summary>Nothing has arrived for minutes – probably broken or paused.</summary>
+    bool Stalled { get; }
+    /// <summary>Takes it out of the island (until it moves again).</summary>
+    void Dismiss();
+    /// <summary>Brings the app that downloads to the front (its downloads page where possible).</summary>
+    void OpenSource();
 }
 
 /// <summary>
@@ -40,6 +48,64 @@ public sealed class BrowserDownloadService : ObservableObject, IDownload
         public int Lookups;
         public DateTime NextLookup = DateTime.Now.AddSeconds(2);
         public bool Shown;
+        /// <summary>Browser that downloads it (from its history, ".part" = Firefox, else the browser that runs).</summary>
+        public string App;
+        /// <summary>Last time the file grew – a leftover from a broken download never grows again.</summary>
+        public DateTime LastGrow = DateTime.Now;
+        public bool StuckTold;
+        /// <summary>Hidden by the user at this size – it comes back only if it grows again.</summary>
+        public long DismissedAt = -1;
+        public bool IsStalled => DateTime.Now - LastGrow > StallAfter;
+    }
+
+    private static readonly TimeSpan StallAfter = TimeSpan.FromMinutes(3);
+    private Item _top;
+    private bool _stalled;
+    private string _where = "";
+
+    public bool Stalled { get => _stalled; private set => Set(ref _stalled, value); }
+    public string Where { get => _where; private set => Set(ref _where, value); }
+
+    /// <summary>A download stopped growing (name, browser) – told once per download.</summary>
+    public event Action<string, string> Stuck;
+
+    public void Dismiss()
+    {
+        foreach (var it in _items.Values.Where(i => i.Shown)) it.DismissedAt = it.Size;
+        Publish();
+    }
+
+    public void OpenSource() => OpenBrowser(_top?.App);
+
+    private static readonly (string Name, string Exe)[] BrowserExes =
+        { ("Chrome", "chrome"), ("Edge", "msedge"), ("Brave", "brave"), ("Vivaldi", "vivaldi"), ("Firefox", "firefox"), ("Opera", "opera") };
+
+    /// <summary>The browser's window to the front (a running one); started if none runs.</summary>
+    public static void OpenBrowser(string app)
+    {
+        try
+        {
+            var exe = BrowserExes.FirstOrDefault(b => b.Name == app).Exe;
+            foreach (var name in exe != null ? new[] { exe } : BrowserExes.Select(b => b.Exe))
+                foreach (var p in System.Diagnostics.Process.GetProcessesByName(name))
+                    using (p)
+                        if (p.MainWindowHandle != IntPtr.Zero && PrivacyService.Focus(p.MainWindowHandle)) return;
+            if (exe != null) System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(exe + ".exe") { UseShellExecute = true });
+        }
+        catch { }
+    }
+
+    /// <summary>No history entry: the one browser that runs (the first found).</summary>
+    private static string RunningBrowser()
+    {
+        foreach (var (name, exe) in BrowserExes)
+        {
+            var ps = System.Diagnostics.Process.GetProcessesByName(exe);
+            bool any = ps.Length > 0;
+            foreach (var p in ps) p.Dispose();
+            if (any) return name;
+        }
+        return null;
     }
 
     private readonly DispatcherTimer _t = new() { Interval = TimeSpan.FromSeconds(1) };
@@ -115,7 +181,15 @@ public sealed class BrowserDownloadService : ObservableObject, IDownload
 
             foreach (var (path, size) in now)
             {
-                if (!_items.TryGetValue(path, out var it)) _items[path] = it = new Item { Temp = path, Final = FinalOf(path), Size = size, LastSize = size };
+                if (!_items.TryGetValue(path, out var it))
+                {
+                    _items[path] = it = new Item { Temp = path, Final = FinalOf(path), Size = size, LastSize = size };
+                    // a file that was last written long ago is a leftover of a broken download – stalled from the start
+                    try { var w = File.GetLastWriteTime(path); if (DateTime.Now - w > StallAfter) it.LastGrow = w; } catch { }
+                    if (path.EndsWith(".part", StringComparison.OrdinalIgnoreCase)) it.App = "Firefox";
+                }
+                if (size > it.Size) it.LastGrow = DateTime.Now;
+                if (it.DismissedAt >= 0 && size > it.DismissedAt + 64 * 1024) it.DismissedAt = -1; // moves again → back in the island
                 var dt = (DateTime.Now - it.LastAt).TotalSeconds;
                 if (dt >= 0.9)
                 {
@@ -131,8 +205,15 @@ public sealed class BrowserDownloadService : ObservableObject, IDownload
                     it.Lookups++;
                     it.NextLookup = DateTime.Now.AddSeconds(new[] { 3, 6, 10, 15, 25, 40 }[Math.Min(it.Lookups, 5)]);
                     var (temp, final) = (it.Temp, it.Final);
-                    var total = await Task.Run(() => ChromiumTotal(temp, final));
+                    var (total, app) = await Task.Run(() => ChromiumTotal(temp, final));
                     if (total > 0) it.Total = total;
+                    if (app != null) it.App = app;
+                }
+                if (it.App == null && it.Lookups >= 2) it.App = RunningBrowser() ?? ""; // once – "" = unknown
+                if (it.Shown && it.IsStalled && !it.StuckTold && it.DismissedAt < 0)
+                {
+                    it.StuckTold = true;
+                    Stuck?.Invoke(DisplayName(it.Final), it.App);
                 }
             }
 
@@ -145,19 +226,23 @@ public sealed class BrowserDownloadService : ObservableObject, IDownload
 
     private void Publish()
     {
-        var shown = _items.Values.Where(i => i.Shown).OrderByDescending(i => i.First).ToList();
+        // running ones first; hidden ones not at all
+        var shown = _items.Values.Where(i => i.Shown && i.DismissedAt < 0).OrderBy(i => i.IsStalled).ThenByDescending(i => i.First).ToList();
         if (shown.Count == 0)
         {
+            _top = null;
             Downloading = false;
             return;
         }
-        var p = shown[0];
+        var p = _top = shown[0];
         Name = DisplayName(p.Final) + (shown.Count > 1 ? $" (+{shown.Count - 1})" : "");
         HasTotal = p.Total > 0;
         Progress = HasTotal ? Math.Clamp((double)p.Size / p.Total, 0, 1) : 0;
         Percent = HasTotal ? $"{Progress * 100:0} %" : Bytes(p.Size);
-        Speed = p.Rate > 0 ? Bytes((long)p.Rate) + "/s" : "";
-        Eta = HasTotal && p.Rate > 1000 ? FormatEta((p.Total - p.Size) / p.Rate) : HasTotal ? "" : "geladen";
+        Stalled = p.IsStalled;
+        Where = !string.IsNullOrEmpty(p.App) ? $"in {p.App}" : "im Browser";
+        Speed = p.Rate > 0 && !Stalled ? Bytes((long)p.Rate) + "/s" : "";
+        Eta = Stalled ? "hängt" : HasTotal && p.Rate > 1000 ? FormatEta((p.Total - p.Size) / p.Rate) : HasTotal ? "" : "geladen";
         Downloading = true;
         Raise(nameof(HasTotal));
     }
@@ -212,10 +297,12 @@ public sealed class BrowserDownloadService : ObservableObject, IDownload
     /// The browser keeps its database open, so a copy is read (the file is shared for reading). The row of a running
     /// download has the temporary path (or the final path) and the full size.
     /// </summary>
-    private static long ChromiumTotal(string temp, string final)
+    private static (long Total, string App) ChromiumTotal(string temp, string final)
     {
         foreach (var h in HistoryFiles())
         {
+            string app = h.Contains(@"\Google\Chrome\") ? "Chrome" : h.Contains(@"\Microsoft\Edge\") ? "Edge" : h.Contains(@"\BraveSoftware\") ? "Brave"
+                       : h.Contains(@"\Vivaldi\") ? "Vivaldi" : "Chromium";
             var copy = Path.Combine(Path.GetTempPath(), $"islandhub-history-{Environment.ProcessId}.db");
             try
             {
@@ -227,7 +314,7 @@ public sealed class BrowserDownloadService : ObservableObject, IDownload
                 cmd.CommandText = "SELECT total_bytes FROM downloads WHERE (current_path = $t OR target_path = $f) AND total_bytes > 0 ORDER BY id DESC LIMIT 1";
                 cmd.Parameters.AddWithValue("$t", temp);
                 cmd.Parameters.AddWithValue("$f", final);
-                if (cmd.ExecuteScalar() is long total && total > 0) return total;
+                if (cmd.ExecuteScalar() is long total && total > 0) return (total, app);
             }
             catch { /* locked, older layout … then only the MB so far */ }
             finally
@@ -235,7 +322,7 @@ public sealed class BrowserDownloadService : ObservableObject, IDownload
                 try { File.Delete(copy); File.Delete(copy + "-wal"); } catch { }
             }
         }
-        return -1;
+        return (-1, null);
     }
 
     private static void Copy(string from, string to)
@@ -270,7 +357,7 @@ public sealed class BrowserDownloadService : ObservableObject, IDownload
     public void Demo(string name, double progress, string speed)
     {
         _t.Stop();
-        Name = name; HasTotal = true; Progress = progress; Percent = $"{progress * 100:0} %"; Speed = speed; Eta = "noch 1 Min"; Downloading = true;
+        Name = name; HasTotal = true; Progress = progress; Percent = $"{progress * 100:0} %"; Speed = speed; Eta = "noch 1 Min"; Where = "in Chrome"; Downloading = true;
     }
     public void EndDemo() => Downloading = false;
 #endif

@@ -649,6 +649,7 @@
                                 <RadioButton Style="{StaticResource TabButton}" Tag="Games" Content="Spiele" ui:Ext.Icon="gamecontroller" Checked="Tab_Checked" ToolTip="Spiele und Programme" />
                                 <RadioButton Style="{StaticResource TabButton}" Tag="Notify" Content="Mitteilungen" ui:Ext.Icon="bell.badge" Checked="Tab_Checked" ToolTip="Mitteilungen, Preisalarme, Vorschläge" />
                                 <RadioButton Style="{StaticResource TabButton}" Tag="Timer" Content="Timer" ui:Ext.Icon="timer" Checked="Tab_Checked" ToolTip="Timer" />
+                                <RadioButton Style="{StaticResource TabButton}" Tag="Today" Content="Heute" ui:Ext.Icon="calendar" Checked="Tab_Checked" ToolTip="Heute: Wetter und Termine" />
                                 <RadioButton Style="{StaticResource TabButton}" Tag="Remind" Content="Erinnerungen" ui:Ext.Icon="checklist" Checked="Tab_Checked" ToolTip="Erinnerungen" />
                                 <RadioButton Style="{StaticResource TabButton}" Tag="Controls" Content="Steuerung" ui:Ext.Icon="sliders" Checked="Tab_Checked" ToolTip="Steuerung" />
                             </StackPanel>
@@ -697,7 +698,8 @@
                             </Grid.RowDefinitions>
 
                             <!-- Steam download below the calls: name, bar, percent and speed -->
-                            <Grid x:Name="SteamRow" Grid.Row="1" Margin="2,4,2,0" Visibility="Collapsed" ToolTip="Steam-Download">
+                            <Grid x:Name="SteamRow" Grid.Row="1" Margin="2,4,2,0" Visibility="Collapsed" ToolTip="Klicken: die App öffnen, die herunterlädt"
+                                  Cursor="Hand" Background="Transparent" MouseLeftButtonUp="DownloadRow_Click">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="Auto" />
                                     <ColumnDefinition Width="*" />
@@ -713,6 +715,9 @@
                                 <StackPanel Grid.Column="1" Margin="10,0,0,0" VerticalAlignment="Center">
                                     <!-- name left, percent right – above the bar -->
                                     <DockPanel>
+                                        <!-- out of the island (e.g. a broken download that never ends) -->
+                                        <Button DockPanel.Dock="Right" Style="{StaticResource SmallIconButton}" Width="18" Height="18" Margin="6,-3,-4,-3"
+                                                ui:Ext.Icon="xmark" ui:Ext.IconSize="10" ui:Ext.Hover="{StaticResource Danger}" ToolTip="Ausblenden" Click="DownloadDismiss_Click" />
                                         <TextBlock DockPanel.Dock="Right" Text="{Binding Steam.Percent}" FontSize="11.5" FontWeight="SemiBold" Foreground="#66C0F4" />
                                         <TextBlock Text="{Binding Steam.Name}" FontSize="12" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" Margin="0,0,8,0" />
                                     </DockPanel>
@@ -723,9 +728,13 @@
                                         </Border>
                                     </Grid>
                                     <!-- remaining time and speed – below the bar, right-aligned -->
-                                    <TextBlock FontSize="10.5" Foreground="{StaticResource SubText}" HorizontalAlignment="Right" Margin="0,3,0,0">
-                                        <Run Text="{Binding Steam.Eta, Mode=OneWay}" Foreground="White" /><Run Text=" · " /><Run Text="{Binding Steam.Speed, Mode=OneWay}" />
-                                    </TextBlock>
+                                    <!-- where it downloads (left) · remaining time and speed (right) -->
+                                    <DockPanel Margin="0,3,0,0">
+                                        <TextBlock DockPanel.Dock="Left" Text="{Binding Steam.Where, Mode=OneWay}" FontSize="10.5" Foreground="{StaticResource SubText}" />
+                                        <TextBlock FontSize="10.5" Foreground="{StaticResource SubText}" HorizontalAlignment="Right">
+                                            <Run Text="{Binding Steam.Eta, Mode=OneWay}" Foreground="White" /><Run Text=" · " /><Run Text="{Binding Steam.Speed, Mode=OneWay}" />
+                                        </TextBlock>
+                                    </DockPanel>
                                 </StackPanel>
                             </Grid>
 
@@ -1771,6 +1780,74 @@
                                     <Button Style="{StaticResource PillButton}" Height="30" Padding="16,0" Margin="6,0,0,0" Background="#40FF9F0A" Foreground="{StaticResource Orange}"
                                             Content="{Binding Timer.StartPauseText}" Click="TimerPause_Click" />
                                 </StackPanel>
+                            </Grid>
+                        </Grid>
+
+                        <!-- ===== TODAY (2026-11-16): weather left, the next appointments right ===== -->
+                        <Grid x:Name="TabToday" Visibility="Collapsed">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="150" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <!-- weather -->
+                            <Grid Margin="2,0,10,0">
+                                <StackPanel Visibility="{Binding Weather.HasData, Converter={StaticResource BoolVis}}">
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Text="{Binding Weather.Icon}" FontSize="22" VerticalAlignment="Center" Margin="0,0,6,0" />
+                                        <TextBlock Text="{Binding Weather.TempText}" FontSize="26" FontWeight="SemiBold" VerticalAlignment="Center" />
+                                    </StackPanel>
+                                    <TextBlock FontSize="10.5" Foreground="{StaticResource SubText}" TextTrimming="CharacterEllipsis" Margin="0,0,0,5">
+                                        <Run Text="{Binding Weather.City, Mode=OneWay}" Foreground="White" /><Run Text=" · " /><Run Text="{Binding Weather.HighLow, Mode=OneWay}" />
+                                    </TextBlock>
+                                    <ItemsControl ItemsSource="{Binding Weather.Hours}">
+                                        <ItemsControl.ItemsPanel>
+                                            <ItemsPanelTemplate><UniformGrid Rows="1" /></ItemsPanelTemplate>
+                                        </ItemsControl.ItemsPanel>
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <StackPanel HorizontalAlignment="Center">
+                                                    <TextBlock Text="{Binding Time}" FontSize="9" Foreground="{StaticResource SubText}" HorizontalAlignment="Center" />
+                                                    <TextBlock Text="{Binding Icon}" FontSize="11" HorizontalAlignment="Center" />
+                                                    <TextBlock Text="{Binding Temp}" FontSize="10" FontWeight="SemiBold" HorizontalAlignment="Center" />
+                                                </StackPanel>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </StackPanel>
+                                <TextBlock Text="{Binding Weather.Status}" FontSize="11" Foreground="{StaticResource SubText}" TextWrapping="Wrap" VerticalAlignment="Center"
+                                           Visibility="{Binding Weather.HasData, Converter={StaticResource InvBoolVis}}" />
+                            </Grid>
+                            <!-- appointments -->
+                            <Grid Grid.Column="1">
+                                <Border Width="1" Background="#FF2C2C2E" HorizontalAlignment="Left" Margin="-6,4,0,4" />
+                                <DockPanel Margin="6,0,0,0">
+                                <!-- the followed team's match today -->
+                                <DockPanel x:Name="TodayMatch" DockPanel.Dock="Top" Height="20" Margin="0,0,0,2" Visibility="Collapsed">
+                                    <ui:SfIcon Kind="sport" Size="12" Foreground="White" Margin="0,0,6,0" VerticalAlignment="Center" />
+                                    <TextBlock x:Name="TodayMatchState" DockPanel.Dock="Right" FontSize="10" FontWeight="SemiBold" VerticalAlignment="Center" />
+                                    <TextBlock x:Name="TodayMatchText" FontSize="11.5" FontWeight="SemiBold" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                                </DockPanel>
+                                <ItemsControl x:Name="TodayEvents" ItemsSource="{Binding Calendar.Upcoming}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Grid Height="26" Margin="0,0,0,2">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="Auto" />
+                                                    <ColumnDefinition Width="*" />
+                                                </Grid.ColumnDefinitions>
+                                                <Border Width="3" CornerRadius="1.5" Background="{Binding Color}" Margin="0,2,7,2" />
+                                                <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                                    <TextBlock Text="{Binding Title}" FontSize="11.5" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                                                    <TextBlock FontSize="9.5" Foreground="{StaticResource SubText}" TextTrimming="CharacterEllipsis">
+                                                        <Run Text="{Binding When, Mode=OneWay}" /><Run Text=" " /><Run Text="{Binding Location, Mode=OneWay}" />
+                                                    </TextBlock>
+                                                </StackPanel>
+                                            </Grid>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                                </DockPanel>
+                                <TextBlock x:Name="TodayEmpty" Margin="6,22,0,0" FontSize="11" Foreground="{StaticResource SubText}" TextWrapping="Wrap" VerticalAlignment="Center" />
                             </Grid>
                         </Grid>
 

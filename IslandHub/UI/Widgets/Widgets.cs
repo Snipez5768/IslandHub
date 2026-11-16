@@ -84,6 +84,62 @@ public sealed class DesktopWidgetWindow : Window
 {
     private static readonly List<DesktopWidgetWindow> Open = new();
     public string Kind { get; }
+    private readonly System.Windows.Shapes.Rectangle _outline;
+    private bool _dragging;
+    private Point _grab;
+
+    // ---------- arranging (user wish 2026-11-16): fixed by default, a mode to move them, a grid they stick to ----------
+
+    /// <summary>One grid step = a widget (158) plus a 14 px gap – side by side they line up like on the iPhone.</summary>
+    private const double Cell = 172, Edge = 16, CardInset = 12, CardSize = 158;
+
+    public static bool Arranging { get; private set; }
+
+    /// <summary>Turns the arrange mode on or off (from the settings, the tray, a widget's menu, or the island's "Fertig").</summary>
+    public static void SetArranging(bool on)
+    {
+        if (Arranging == on) return;
+        Arranging = on;
+        foreach (var w in Open) w._outline.Visibility = on ? Visibility.Visible : Visibility.Collapsed;
+        if (on) App.Island.ShowModeHint("widgets", "Widgets anordnen", () => SetArranging(false));
+        else { App.Island.EndModeHint(); SaveAll(); }
+    }
+
+    /// <summary>The card's top-left goes to the nearest free grid cell of the screen it is on (animated on release).</summary>
+    private void SnapToGrid(bool animate)
+    {
+        var dpi = VisualTreeHelper.GetDpi(this);
+        var centre = new System.Drawing.Point((int)((Left + ActualWidth / 2) * dpi.DpiScaleX), (int)((Top + ActualHeight / 2) * dpi.DpiScaleY));
+        var wa = System.Windows.Forms.Screen.FromPoint(centre).WorkingArea;
+        double ax = wa.Left / dpi.DpiScaleX + Edge, ay = wa.Top / dpi.DpiScaleY + Edge;
+        int maxCol = Math.Max(0, (int)((wa.Width / dpi.DpiScaleX - 2 * Edge - CardSize) / Cell));
+        int maxRow = Math.Max(0, (int)((wa.Height / dpi.DpiScaleY - 2 * Edge - CardSize) / Cell));
+        int col = Math.Clamp((int)Math.Round((Left + CardInset - ax) / Cell), 0, maxCol);
+        int row = Math.Clamp((int)Math.Round((Top + CardInset - ay) / Cell), 0, maxRow);
+        // a taken cell: the nearest free one (rings around it)
+        bool Taken(int c, int r) => Open.Any(o => o != this && Math.Abs(o.Left + CardInset - (ax + c * Cell)) < 2 && Math.Abs(o.Top + CardInset - (ay + r * Cell)) < 2);
+        if (Taken(col, row))
+        {
+            var best = (c: col, r: row, d: double.MaxValue);
+            for (int c = 0; c <= maxCol; c++)
+                for (int r = 0; r <= maxRow; r++)
+                {
+                    if (Taken(c, r)) continue;
+                    double d = Math.Pow(c - col, 2) + Math.Pow(r - row, 2);
+                    if (d < best.d) best = (c, r, d);
+                }
+            (col, row) = (best.c, best.r);
+        }
+        double left = ax + col * Cell - CardInset, top = ay + row * Cell - CardInset;
+        if (!animate) { Left = left; Top = top; SaveAll(); return; }
+        var ease = new System.Windows.Media.Animation.BackEase { Amplitude = 0.3, EasingMode = System.Windows.Media.Animation.EasingMode.EaseOut };
+        var dur = TimeSpan.FromMilliseconds(260);
+        var ax2 = new System.Windows.Media.Animation.DoubleAnimation(Left, left, dur) { EasingFunction = ease };
+        var ay2 = new System.Windows.Media.Animation.DoubleAnimation(Top, top, dur) { EasingFunction = ease };
+        ax2.Completed += (_, _) => { BeginAnimation(LeftProperty, null); BeginAnimation(TopProperty, null); Left = left; Top = top; SaveAll(); };
+        BeginAnimation(LeftProperty, ax2);
+        BeginAnimation(TopProperty, ay2);
+    }
 
     private DesktopWidgetWindow(WidgetDef def, double left, double top)
     {
@@ -101,14 +157,55 @@ public sealed class DesktopWidgetWindow : Window
         SetResourceReference(FontFamilyProperty, "TextFont");
         FontSize = 13;
         Title = "IslandHub – " + def.Title;
-        Content = WidgetRegistry.BuildCard(def, true, Unpin);
+        // the card plus a dashed outline that only shows while arranging (2026-11-16)
+        var root = new Grid();
+        root.Children.Add(WidgetRegistry.BuildCard(def, true, Unpin));
+        _outline = new System.Windows.Shapes.Rectangle
+        {
+            Margin = new Thickness(8), RadiusX = 27, RadiusY = 27, StrokeThickness = 1.6, IsHitTestVisible = false,
+            StrokeDashArray = new DoubleCollection { 4, 3 }, Visibility = Arranging ? Visibility.Visible : Visibility.Collapsed
+        };
+        _outline.SetResourceReference(System.Windows.Shapes.Shape.StrokeProperty, "Blue");
+        root.Children.Add(_outline);
+        Content = root;
 
+        // fixed unless "Widgets anordnen" is on – then they follow the pointer and stick to the grid on release
         MouseLeftButtonDown += (_, e) =>
         {
-            if (e.OriginalSource is TextBox) return;
-            try { DragMove(); } catch { }
-            SaveAll();
+            if (!Arranging || e.OriginalSource is TextBox) return;
+            Native.GetCursorPos(out var p);
+            var dpi = VisualTreeHelper.GetDpi(this);
+            BeginAnimation(LeftProperty, null);
+            BeginAnimation(TopProperty, null);
+            _grab = new Point(p.X / dpi.DpiScaleX - Left, p.Y / dpi.DpiScaleY - Top);
+            _dragging = CaptureMouse();
+            e.Handled = true;
         };
+        MouseMove += (_, _) =>
+        {
+            if (!_dragging) return;
+            Native.GetCursorPos(out var p);
+            var dpi = VisualTreeHelper.GetDpi(this);
+            Left = p.X / dpi.DpiScaleX - _grab.X;
+            Top = p.Y / dpi.DpiScaleY - _grab.Y;
+        };
+        MouseLeftButtonUp += (_, e) =>
+        {
+            if (!_dragging) return;
+            _dragging = false;
+            ReleaseMouseCapture();
+            SnapToGrid(true);
+            e.Handled = true;
+        };
+        var menu = new ContextMenu();
+        var arrange = new MenuItem();
+        arrange.Click += (_, _) => SetArranging(!Arranging);
+        var unpin = new MenuItem { Header = "Vom Desktop lösen" };
+        unpin.Click += (_, _) => Unpin();
+        menu.Items.Add(arrange);
+        menu.Items.Add(unpin);
+        menu.Opened += (_, _) => arrange.Header = Arranging ? "Fertig (Widgets fixieren)" : "Widgets anordnen";
+        ContextMenu = menu;
         SourceInitialized += (_, _) => Native.MakeToolWindow(new WindowInteropHelper(this).Handle);
         Activated += (_, _) => SendToBack();
         Loaded += (_, _) => SendToBack();
@@ -145,7 +242,7 @@ public sealed class DesktopWidgetWindow : Window
         var w = new DesktopWidgetWindow(def, left, top);
         Open.Add(w);
         w.Show();
-        SaveAll();
+        w.SnapToGrid(false); // a new widget takes the nearest free cell
     }
 
     public static void RestoreAll()

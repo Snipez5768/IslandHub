@@ -25,7 +25,7 @@ public partial class IslandWindow : Window
     private enum State { Collapsed, Hint, Peek, Expanded }
     private enum Act { Live, Agent, Obs, Steam, Timer, Music, MicMuted, Queue, Recording, Alarm }
 
-    private static readonly string[] TabOrder = { "Live", "Obs", "Music", "Clip", "Shelf", "Agent", "Games", "Notify", "Timer", "Remind", "Controls" };
+    private static readonly string[] TabOrder = { "Live", "Obs", "Music", "Clip", "Shelf", "Agent", "Games", "Notify", "Timer", "Today", "Remind", "Controls" };
     // one fixed size for every tab – the island never jumps when switching tabs
     private const double ExpW = 380, ExpH = 128, PeekW = 340, PillH = 32, IdleW = 176, ExpRadius = 24;
 
@@ -194,6 +194,11 @@ public partial class IslandWindow : Window
             if (e.PropertyName is nameof(BrowserDownloadService.Downloading)) UpdateLiveUi();
         };
         H.Downloads.Finished += (name, path, size) => Ui.Run(() => OnFileDownloaded(name, path, size));
+        H.Downloads.Stuck += OnDownloadStuck;
+        H.Calendar.Soon += OnAppointmentSoon;
+        H.Feeds.Moment += OnFeedMoment;
+        H.Feeds.PropertyChanged += (_, e) => { if (e.PropertyName == nameof(LiveFeeds.Match) && _tab == "Today") UpdateTodayUi(); };
+        H.Calendar.Upcoming.CollectionChanged += (_, _) => { if (_tab == "Today") UpdateTodayUi(); };
         H.Room.CodeWanted += OnCodeWanted;
         H.Spotify.PropertyChanged += (_, _) => Ui.Run(UpdateMusicUi);
         H.Media.TrackChanged += () => Ui.Run(() => { if (_queueOpen && !_queueSkipping) _ = RefreshQueueNow(); });
@@ -206,7 +211,7 @@ public partial class IslandWindow : Window
         RemindEmpty.Visibility = H.Reminders.Items.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
         H.Shelf.Items.CollectionChanged += (_, _) => UpdateShelfUi();
         LiveApp.MicBrush = MicBrush;
-        App.SettingsChanged += () => { LiveApp.MicBrush = MicBrush; ApplyShape(); UpdatePill(true); UpdateLiveUi(); UpdateGlow(); ApplyTabStyle(); ApplyClipLayout(); };
+        App.SettingsChanged += () => { LiveApp.MicBrush = MicBrush; Reposition(); ApplyShape(); UpdatePill(true); UpdateLiveUi(); UpdateGlow(); ApplyTabStyle(); ApplyClipLayout(); };
 
         _hoverTimer.Tick += (_, _) =>
         {
@@ -275,6 +280,9 @@ public partial class IslandWindow : Window
         UpdateShelfUi();
         RefreshClipView();
         TuckStrip.MouseLeftButtonUp += (_, e) => { e.Handled = true; Untuck(); };
+        InitMoveMode();
+        MusicArtist.Cursor = Cursors.Hand;
+        MusicArtist.MouseLeftButtonUp += MusicSource_MouseUp;
         MusicProgress.ValueChanged += (_, _) => { if (_seeking) UpdateMusicPosition(); }; // live time while scrubbing
         Ext.SliderDragStarted += OnSliderDragStarted;
         Ext.SliderDragEnded += OnSliderDragEnded;
@@ -295,17 +303,9 @@ public partial class IslandWindow : Window
         Native.MakeToolWindow(new WindowInteropHelper(this).Handle);
     }
 
-    private void Reposition()
-    {
-        var dpi = VisualTreeHelper.GetDpi(this);
-        var b = WF.Screen.PrimaryScreen.Bounds;
-        Left = b.Left / dpi.DpiScaleX + (b.Width / dpi.DpiScaleX - Width) / 2;
-        Top = b.Top / dpi.DpiScaleY;
-    }
-
     private void StartHover()
     {
-        if (!S.OpenOnHover) return;
+        if (!S.OpenOnHover || _moveMode) return;
         _hoverTimer.Interval = TimeSpan.FromMilliseconds(Math.Max(10, S.HoverDelayMs));
         _hoverTimer.Start();
     }
@@ -997,8 +997,8 @@ public partial class IslandWindow : Window
             Native.GetCursorPos(out var p);
             var tl = Island.PointToScreen(new Point(0, 0));
             var dpi = VisualTreeHelper.GetDpi(this);
-            double w = Island.ActualWidth * dpi.DpiScaleX, h = Island.ActualHeight * dpi.DpiScaleY;
-            double t = tolerance * dpi.DpiScaleX;
+            double w = Island.ActualWidth * PxX, h = Island.ActualHeight * PxY; // island units → screen pixels (Windows scaling × zoom)
+            double t = tolerance * PxX;
             return p.X >= tl.X - t && p.X <= tl.X + w + t && p.Y >= tl.Y - t - 2 && p.Y <= tl.Y + h + t;
         }
         catch { return false; }
@@ -1536,10 +1536,10 @@ public partial class IslandWindow : Window
     private bool IsCursorNearTop(bool edgeOnly)
     {
         Native.GetCursorPos(out var p);
-        var b = WF.Screen.PrimaryScreen.Bounds;
+        var b = IslandScreen().Bounds;
         var dpi = VisualTreeHelper.GetDpi(this);
-        double half = 170 * dpi.DpiScaleX, depth = (edgeOnly ? 3 : 46) * dpi.DpiScaleY;
-        double cx = b.Left + b.Width / 2.0;
+        double half = 170 * PxX, depth = (edgeOnly ? 3 * dpi.DpiScaleY : 46 * PxY);
+        double cx; try { cx = Island.PointToScreen(new Point(Island.ActualWidth / 2, 0)).X; } catch { cx = b.Left + b.Width / 2.0; } // the island may sit off-centre (move mode)
         return p.Y >= b.Top && p.Y <= b.Top + depth && Math.Abs(p.X - cx) <= half;
     }
 
@@ -1614,8 +1614,8 @@ public partial class IslandWindow : Window
             Native.GetCursorPos(out var p);
             var dpi = VisualTreeHelper.GetDpi(this);
             var tl = TuckStrip.PointToScreen(new Point(0, 0));
-            double cx = tl.X + TuckStrip.ActualWidth * dpi.DpiScaleX / 2;
-            near = Math.Abs(p.X - cx) <= 150 * dpi.DpiScaleX && p.Y <= tl.Y + 40 * dpi.DpiScaleY && p.Y >= tl.Y - 4;
+            double cx = tl.X + TuckStrip.ActualWidth * PxX / 2;
+            near = Math.Abs(p.X - cx) <= 150 * PxX && p.Y <= tl.Y + 40 * PxY && p.Y >= tl.Y - 4;
         }
         catch { }
         // only while nothing else of the island is showing
@@ -1855,6 +1855,7 @@ public partial class IslandWindow : Window
         "Spotify" => "Spotify",
         "Google Chrome" => "chrome",
         "Microsoft Edge" => "msedge",
+        "Apple Music" => "AppleMusic",
         "Firefox" => "firefox",
         _ => app ?? ""
     };
@@ -2359,6 +2360,7 @@ public partial class IslandWindow : Window
     {
         if (!Dispatcher.CheckAccess()) { Dispatcher.BeginInvoke(new Action(() => ShowHint(icon, text, color, check, key, actions))); return; }
         if (_captureHidden || _state == State.Peek) return;
+        if (_moveMode && key != "move") return; // moving the island: its own notice stays
         if (_tucked && _state != State.Expanded) return; // tucked away: small status hints stay quiet
         if (_state == State.Expanded && (IsActive || IsCursorOverIsland(0))) return;
         if (_state == State.Expanded) Collapse();
@@ -2443,7 +2445,7 @@ public partial class IslandWindow : Window
     {
         int hold = _hintHoldMs; // a moment that wants to stay longer (headphones, charger) – used once
         _hintHoldMs = 0;
-        await Task.Delay(check ? 650 : withActions ? 5000 : hold > 0 ? hold : 1500);
+        await Task.Delay(check ? 650 : hold > 0 ? hold : withActions ? 5000 : 1500);
         if (gen != _hintGen) return;
         // a hint with buttons stays while the pointer rests on it
         while (withActions && IsCursorOverIsland(4))
@@ -4162,6 +4164,7 @@ public partial class IslandWindow : Window
         TabGames.Visibility = tab == "Games" ? Visibility.Visible : Visibility.Collapsed;
         TabTimer.Visibility = tab == "Timer" ? Visibility.Visible : Visibility.Collapsed;
         TabRemind.Visibility = tab == "Remind" ? Visibility.Visible : Visibility.Collapsed;
+        TabToday.Visibility = tab == "Today" ? Visibility.Visible : Visibility.Collapsed;
         TabControls.Visibility = tab == "Controls" ? Visibility.Visible : Visibility.Collapsed;
         if (!_autoOpening) S.LastTab = tab;
         if (_tabNames != null && _tabNames.TryGetValue(tab, out var title)) TabTitle.Text = title;
@@ -4192,6 +4195,7 @@ public partial class IslandWindow : Window
             case "Clip": RefreshClipView(); foreach (var i in H.Clipboard.Items) i.RefreshMeta(); break;
             case "Shelf": H.Shelf.PruneMissing(); UpdateShelfUi(); break;
             case "Timer": UpdateTimerUi(); break;
+            case "Today": UpdateTodayUi(); break;
             case "Live": UpdateLiveUi(); break;
             case "Agent": UpdateAgentUi(); break;
             case "Games": UpdateGamesUi(); break;
@@ -4206,8 +4210,8 @@ public partial class IslandWindow : Window
     //  optional "D" for all of them: fades to page dots while the pointer is not on the bar
     // =====================================================================
 
-    private static readonly string[] FlatTabOrder = { "Live", "Obs", "Music", "Clip", "Shelf", "Agent", "Games", "Notify", "Timer", "Remind", "Controls" };
-    private static readonly string[] GroupTabOrder = { "Live", "Obs", "Music", "|", "Clip", "Shelf", "Games", "Timer", "Remind", "|", "Agent", "Notify", "Controls" };
+    private static readonly string[] FlatTabOrder = { "Live", "Obs", "Music", "Clip", "Shelf", "Agent", "Games", "Notify", "Timer", "Today", "Remind", "Controls" };
+    private static readonly string[] GroupTabOrder = { "Live", "Obs", "Music", "|", "Clip", "Shelf", "Games", "Timer", "Today", "Remind", "|", "Agent", "Notify", "Controls" };
     private static readonly SolidColorBrush LiveBadge = Frozen(Color.FromRgb(0x30, 0xD1, 0x58));
     private static readonly SolidColorBrush RedBadge = Frozen(Color.FromRgb(0xFF, 0x45, 0x3A));
     private static readonly SolidColorBrush DotBrush = Frozen(Color.FromRgb(0x48, 0x48, 0x4A));
@@ -4223,7 +4227,7 @@ public partial class IslandWindow : Window
 
     private static readonly Dictionary<string, int> TabGroup = new()
     {
-        ["Live"] = 0, ["Obs"] = 0, ["Music"] = 0, ["Clip"] = 1, ["Shelf"] = 1, ["Games"] = 1, ["Timer"] = 1, ["Remind"] = 1,
+        ["Live"] = 0, ["Obs"] = 0, ["Music"] = 0, ["Clip"] = 1, ["Shelf"] = 1, ["Games"] = 1, ["Timer"] = 1, ["Today"] = 1, ["Remind"] = 1,
         ["Agent"] = 2, ["Notify"] = 2, ["Controls"] = 2
     };
 
@@ -4413,9 +4417,9 @@ public partial class IslandWindow : Window
             Native.GetCursorPos(out var p);
             var tl = TabHeader.PointToScreen(new Point(0, 0));
             var dpi = VisualTreeHelper.GetDpi(this);
-            double w = TabHeader.ActualWidth * dpi.DpiScaleX, h = TabHeader.ActualHeight * dpi.DpiScaleY;
-            return p.X >= tl.X - 14 * dpi.DpiScaleX && p.X <= tl.X + w + 14 * dpi.DpiScaleX
-                && p.Y >= tl.Y - 40 * dpi.DpiScaleY && p.Y <= tl.Y + h + 6 * dpi.DpiScaleY;
+            double w = TabHeader.ActualWidth * PxX, h = TabHeader.ActualHeight * PxY;
+            return p.X >= tl.X - 14 * PxX && p.X <= tl.X + w + 14 * PxX
+                && p.Y >= tl.Y - 40 * PxY && p.Y <= tl.Y + h + 6 * PxY;
         }
         catch { return false; }
     }
@@ -4536,17 +4540,22 @@ public partial class IslandWindow : Window
         if (_skipDir != 0) { Ext.SetIcon(PlayPauseBtn, m.IsPlaying ? "pause.fill" : "play.fill"); return; }
         MusicTitle.Text = m.Title;
         // "Vortex Radar · YouTube" – where it plays, so it is clear why Spotify's extras (queue, volume) may be missing
-        var source = SourceName(m.AppName, m.Title);
+        // in a browser: the service itself (SoundCloud, YouTube Music …) instead of "Google Chrome" (2026-11-16)
+        var source = PlayerService() ?? SourceName(m.AppName, m.Title);
         MusicArtist.Text = string.Join(" · ", new[] { m.Artist, source }.Where(s => !string.IsNullOrWhiteSpace(s)));
+        MusicArtist.ToolTip = string.IsNullOrEmpty(source) ? null : $"{source} öffnen";
         MusicApp.Text = m.AppName ?? "";
         MusicCover.ImageSource = m.Cover;
         Ext.SetIcon(PlayPauseBtn, m.IsPlaying ? "pause.fill" : "play.fill");
         MusicEq.Opacity = m.IsPlaying ? 1 : 0.35;
         MusicSourceBtn.Visibility = m.Sessions.Count > 1 ? Visibility.Visible : Visibility.Collapsed;
-        MusicVolBtn.Visibility = IsSpotify ? Visibility.Visible : Visibility.Collapsed;
+        // every player gets its own volume (its mixer slider); the queue stays Spotify's (needs its login)
+        bool ownVolume = PlayerProcess(m.AppName) != null;
+        MusicVolBtn.Visibility = ownVolume ? Visibility.Visible : Visibility.Collapsed;
+        if (!_volMode) MusicVolBtn.ToolTip = BrowserProcess.ContainsKey(m.AppName ?? "") ? $"Lautstärke von {m.AppName} (alle Tabs)" : $"{m.AppName}-Lautstärke";
         MusicQueueBtn.Visibility = IsSpotify ? Visibility.Visible : Visibility.Collapsed;
         if (!IsSpotify && _queueOpen) MusicQueue_Click(null, null);
-        if (!IsSpotify) ExitVolMode();
+        if (!ownVolume || _volApp != null && _volApp != PlayerProcess(m.AppName)) ExitVolMode();
         UpdateMusicPosition();
     }
 
@@ -4594,17 +4603,20 @@ public partial class IslandWindow : Window
 
     private readonly AppVolume _spotifyVol = new();
     private bool _volMode, _volSetting;
+    private string _volApp; // whose mixer slider the bar shows (any player since 2026-11-16)
 
     private static bool IsSpotify => H.Media.AppName == "Spotify";
 
     private void MusicVol_Click(object sender, RoutedEventArgs e)
     {
         if (_volMode) { ExitVolMode(); return; }
-        if (!_spotifyVol.Attach("Spotify"))
+        var proc = PlayerProcess(H.Media.AppName);
+        if (proc == null || !_spotifyVol.Attach(proc))
         {
-            MusicVolBtn.ToolTip = "Spotify gibt gerade keinen Ton aus";
+            MusicVolBtn.ToolTip = $"{H.Media.AppName} gibt gerade keinen Ton aus";
             return;
         }
+        _volApp = proc;
         _volMode = true;
         _volSetting = true;
         MusicVolume.Value = _spotifyVol.Volume;
@@ -4623,13 +4635,14 @@ public partial class IslandWindow : Window
     {
         if (!_volMode) return;
         _volMode = false;
+        _volApp = null;
         _spotifyVol.Release();
         MusicVolume.Visibility = Visibility.Collapsed;
         MusicProgress.Visibility = Visibility.Visible;
         MusicPos.Visibility = Visibility.Visible;
         MusicVolIcon.Visibility = Visibility.Collapsed;
         MusicVolBtn.ClearValue(ForegroundProperty);
-        MusicVolBtn.ToolTip = "Spotify-Lautstärke";
+        MusicVolBtn.ToolTip = $"{H.Media.AppName}-Lautstärke";
         MusicProgress.BeginAnimation(OpacityProperty, new DoubleAnimation(0, 1, TimeSpan.FromMilliseconds(180)));
         UpdateMusicPosition();
     }

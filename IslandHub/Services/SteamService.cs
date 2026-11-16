@@ -65,6 +65,18 @@ public sealed class SteamService : ObservableObject, IDownload
     public System.Windows.Media.ImageSource Icon { get => _icon; private set { if (Set(ref _icon, value)) Raise(nameof(HasIcon)); } }
     public bool HasIcon => Icon != null;
 
+    // ---------- 2026-11-16: where, stalled, hide, open ----------
+
+    private string _dismissedApp;
+    public string Where => "in Steam";
+    /// <summary>Steam reports a rate of 0 for a while (paused, no connection, disk full).</summary>
+    public bool Stalled => Downloading && _bytesPerSec <= 0 && DateTime.Now - _estAt > TimeSpan.FromMinutes(3);
+    public void Dismiss() { _dismissedApp = AppId; Downloading = false; }
+    public void OpenSource()
+    {
+        try { Process.Start(new ProcessStartInfo("steam://open/downloads") { UseShellExecute = true }); } catch { }
+    }
+
     /// <summary>Steam's library icon: appcache\librarycache\&lt;id&gt;\&lt;40-hex&gt;.jpg (new layout) or &lt;id&gt;_icon.jpg (old).</summary>
     private string IconFile(string appId)
     {
@@ -136,6 +148,9 @@ public sealed class SteamService : ObservableObject, IDownload
         {
             if (Process.GetProcessesByName("steam").Length == 0) { _active = false; Downloading = false; return; }
             await Task.Run(ReadLog);
+            // hidden by the user: stays out of the island until another game downloads
+            if (_dismissedApp != null && _dismissedApp != _app) _dismissedApp = null;
+            if (_active && _app != null && _total > 0 && _dismissedApp == _app) { Downloading = false; return; }
             if (_active && _app != null && _total > 0)
             {
                 double est = Math.Min(_total, _est + _bytesPerSec * Math.Max(0, (DateTime.Now - _estAt).TotalSeconds));

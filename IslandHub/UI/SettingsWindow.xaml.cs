@@ -265,6 +265,46 @@ public partial class SettingsWindow : Window
 
     private void PlayAll_Click(object sender, RoutedEventArgs e) => AnimGallery.PlayAll();
 
+    private void CalendarUrls_LostFocus(object sender, RoutedEventArgs e) => SaveCalendarUrls();
+
+    private static List<string> Items(string text) =>
+        text.Split(new[] { ',', '\n', ';' }, StringSplitOptions.RemoveEmptyEntries).Select(x => x.Trim()).Where(x => x.Length > 0).ToList();
+
+    private void Feeds_LostFocus(object sender, RoutedEventArgs e)
+    {
+        S.SportLeague = string.IsNullOrWhiteSpace(OptSportLeague.Text) ? "bl1" : OptSportLeague.Text.Trim().ToLowerInvariant();
+        S.SportTeam = OptSportTeam.Text.Trim();
+        S.TwitchClientId = OptTwitchId.Text.Trim();
+        if (OptTwitchSecret.Password.Length > 0 && OptTwitchSecret.Password != SecretMask) S.TwitchSecret = OptTwitchSecret.Password.Trim();
+        S.TwitchChannels = Items(OptTwitchChannels.Text);
+        S.YouTubeChannels = Items(OptYouTube.Text);
+        if (OptDhlKey.Password.Length > 0 && OptDhlKey.Password != SecretMask) S.DhlKey = OptDhlKey.Password.Trim();
+        S.Parcels = OptParcels.Text.Split('\n').Select(l => l.Trim()).Where(l => l.Length > 0).ToList();
+        App.SaveSettings();
+    }
+
+    /// <summary>Shown in a password field when a secret is saved – the secret itself never comes back into the window.</summary>
+    private const string SecretMask = "••••••••";
+
+    private void SaveCalendarUrls()
+    {
+        S.CalendarUrls = OptCalendarUrls.Text.Split('\n').Select(l => l.Trim()).Where(l => l.Length > 0).ToList();
+        App.SaveSettings();
+    }
+
+    private async void CalendarCheck_Click(object sender, RoutedEventArgs e)
+    {
+        SaveCalendarUrls();
+        CalendarStatus.Visibility = Visibility.Visible;
+        CalendarStatus.Text = "Wird geladen …";
+        await App.Hub.Calendar.RefreshAsync();
+        var c = App.Hub.Calendar;
+        CalendarStatus.Text = !c.HasLinks ? "Kein Link eingetragen."
+            : !string.IsNullOrEmpty(c.Status) ? c.Status
+            : c.Upcoming.Count == 0 ? "Verbunden – heute und morgen keine Termine."
+            : $"Verbunden – nächster Termin: {c.Upcoming[0].Title} ({c.Upcoming[0].When}).";
+    }
+
     private void MailUrl_LostFocus(object sender, RoutedEventArgs e)
     {
         var url = OptMailUrl.Text.Trim();
@@ -286,6 +326,9 @@ public partial class SettingsWindow : Window
         OptSeconds.IsChecked = S.ShowSeconds;
         OptTrackPeek.IsChecked = S.TrackPeek;
         OptLevel.IsChecked = S.LevelInIsland;
+        OptScaleScreen.IsChecked = S.ScaleWithScreen;
+        OptIslandSize.Value = Math.Round(S.IslandSize * 100);
+        IslandSizeText.Text = $"{Math.Round(S.IslandSize * 100)} %";
         OptDevice.IsChecked = S.DeviceInIsland;
         OptPower.IsChecked = S.PowerInIsland;
         FsBar.IsChecked = S.Fullscreen == FullscreenMode.StatsBar;
@@ -294,6 +337,15 @@ public partial class SettingsWindow : Window
         OptCodeMail.IsChecked = S.CodeMail;
         OptUpdateCheck.IsChecked = S.UpdateCheck;
         OptMailUrl.Text = S.MailUrl;
+        OptCalendarUrls.Text = string.Join("\n", S.CalendarUrls);
+        OptSportLeague.Text = S.SportLeague;
+        OptSportTeam.Text = S.SportTeam;
+        OptTwitchId.Text = S.TwitchClientId;
+        OptTwitchSecret.Password = string.IsNullOrEmpty(S.TwitchSecretProtected) ? "" : SecretMask;
+        OptTwitchChannels.Text = string.Join(", ", S.TwitchChannels);
+        OptYouTube.Text = string.Join(", ", S.YouTubeChannels);
+        OptDhlKey.Password = string.IsNullOrEmpty(S.DhlKeyProtected) ? "" : SecretMask;
+        OptParcels.Text = string.Join("\n", S.Parcels);
         ShapePill.IsChecked = S.Shape == IslandShape.Pill;
         ShapeNotch.IsChecked = S.Shape == IslandShape.Notch;
         OptGlow.IsChecked = S.MusicGlow;
@@ -482,6 +534,7 @@ public partial class SettingsWindow : Window
         S.ShowSeconds = OptSeconds.IsChecked == true;
         S.TrackPeek = OptTrackPeek.IsChecked == true;
         S.LevelInIsland = OptLevel.IsChecked == true;
+        S.ScaleWithScreen = OptScaleScreen.IsChecked == true;
         S.DeviceInIsland = OptDevice.IsChecked == true;
         S.PowerInIsland = OptPower.IsChecked == true;
         S.MusicGlow = OptGlow.IsChecked == true;
@@ -508,6 +561,25 @@ public partial class SettingsWindow : Window
         S.HoverDelayMs = v;
         App.SaveSettings();
     }
+
+    private void IslandSize_Changed(object sender, RoutedPropertyChangedEventArgs<double> e)
+    {
+        if (IslandSizeText == null) return;
+        IslandSizeText.Text = $"{Math.Round(e.NewValue)} %";
+        if (_loading) return;
+        S.IslandSize = Math.Round(e.NewValue) / 100.0;
+        App.NotifySettingsChanged(); // the island resizes live while the slider moves
+    }
+
+    private void IslandMove_Click(object sender, RoutedEventArgs e) => App.Island.EnterMoveMode();
+
+    private void ArrangeWidgets_Click(object sender, RoutedEventArgs e)
+    {
+        DesktopWidgetWindow.SetArranging(!DesktopWidgetWindow.Arranging);
+        ArrangeBtn.Content = DesktopWidgetWindow.Arranging ? "Fertig" : "Anordnen";
+    }
+
+    private void IslandCenter_Click(object sender, RoutedEventArgs e) => App.Island.ResetPosition();
 
     private void Fullscreen_Checked(object sender, RoutedEventArgs e)
     {
@@ -587,7 +659,7 @@ public partial class SettingsWindow : Window
         ("Live", "Live", "dot.radiowaves", "nur wenn etwas läuft"), ("Obs", "OBS", "record", "nur wenn verbunden"),
         ("Music", "Musik", "music", ""), ("Clip", "Zwischenablage", "clipboard", ""), ("Shelf", "Ablage", "folder", ""),
         ("Agent", "Agent", "sparkles", ""), ("Games", "Spiele", "gamecontroller", ""), ("Notify", "Mitteilungen", "bell.badge", ""),
-        ("Timer", "Timer", "timer", ""), ("Remind", "Erinnerungen", "checklist", ""), ("Controls", "Steuerung", "sliders", "")
+        ("Timer", "Timer", "timer", ""), ("Today", "Heute", "calendar", "Wetter und Termine"), ("Remind", "Erinnerungen", "checklist", ""), ("Controls", "Steuerung", "sliders", "")
     };
 
     private System.Collections.ObjectModel.ObservableCollection<TabEntry> _tabEntries;

@@ -102,6 +102,9 @@ public sealed class ClockModel : ObservableObject
 
 // ---------------- Weather (Open-Meteo, no API key, only when a city is set) ----------------
 
+/// <summary>One hour of the forecast.</summary>
+public sealed record WeatherHour(string Time, string Icon, string Temp);
+
 public sealed class WeatherService : ObservableObject
 {
     private static readonly HttpClient Http = new() { Timeout = TimeSpan.FromSeconds(12) };
@@ -119,6 +122,9 @@ public sealed class WeatherService : ObservableObject
     private string _city, _hl;
     public string City { get => _city; private set => Set(ref _city, value); }
     public string HighLow { get => _hl; private set => Set(ref _hl, value); }
+    private List<WeatherHour> _hours = new();
+    /// <summary>Now and the next 4 hours (symbol and temperature).</summary>
+    public List<WeatherHour> Hours { get => _hours; private set => Set(ref _hours, value); }
 
     public void Start()
     {
@@ -164,7 +170,8 @@ public sealed class WeatherService : ObservableObject
         {
             var ci = CultureInfo.InvariantCulture;
             var url = $"https://api.open-meteo.com/v1/forecast?latitude={s.WeatherLat.ToString(ci)}&longitude={s.WeatherLon.ToString(ci)}" +
-                      "&current=temperature_2m,apparent_temperature,weather_code,wind_speed_10m,is_day&daily=temperature_2m_max,temperature_2m_min&timezone=auto&forecast_days=1";
+                      "&current=temperature_2m,apparent_temperature,weather_code,wind_speed_10m,is_day&daily=temperature_2m_max,temperature_2m_min&timezone=auto&forecast_days=2" +
+                      "&hourly=temperature_2m,weather_code,is_day&forecast_hours=6";
             using var doc = JsonDocument.Parse(await Http.GetStringAsync(url));
             var cur = doc.RootElement.GetProperty("current");
             var daily = doc.RootElement.GetProperty("daily");
@@ -183,6 +190,22 @@ public sealed class WeatherService : ObservableObject
             Place = s.WeatherPlace;
             City = (s.WeatherPlace ?? "").Split(',')[0];
             HighLow = $"H: {max:0}°  T: {min:0}°";
+            // the next hours for the "Heute" page (2026-11-16)
+            try
+            {
+                var hourly = doc.RootElement.GetProperty("hourly");
+                var times = hourly.GetProperty("time");
+                var hours = new List<WeatherHour>();
+                for (int i = 0; i < times.GetArrayLength() && hours.Count < 5; i++)
+                {
+                    var at = DateTime.Parse(times[i].GetString(), CultureInfo.InvariantCulture);
+                    bool hd = hourly.GetProperty("is_day")[i].GetInt32() == 1;
+                    var (_, hi) = Describe(hourly.GetProperty("weather_code")[i].GetInt32(), hd);
+                    hours.Add(new WeatherHour(i == 0 ? "Jetzt" : at.ToString("HH"), hi, $"{hourly.GetProperty("temperature_2m")[i].GetDouble():0}°"));
+                }
+                Hours = hours;
+            }
+            catch { }
             HasData = true;
         }
         catch (Exception ex)

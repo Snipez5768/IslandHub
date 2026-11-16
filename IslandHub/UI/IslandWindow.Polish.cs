@@ -6,6 +6,7 @@ using System.Windows.Media.Imaging;
 using IslandHub.Core;
 using IslandHub.Services;
 using Shape = System.Windows.Shapes.Shape;
+using WF = System.Windows.Forms;
 
 namespace IslandHub.UI;
 
@@ -508,6 +509,90 @@ public partial class IslandWindow
                     Save("2_tuck_again");
                     Untuck();
                     S.TuckHintShown = hintShown;
+                    break;
+                case "place":
+                {
+                    var log = new System.Text.StringBuilder();
+                    double size = S.IslandSize, ix = S.IslandX; string scr = S.IslandScreen;
+                    void Note(string what) { Native.GetWindowRect(new System.Windows.Interop.WindowInteropHelper(this).Handle, out var r); log.AppendLine($"{what}: zoom={_zoom:0.00} window={r.Left},{r.Top} {r.Right - r.Left}x{r.Bottom - r.Top}"); }
+                    Note("start");
+                    S.IslandSize = 1.3; Reposition(); await Task.Delay(400); Note("size 130 %");
+                    fh = 200 * 1.3;
+                    Expand("Music", true);
+                    await Task.Delay(900);
+                    Frame(); Save("1_size130");
+                    Collapse();
+                    S.IslandSize = 0.8; Reposition(); await Task.Delay(400); Note("size 80 %");
+                    fh = 60;
+                    Frame(); Save("2_size80");
+                    S.IslandSize = 1.0; Reposition(); await Task.Delay(300);
+                    EnterMoveMode();
+                    await Task.Delay(700);
+                    Frame(); Save("3_move_mode");
+                    S.IslandX = -0.25; Reposition(); await Task.Delay(300); Note("moved left 25 %");
+                    var other = WF.Screen.AllScreens.FirstOrDefault(s => !s.Primary);
+                    if (other != null) { S.IslandScreen = other.DeviceName; S.IslandX = 0; Reposition(); await Task.Delay(500); Note($"other screen {other.DeviceName}"); }
+                    ExitMoveMode();
+                    S.IslandSize = size; S.IslandX = ix; S.IslandScreen = scr; Reposition();
+                    File.WriteAllText(Path.Combine(dir, "place.txt"), log.ToString());
+                    break;
+                }
+                case "today":
+                {
+                    var d = DateTime.Today;
+                    string Utc(DateTime t) => t.ToUniversalTime().ToString("yyyyMMdd'T'HHmmss'Z'");
+                    var nowish = DateTime.Now.AddMinutes(9);
+                    var ics = string.Join("\r\n",
+                        "BEGIN:VCALENDAR",
+                        "BEGIN:VEVENT", $"DTSTART:{Utc(nowish)}", $"DTEND:{Utc(nowish.AddMinutes(30))}", "SUMMARY:Zahnarzt", "LOCATION:Praxis am Markt", "END:VEVENT",
+                        "BEGIN:VEVENT", $"DTSTART;TZID=Europe/Berlin:{d:yyyyMMdd}T{Math.Min(22, DateTime.Now.Hour + 2):00}0000", $"DTEND;TZID=Europe/Berlin:{d:yyyyMMdd}T{Math.Min(23, DateTime.Now.Hour + 3):00}0000",
+                        "SUMMARY:Training", "RRULE:FREQ=WEEKLY;BYDAY=MO,TU,WE,TH,FR,SA,SU", "END:VEVENT",
+                        "BEGIN:VEVENT", $"DTSTART;VALUE=DATE:{d.AddDays(1):yyyyMMdd}", "SUMMARY:Geburtstag Mia", "END:VEVENT",
+                        "END:VCALENDAR");
+                    var events = CalendarService.Parse(ics, d.AddDays(-1), d.AddDays(8), (Brush)FindResource("Blue"));
+                    File.WriteAllText(Path.Combine(dir, "parsed.txt"), string.Join("\n", events.Select(e => $"{e.Title} | {e.Start:ddd dd.MM HH:mm} – {e.End:HH:mm} | allday={e.AllDay}")));
+                    H.Calendar.Demo(events);
+                    Expand("Today", true);
+                    await Task.Delay(1200);
+                    fh = 160;
+                    Frame(); Save("1_today");
+                    Collapse();
+                    await Task.Delay(800);
+                    OnAppointmentSoon(events.First());
+                    await Film(6, 300);
+                    Save("2_soon");
+                    break;
+                }
+                case "queue2":
+                {
+                    // another process pastes (reads the clipboard) – the queue must move once per paste
+                    var log = new System.Text.StringBuilder();
+                    bool qm = H.Clipboard.QueueMode;
+                    H.Clipboard.QueueMode = true;
+                    H.Clipboard.Notice += n => log.AppendLine($"{DateTime.Now:HH:mm:ss.fff} Insel: {n}");
+                    foreach (var t in new[] { "Eins", "Zwei", "Drei" }) { H.Clipboard.AddText(t, "Test"); await Task.Delay(900); }
+                    log.AppendLine($"{DateTime.Now:HH:mm:ss.fff} gestapelt: {H.Clipboard.QueueCount}");
+                    File.WriteAllText(Path.Combine(dir, "ready.txt"), "ready");
+                    for (int i = 0; i < 24 && H.Clipboard.QueueCount > 0; i++) await Task.Delay(500);
+                    log.AppendLine($"{DateTime.Now:HH:mm:ss.fff} Ende: Stapel={H.Clipboard.QueueCount}");
+                    H.Clipboard.QueueMode = qm;
+                    File.WriteAllText(Path.Combine(dir, "queue2.txt"), log.ToString());
+                    break;
+                }
+                case "dl":
+                    H.Downloads.Demo("Projekt-Dateien.zip", 0.42, "12,4 MB/s");
+                    await Task.Delay(800);
+                    Expand("Live", true);
+                    await Task.Delay(1200);
+                    fh = 160;
+                    Frame(); Save("1_download_row");
+                    Collapse();
+                    await Task.Delay(900);
+                    OnDownloadStuck("Projekt-Dateien.zip", "Chrome");
+                    await Task.Delay(800);
+                    fh = 70;
+                    Frame(); Save("2_stuck");
+                    H.Downloads.EndDemo();
                     break;
                 case "page":
                     Expand("Music", true);

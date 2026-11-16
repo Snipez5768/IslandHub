@@ -82,6 +82,30 @@ public sealed class AppSettings
     public bool UpdateCheck { get; set; } = true;
     /// <summary>Volume (and laptop brightness) changes show a level bar in the island.</summary>
     public bool LevelInIsland { get; set; } = true;
+    /// <summary>Secret iCal links (Google "Privatadresse im iCal-Format", Outlook "ICS") – read-only, no login.</summary>
+    public List<string> CalendarUrls { get; set; } = new();
+    /// <summary>Football (OpenLigaDB): league code (bl1, bl2, bl3, dfb …) and the team to follow (name or short name).</summary>
+    public string SportLeague { get; set; } = "bl1";
+    public string SportTeam { get; set; } = "";
+    /// <summary>Twitch: the user's own free app (dev.twitch.tv) – client id and secret (secret stored encrypted).</summary>
+    public string TwitchClientId { get; set; } = "";
+    public string TwitchSecretProtected { get; set; } = "";
+    [System.Text.Json.Serialization.JsonIgnore] public string TwitchSecret { get => IslandHub.Services.DiscordService.Unprotect(TwitchSecretProtected); set => TwitchSecretProtected = IslandHub.Services.DiscordService.Protect(value); }
+    public List<string> TwitchChannels { get; set; } = new();
+    /// <summary>YouTube channels (@name or channel id) – checked on their public /live page, no key.</summary>
+    public List<string> YouTubeChannels { get; set; } = new();
+    /// <summary>DHL: the user's own free key (developer.dhl.com, encrypted) and parcels as "Name: number".</summary>
+    public string DhlKeyProtected { get; set; } = "";
+    [System.Text.Json.Serialization.JsonIgnore] public string DhlKey { get => IslandHub.Services.DiscordService.Unprotect(DhlKeyProtected); set => DhlKeyProtected = IslandHub.Services.DiscordService.Protect(value); }
+    public List<string> Parcels { get; set; } = new();
+    /// <summary>Where the island sits (2026-11-16): the monitor (device name, null = main screen) and the centre as a
+    /// share of the screen width from the middle (−0.5 … 0.5, 0 = centred).</summary>
+    public string IslandScreen { get; set; }
+    public double IslandX { get; set; }
+    /// <summary>The island grows with the resolution as if every screen were 1080 px tall (Windows scaling taken out).</summary>
+    public bool ScaleWithScreen { get; set; } = true;
+    /// <summary>The user's own size on top (0.7 … 1.4).</summary>
+    public double IslandSize { get; set; } = 1.0;
     /// <summary>Headphones / Bluetooth audio connected → the island shows it with the battery.</summary>
     public bool DeviceInIsland { get; set; } = true;
     /// <summary>Plugged in / battery low (laptops only).</summary>

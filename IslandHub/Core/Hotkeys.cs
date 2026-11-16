@@ -23,7 +23,8 @@ public sealed class MessageWindow : IDisposable
 
     private IntPtr WndProc(IntPtr hwnd, int msg, IntPtr w, IntPtr l, ref bool handled)
     {
-        if (msg == Native.WM_HOTKEY || msg == Native.WM_CLIPBOARDUPDATE)
+        // + the clipboard's delayed-rendering messages (queue: a paste asks us for the promised text)
+        if (msg == Native.WM_HOTKEY || msg == Native.WM_CLIPBOARDUPDATE || msg is 0x0305 or 0x0306 or 0x0307)
             Received?.Invoke(msg, w, l);
         return IntPtr.Zero;
     }

@@ -2,6 +2,7 @@ using System.Collections.ObjectModel;
 using System.Collections.Specialized;
 using System.Runtime.InteropServices;
 using System.Security.Cryptography;
+using System.Text;
 using System.Text.Json.Serialization;
 using System.Windows;
 using System.Windows.Media;
@@ -294,7 +295,14 @@ public sealed class ClipboardService : ObservableObject
         Queue.CollectionChanged += (_, _) => Raise(nameof(QueueCount));
         Items.CollectionChanged += OnItemsChanged;
         _hook.PasteDetected += () => Ui.D.BeginInvoke(new Action(OnPasteDetected));
-        win.Received += (msg, _, _) => { if (msg == Native.WM_CLIPBOARDUPDATE) OnClipboardUpdate(); };
+        _owner = win.Handle;
+        win.Received += (msg, w, _) =>
+        {
+            if (msg == Native.WM_CLIPBOARDUPDATE) OnClipboardUpdate();
+            else if (msg == WM_RENDERFORMAT) OnRenderFormat((uint)w.ToInt64());
+            else if (msg == WM_RENDERALLFORMATS) OnRenderAll();
+            else if (msg == WM_DESTROYCLIPBOARD) _promised = null; // someone else owns the clipboard now
+        };
         Native.AddClipboardFormatListener(win.Handle);
         _queueMode = App.Settings.QueueMode;
         UpdateHook();
@@ -419,7 +427,8 @@ public sealed class ClipboardService : ObservableObject
                 Queue.Add(item);
                 _lastQueued = DateTime.Now;
             }
-            if (Queue.Count > 1) SetClipboard(Queue[0]);
+            // the head is offered even right after the first copy – so the very first paste is noticed too
+            SetQueueHead();
         }
         Captured?.Invoke(item, byUser);
     }
@@ -515,25 +524,127 @@ public sealed class ClipboardService : ObservableObject
     {
         Pasted?.Invoke();
         if (!_queueMode || Queue.Count == 0) return;
-        // Give the target app a moment to read the clipboard before we swap in the next item.
+        // a promised text tells us itself when it is pasted (any way: Ctrl+V, menu, Shift+Ins, macro keys)
+        if (_promised != null && Queue[0] == _promised) return;
+        // images / files: give the target app a moment to read the clipboard before we swap in the next item
+        var head = Queue[0];
         var t = new System.Windows.Threading.DispatcherTimer { Interval = TimeSpan.FromMilliseconds(140) };
-        t.Tick += (_, _) =>
-        {
-            t.Stop();
-            if (Queue.Count == 0) return;
-            Queue.RemoveAt(0);
-            // the island says it once: pasted – and what comes next
-            if (Queue.Count > 0)
-            {
-                SetClipboard(Queue[0]);
-                var next = Queue[0].Title ?? "";
-                if (next.Length > 24) next = next[..23].TrimEnd() + "…";
-                Notice?.Invoke($"Eingefügt · als Nächstes: {next}");
-            }
-            else Notice?.Invoke("Eingefügt · Stapel leer");
-        };
+        t.Tick += (_, _) => { t.Stop(); Advance(head); };
         t.Start();
     }
+
+    /// <summary>The head of the queue was pasted: next one up, and the island says it once.</summary>
+    private void Advance(ClipItem pasted)
+    {
+        if (!_queueMode || Queue.Count == 0 || Queue[0] != pasted) return;
+        Queue.RemoveAt(0);
+        if (Queue.Count > 0)
+        {
+            SetQueueHead();
+            var next = Queue[0].Title ?? "";
+            if (next.Length > 24) next = next[..23].TrimEnd() + "…";
+            Notice?.Invoke($"Eingefügt · als Nächstes: {next}");
+        }
+        else Notice?.Invoke("Eingefügt · Stapel leer");
+    }
+
+    // ---------- queue: the next text is only PROMISED to Windows (delayed rendering, 2026-11-16) ----------
+    // The keyboard hook missed pastes from the menu, Shift+Ins and keys sent by mouse / macro software. Now Windows
+    // itself asks IslandHub for the text the moment an app really pastes it – that moment advances the queue.
+    // "ExcludeClipboardContentFromMonitorProcessing" + "CanIncludeInClipboardHistory = 0" keep clipboard managers and
+    // Windows' own history (Win+V) from reading it early (which would look like a paste).
+
+    private const int WM_RENDERFORMAT = 0x0305, WM_RENDERALLFORMATS = 0x0306, WM_DESTROYCLIPBOARD = 0x0307;
+    private const uint CF_UNICODETEXT = 13;
+    private static readonly uint FmtExclude = RegisterClipboardFormat("ExcludeClipboardContentFromMonitorProcessing");
+    private static readonly uint FmtNoHistory = RegisterClipboardFormat("CanIncludeInClipboardHistory");
+    private static readonly uint FmtNoCloud = RegisterClipboardFormat("CanUploadToCloudClipboard");
+    private IntPtr _owner;
+    private ClipItem _promised;
+    private bool _promisedTaken;
+
+    private void SetQueueHead()
+    {
+        if (Queue.Count == 0) return;
+        if (!Promise(Queue[0])) SetClipboard(Queue[0]);
+    }
+
+    private bool Promise(ClipItem it)
+    {
+        if (it.Kind is not (ClipKind.Text or ClipKind.Link) || _owner == IntPtr.Zero || it.Text == null) return false;
+        _suppressUntil = DateTime.UtcNow.AddMilliseconds(700);
+        for (int attempt = 0; attempt < 8; attempt++)
+        {
+            if (OpenClipboard(_owner))
+            {
+                try
+                {
+                    EmptyClipboard();
+                    _promised = it;
+                    _promisedTaken = false;
+                    SetClipboardData(CF_UNICODETEXT, IntPtr.Zero); // promised – rendered on request
+                    SetClipboardData(FmtExclude, Dword(0));
+                    SetClipboardData(FmtNoHistory, Dword(0));
+                    SetClipboardData(FmtNoCloud, Dword(0));
+                    return true;
+                }
+                finally { CloseClipboard(); _suppressUntil = DateTime.UtcNow.AddMilliseconds(500); }
+            }
+            Thread.Sleep(40);
+        }
+        return false;
+    }
+
+    /// <summary>An app pastes: hand over the text now – and move the queue on a moment later.</summary>
+    private void OnRenderFormat(uint format)
+    {
+        var it = _promised;
+        if (it == null || format != CF_UNICODETEXT) return;
+        SetClipboardData(CF_UNICODETEXT, GlobalText(it.Text));
+        if (_promisedTaken) return;
+        _promisedTaken = true;
+        var t = new System.Windows.Threading.DispatcherTimer { Interval = TimeSpan.FromMilliseconds(150) };
+        t.Tick += (_, _) => { t.Stop(); Advance(it); };
+        t.Start();
+    }
+
+    /// <summary>IslandHub closes: the promised text is written for real, so it stays pasteable.</summary>
+    private void OnRenderAll()
+    {
+        var it = _promised;
+        if (it == null || !OpenClipboard(_owner)) return;
+        try { if (GetClipboardOwner() == _owner) SetClipboardData(CF_UNICODETEXT, GlobalText(it.Text)); }
+        finally { CloseClipboard(); }
+    }
+
+    private static IntPtr GlobalText(string s)
+    {
+        var bytes = Encoding.Unicode.GetBytes((s ?? "") + "\0");
+        var h = GlobalAlloc(0x0002, (UIntPtr)bytes.Length); // GMEM_MOVEABLE
+        var p = GlobalLock(h);
+        Marshal.Copy(bytes, 0, p, bytes.Length);
+        GlobalUnlock(h);
+        return h;
+    }
+
+    private static IntPtr Dword(int v)
+    {
+        var h = GlobalAlloc(0x0002, (UIntPtr)4);
+        var p = GlobalLock(h);
+        Marshal.WriteInt32(p, v);
+        GlobalUnlock(h);
+        return h;
+    }
+
+    [DllImport("user32.dll", SetLastError = true)] private static extern bool OpenClipboard(IntPtr owner);
+    [DllImport("user32.dll")] private static extern bool CloseClipboard();
+    [DllImport("user32.dll")] private static extern bool EmptyClipboard();
+    [DllImport("user32.dll")] private static extern IntPtr SetClipboardData(uint format, IntPtr mem);
+    [DllImport("user32.dll")] private static extern IntPtr GetClipboardOwner();
+    [DllImport("user32.dll", CharSet = CharSet.Unicode)] private static extern uint RegisterClipboardFormat(string name);
+    [DllImport("kernel32.dll")] private static extern IntPtr GlobalAlloc(uint flags, UIntPtr bytes);
+    [DllImport("kernel32.dll")] private static extern IntPtr GlobalLock(IntPtr h);
+    [DllImport("kernel32.dll")] private static extern bool GlobalUnlock(IntPtr h);
 
     /// <summary>Queue test only: lets the test's own (injected) Ctrl+V count as a paste.</summary>
     public void AcceptInjectedPasteForTest() => _hook.AcceptInjected = true;
@@ -545,7 +656,7 @@ public sealed class ClipboardService : ObservableObject
     {
         bool wasHead = Queue.Count > 0 && Queue[0] == item;
         Queue.Remove(item);
-        if (wasHead && Queue.Count > 0) SetClipboard(Queue[0]);
+        if (wasHead && Queue.Count > 0) SetQueueHead();
     }
 
     public void ClearQueue() => Queue.Clear();

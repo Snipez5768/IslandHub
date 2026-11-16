@@ -272,7 +272,7 @@ public partial class App : Application
                     Hub.Clipboard.SimulatePasteForTest();
                 }
                 await Task.Delay(700);
-                log.AppendLine($"{(front ? "Strg+V" : "Einfügen (simuliert)")} #{i + 1}: Text='{box.Text}' Stapel={Hub.Clipboard.QueueCount} Ablage jetzt='{SafeText()}'");
+                log.AppendLine($"{(front ? "Strg+V" : "Einfügen (liest die Ablage wie eine App)")} #{i + 1}: Text='{box.Text}' Stapel={Hub.Clipboard.QueueCount} Ablage jetzt='{SafeText()}'");
             }
             log.AppendLine(box.Text == "EinsZweiDrei" ? "OK" : "FEHLER: erwartet 'EinsZweiDrei'");
         }
@@ -286,7 +286,8 @@ public partial class App : Application
             Quit();
         }
 
-        static string SafeText() { try { return Clipboard.ContainsText() ? Clipboard.GetText() : "(kein Text)"; } catch { return "(belegt)"; } }
+        // what is up next – read from the queue, NOT the clipboard (reading it would count as a paste since 2026-11-16)
+        static string SafeText() => Hub.Clipboard.QueueCount > 0 ? Hub.Clipboard.Queue[0].Text ?? "" : "(Stapel leer)";
     }
 
     [System.Runtime.InteropServices.DllImport("user32.dll")]

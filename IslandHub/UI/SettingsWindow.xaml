@@ -417,6 +417,83 @@
                     </Border>
 
                     <!-- verification codes: open the mails -->
+                    <TextBlock Text="Kalender" Style="{StaticResource GroupHeader}" />
+                    <Border Style="{StaticResource SettingCard}">
+                        <StackPanel>
+                            <Border Style="{StaticResource Row}">
+                                <DockPanel>
+                                    <ui:HintPic Kind="calendar" />
+                                    <StackPanel Margin="0,0,12,0" VerticalAlignment="Center">
+                                        <TextBlock Text="Kalender-Links (iCal)" />
+                                        <TextBlock Style="{StaticResource Desc}" Text="Google: Kalender-Einstellungen › „Privatadresse im iCal-Format“. Outlook: Kalender › Freigeben › Veröffentlichen › ICS-Link. Ein Link pro Zeile – nur lesen, keine Anmeldung. Der Tab „Heute“ zeigt die Termine, 10 Minuten vorher meldet sich die Insel." />
+                                    </StackPanel>
+                                </DockPanel>
+                            </Border>
+                            <Border Style="{StaticResource LastRow}">
+                                <DockPanel>
+                                    <Button DockPanel.Dock="Right" Style="{StaticResource MacAccentButton}" Content="Prüfen" Margin="8,0,0,0" VerticalAlignment="Top" Click="CalendarCheck_Click" />
+                                    <TextBox x:Name="OptCalendarUrls" Style="{StaticResource MacTextBox}" AcceptsReturn="True" TextWrapping="NoWrap" MinHeight="44"
+                                             VerticalScrollBarVisibility="Auto" Tag="https://calendar.google.com/calendar/ical/…/basic.ics" LostFocus="CalendarUrls_LostFocus" />
+                                </DockPanel>
+                            </Border>
+                            <TextBlock x:Name="CalendarStatus" Style="{StaticResource Desc}" Margin="14,0,14,10" Visibility="Collapsed" />
+                        </StackPanel>
+                    </Border>
+
+                    <TextBlock Text="Live-Dienste" Style="{StaticResource GroupHeader}" />
+                    <Border Style="{StaticResource SettingCard}">
+                        <StackPanel>
+                            <Border Style="{StaticResource Row}">
+                                <DockPanel>
+                                    <ui:HintPic Kind="sportpic" />
+                                    <StackPanel>
+                                        <TextBlock Text="Fußball live" />
+                                        <TextBlock Style="{StaticResource Desc}" Text="Anpfiff, Tore und Abpfiff deines Vereins (OpenLigaDB, ohne Anmeldung). Liga: bl1, bl2, bl3, dfb …" Margin="0,0,0,6" />
+                                        <DockPanel>
+                                            <TextBox x:Name="OptSportLeague" Style="{StaticResource MacTextBox}" Width="70" Tag="bl1" LostFocus="Feeds_LostFocus" Margin="0,0,8,0" />
+                                            <TextBox x:Name="OptSportTeam" Style="{StaticResource MacTextBox}" Tag="Verein, z. B. Dortmund" LostFocus="Feeds_LostFocus" />
+                                        </DockPanel>
+                                    </StackPanel>
+                                </DockPanel>
+                            </Border>
+                            <Border Style="{StaticResource Row}">
+                                <DockPanel>
+                                    <ui:HintPic Kind="twitch" />
+                                    <StackPanel>
+                                        <TextBlock Text="Twitch – Kanal geht live" />
+                                        <TextBlock Style="{StaticResource Desc}" Text="Braucht eine eigene kostenlose App auf dev.twitch.tv (Client-ID und Secret, das Secret wird verschlüsselt gespeichert). Kanäle mit Komma getrennt." Margin="0,0,0,6" />
+                                        <DockPanel Margin="0,0,0,6">
+                                            <PasswordBox x:Name="OptTwitchSecret" DockPanel.Dock="Right" Width="150" Margin="8,0,0,0" LostFocus="Feeds_LostFocus" ToolTip="Client-Secret" />
+                                            <TextBox x:Name="OptTwitchId" Style="{StaticResource MacTextBox}" Tag="Client-ID" LostFocus="Feeds_LostFocus" />
+                                        </DockPanel>
+                                        <TextBox x:Name="OptTwitchChannels" Style="{StaticResource MacTextBox}" Tag="kanal1, kanal2" LostFocus="Feeds_LostFocus" />
+                                    </StackPanel>
+                                </DockPanel>
+                            </Border>
+                            <Border Style="{StaticResource Row}">
+                                <DockPanel>
+                                    <ui:HintPic Kind="youtube" />
+                                    <StackPanel>
+                                        <TextBlock Text="YouTube – Kanal geht live" />
+                                        <TextBlock Style="{StaticResource Desc}" Text="Ohne Anmeldung: alle 5 Minuten wird die öffentliche Live-Seite des Kanals angesehen. @Name oder Kanal-ID, mit Komma getrennt." Margin="0,0,0,6" />
+                                        <TextBox x:Name="OptYouTube" Style="{StaticResource MacTextBox}" Tag="@kanal, @nochEiner" LostFocus="Feeds_LostFocus" />
+                                    </StackPanel>
+                                </DockPanel>
+                            </Border>
+                            <Border Style="{StaticResource LastRow}">
+                                <DockPanel>
+                                    <ui:HintPic Kind="parcel" />
+                                    <StackPanel>
+                                        <TextBlock Text="Pakete (DHL)" />
+                                        <TextBlock Style="{StaticResource Desc}" Text="Braucht einen kostenlosen Schlüssel von developer.dhl.com (verschlüsselt gespeichert). Ein Paket pro Zeile: „Name: Sendungsnummer“. Die Insel meldet jede neue Station." Margin="0,0,0,6" />
+                                        <PasswordBox x:Name="OptDhlKey" Margin="0,0,0,6" LostFocus="Feeds_LostFocus" ToolTip="DHL-API-Key" />
+                                        <TextBox x:Name="OptParcels" Style="{StaticResource MacTextBox}" AcceptsReturn="True" MinHeight="44" Tag="Schuhe: 00340434161094000000" LostFocus="Feeds_LostFocus" />
+                                    </StackPanel>
+                                </DockPanel>
+                            </Border>
+                        </StackPanel>
+                    </Border>
+
                     <TextBlock Text="Bestätigungscodes" Style="{StaticResource GroupHeader}" />
                     <Border Style="{StaticResource SettingCard}">
                         <StackPanel>
@@ -495,6 +572,48 @@
                                     <StackPanel Margin="0,0,12,0" VerticalAlignment="Center">
                                         <TextBlock Text="Leuchten in Cover-Farbe" />
                                         <TextBlock Style="{StaticResource Desc}" Text="Bei Musik leuchtet die Insel in der Farbe des Albumcovers." />
+                                    </StackPanel>
+                                </DockPanel>
+                            </Border>
+                        </StackPanel>
+                    </Border>
+
+                    <TextBlock Text="Größe und Platz" Style="{StaticResource GroupHeader}" />
+                    <Border Style="{StaticResource SettingCard}">
+                        <StackPanel>
+                            <Border Style="{StaticResource Row}">
+                                <DockPanel>
+                                    <TextBlock x:Name="IslandSizeText" DockPanel.Dock="Right" Foreground="{StaticResource SubText}" Width="54" TextAlignment="Right" VerticalAlignment="Center" />
+                                    <Slider x:Name="OptIslandSize" DockPanel.Dock="Right" Style="{StaticResource ThinSlider}" Foreground="{DynamicResource Accent}" Width="140"
+                                            Minimum="70" Maximum="140" SmallChange="5" LargeChange="10" IsSnapToTickEnabled="True" TickFrequency="5"
+                                            VerticalAlignment="Center" ValueChanged="IslandSize_Changed" />
+                                    <ui:HintPic Kind="size" />
+                                    <StackPanel Margin="0,0,12,0" VerticalAlignment="Center">
+                                        <TextBlock Text="Größe" />
+                                        <TextBlock Style="{StaticResource Desc}" Text="Alles in der Insel wird mitskaliert – Symbole, Schrift, Cover." />
+                                    </StackPanel>
+                                </DockPanel>
+                            </Border>
+                            <Border Style="{StaticResource Row}">
+                                <DockPanel>
+                                    <ToggleButton x:Name="OptScaleScreen" DockPanel.Dock="Right" Style="{StaticResource Switch}" Click="Opt_Click" VerticalAlignment="Center" />
+                                    <ui:HintPic Kind="screen" />
+                                    <StackPanel Margin="0,0,12,0" VerticalAlignment="Center">
+                                        <TextBlock Text="Mit der Auflösung mitwachsen" />
+                                        <TextBlock Style="{StaticResource Desc}" Text="Auf jedem Bildschirm so groß wie auf einem 1920 × 1080 – auf 2560 × 1440 z. B. ein Drittel größer." />
+                                    </StackPanel>
+                                </DockPanel>
+                            </Border>
+                            <Border Style="{StaticResource LastRow}">
+                                <DockPanel>
+                                    <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+                                        <Button Content="Zur Mitte" Style="{StaticResource MacButton}" Padding="10,3" Margin="0,0,8,0" Click="IslandCenter_Click" />
+                                        <Button Content="Verschieben" Style="{StaticResource MacAccentButton}" Click="IslandMove_Click" />
+                                    </StackPanel>
+                                    <ui:HintPic Kind="move" />
+                                    <StackPanel Margin="0,0,12,0" VerticalAlignment="Center">
+                                        <TextBlock Text="Insel verschieben" />
+                                        <TextBlock Style="{StaticResource Desc}" Text="Am oberen Rand ziehen, auch auf einen anderen Monitor. In der Mitte rastet sie ein. Fertig mit „Fertig“, Enter oder Esc." />
                                     </StackPanel>
                                 </DockPanel>
                             </Border>
@@ -810,6 +929,18 @@
                     <TextBlock Text="Auf dem Schreibtisch" Style="{StaticResource GroupHeader}" />
                     <Border Style="{StaticResource SettingCard}">
                         <StackPanel x:Name="DesktopWidgetsPanel" />
+                    </Border>
+                    <Border Style="{StaticResource SettingCard}" Margin="0,10,0,0">
+                        <Border Style="{StaticResource LastRow}">
+                            <DockPanel>
+                                <Button x:Name="ArrangeBtn" DockPanel.Dock="Right" Style="{StaticResource MacAccentButton}" Content="Anordnen" Click="ArrangeWidgets_Click" VerticalAlignment="Center" />
+                                <ui:HintPic Kind="widgets" />
+                                <StackPanel Margin="0,0,12,0" VerticalAlignment="Center">
+                                    <TextBlock Text="Widgets anordnen" />
+                                    <TextBlock Style="{StaticResource Desc}" Text="Sonst sind sie fest. Beim Anordnen ziehen und loslassen – sie rasten im Raster ein. Fertig über die Insel oder Rechtsklick auf ein Widget." />
+                                </StackPanel>
+                            </DockPanel>
+                        </Border>
                     </Border>
                     <TextBlock Text="Wetter" Style="{StaticResource GroupHeader}" />
                     <Border Style="{StaticResource SettingCard}">
