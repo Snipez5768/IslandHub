@@ -17,7 +17,8 @@ $gz = New-Object System.IO.Compression.GZipStream($dst, [System.IO.Compression.C
 $src.CopyTo($gz); $gz.Dispose(); $src.Dispose()
 
 $out = Join-Path $root "Setup\bin\out"
-dotnet build "$root\Setup\PeakPillSetup.csproj" -c Release -o $out -nologo -v q
+$version = ([xml](Get-Content "$root\PeakPill\PeakPill.csproj")).Project.PropertyGroup.Version | Where-Object { $_ } | Select-Object -First 1
+dotnet build "$root\Setup\PeakPillSetup.csproj" -c Release -o $out -nologo -v q -p:Version=$version
 if ($LASTEXITCODE -ne 0) { throw "Der Installer konnte nicht gebaut werden" }
 Copy-Item "$out\PeakPill-Setup.exe" "$dist\PeakPill-Setup.exe" -Force
 

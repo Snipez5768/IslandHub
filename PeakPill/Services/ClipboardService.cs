@@ -427,6 +427,7 @@ public sealed class ClipboardService : ObservableObject
                 Queue.Add(item);
                 _lastQueued = DateTime.Now;
             }
+            StackLog($"copied ({item.Kind}, from {item.Source ?? "?"}){(echo ? " – same copy again, not queued twice" : "")} – {Queue.Count} in the stack");
             // the head is offered even right after the first copy – so the very first paste is noticed too
             SetQueueHead();
         }
@@ -524,8 +525,10 @@ public sealed class ClipboardService : ObservableObject
     {
         Pasted?.Invoke();
         if (!_queueMode || Queue.Count == 0) return;
-        // a promised text tells us itself when it is pasted (any way: Ctrl+V, menu, Shift+Ins, macro keys)
-        if (_promised != null && Queue[0] == _promised) return;
+        // a promised text tells us itself when it is pasted (any way: Ctrl+V, menu, Shift+Ins, macro keys) – unless a
+        // background reader took it first: then Windows will not ask again and this Ctrl+V is the only sign
+        if (_promised != null && Queue[0] == _promised && (_promisedTaken || !_promisedRead)) return;
+        StackLog("Ctrl+V seen" + (_promisedRead ? " (text was read in the background before)" : ""));
         // images / files: give the target app a moment to read the clipboard before we swap in the next item
         var head = Queue[0];
         var t = new System.Windows.Threading.DispatcherTimer { Interval = TimeSpan.FromMilliseconds(140) };
@@ -538,6 +541,7 @@ public sealed class ClipboardService : ObservableObject
     {
         if (!_queueMode || Queue.Count == 0 || Queue[0] != pasted) return;
         Queue.RemoveAt(0);
+        StackLog($"pasted – {Queue.Count} left");
         if (Queue.Count > 0)
         {
             SetQueueHead();
@@ -561,7 +565,8 @@ public sealed class ClipboardService : ObservableObject
     private static readonly uint FmtNoCloud = RegisterClipboardFormat("CanUploadToCloudClipboard");
     private IntPtr _owner;
     private ClipItem _promised;
-    private bool _promisedTaken;
+    private bool _promisedTaken, _promisedRead;
+    private uint _promisedAt; // last-input tick when the text was put there
 
     private void SetQueueHead()
     {
@@ -581,31 +586,85 @@ public sealed class ClipboardService : ObservableObject
                 {
                     EmptyClipboard();
                     _promised = it;
-                    _promisedTaken = false;
+                    _promisedTaken = _promisedRead = false;
+                    _promisedAt = LastInputTick(); // only input after this moment makes a read a paste
                     SetClipboardData(CF_UNICODETEXT, IntPtr.Zero); // promised – rendered on request
                     SetClipboardData(FmtExclude, Dword(0));
                     SetClipboardData(FmtNoHistory, Dword(0));
                     SetClipboardData(FmtNoCloud, Dword(0));
+                    StackLog($"ready: item {Queue.IndexOf(it) + 1} of {Queue.Count}");
                     return true;
                 }
                 finally { CloseClipboard(); _suppressUntil = DateTime.UtcNow.AddMilliseconds(500); }
             }
             Thread.Sleep(40);
         }
+        StackLog("could not open the clipboard – the text is put there directly (Ctrl+V watch counts)");
         return false;
     }
 
-    /// <summary>An app pastes: hand over the text now – and move the queue on a moment later.</summary>
+    /// <summary>Someone reads the promised text: hand it over now. Was it a paste (you did something since it was
+    /// put there – a key, a click, a macro), the queue moves on a moment later.
+    /// Programs that watch the clipboard in the background (2026-11-16, user: "Stapeleinfügen klappt immer noch nicht")
+    /// read it right after it is put there, with nobody touching anything. Counted as a paste, they skipped items;
+    /// and once read, the text sits on the clipboard for real – Windows does not ask again, so the real Ctrl+V went
+    /// unnoticed and pasted the same text over and over. Such a read does not count; the Ctrl+V watch takes over.</summary>
     private void OnRenderFormat(uint format)
     {
         var it = _promised;
         if (it == null || format != CF_UNICODETEXT) return;
         SetClipboardData(CF_UNICODETEXT, GlobalText(it.Text));
         if (_promisedTaken) return;
-        _promisedTaken = true;
+        uint lastInput = LastInputTick();
+        bool touched = unchecked((int)(lastInput - _promisedAt)) > 0; // input after the text was put there
+        var req = GetOpenClipboardWindow();
+        Native.GetWindowThreadProcessId(req, out uint rpid);
+        Native.GetWindowThreadProcessId(Native.GetForegroundWindow(), out uint fpid);
+        bool front = req == IntPtr.Zero || rpid == fpid; // the app in front reads (or it did not say who it is)
+        bool paste = touched && front;
+        _promisedTaken = paste;
+        _promisedRead = true;
+        StackLog($"read by {(req == IntPtr.Zero ? "(no window)" : ProcName(req))}, in front {ProcName(Native.GetForegroundWindow())}, " +
+                 $"input {unchecked(Environment.TickCount - (int)lastInput)} ms ago → {(paste ? "paste" : "background read, not counted")}");
+        if (!paste) return;
         var t = new System.Windows.Threading.DispatcherTimer { Interval = TimeSpan.FromMilliseconds(150) };
         t.Tick += (_, _) => { t.Stop(); Advance(it); };
         t.Start();
+    }
+
+    private static string ProcName(IntPtr hwnd)
+    {
+        try
+        {
+            Native.GetWindowThreadProcessId(hwnd, out uint pid);
+            using var p = System.Diagnostics.Process.GetProcessById((int)pid);
+            return p.ProcessName;
+        }
+        catch { return "?"; }
+    }
+
+    private static uint LastInputTick()
+    {
+        var li = new LASTINPUTINFO { cbSize = (uint)Marshal.SizeOf<LASTINPUTINFO>() };
+        return GetLastInputInfo(ref li) ? li.dwTime : 0;
+    }
+
+    [StructLayout(LayoutKind.Sequential)] private struct LASTINPUTINFO { public uint cbSize, dwTime; }
+    [DllImport("user32.dll")] private static extern bool GetLastInputInfo(ref LASTINPUTINFO li);
+
+    /// <summary>A short local log of the queue (no clipboard content – only what happened and who read), so a
+    /// queue that misbehaves on someone's PC can be understood: %AppData%\PeakPill\stack-log.txt, last 300 lines.</summary>
+    private static void StackLog(string what)
+    {
+        try
+        {
+            var f = Storage.PathOf("stack-log.txt");
+            var lines = File.Exists(f) ? File.ReadAllLines(f).ToList() : new List<string>();
+            lines.Add($"{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff} {what}");
+            if (lines.Count > 300) lines.RemoveRange(0, lines.Count - 300);
+            File.WriteAllLines(f, lines);
+        }
+        catch { }
     }
 
     /// <summary>PeakPill closes: the promised text is written for real, so it stays pasteable.</summary>
@@ -641,6 +700,7 @@ public sealed class ClipboardService : ObservableObject
     [DllImport("user32.dll")] private static extern bool EmptyClipboard();
     [DllImport("user32.dll")] private static extern IntPtr SetClipboardData(uint format, IntPtr mem);
     [DllImport("user32.dll")] private static extern IntPtr GetClipboardOwner();
+    [DllImport("user32.dll")] private static extern IntPtr GetOpenClipboardWindow();
     [DllImport("user32.dll", CharSet = CharSet.Unicode)] private static extern uint RegisterClipboardFormat(string name);
     [DllImport("kernel32.dll")] private static extern IntPtr GlobalAlloc(uint flags, UIntPtr bytes);
     [DllImport("kernel32.dll")] private static extern IntPtr GlobalLock(IntPtr h);
