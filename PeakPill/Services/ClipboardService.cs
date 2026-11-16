@@ -721,6 +721,25 @@ public sealed class ClipboardService : ObservableObject
 
     public void ClearQueue() => Queue.Clear();
 
+    /// <summary>What was copied within <paramref name="within"/> (newest first in the history), oldest first.</summary>
+    public List<ClipItem> RecentCopies(TimeSpan within, int max = 9) =>
+        Items.Where(i => DateTime.Now - i.Time < within).Take(max).Reverse().ToList();
+
+    /// <summary>Copies from before the stack was on go in first – they were copied before anything that is in it.</summary>
+    public void AddToQueueFront(IList<ClipItem> items)
+    {
+        if (!_queueMode) return;
+        int at = 0;
+        foreach (var it in items)
+            if (!Queue.Contains(it)) Queue.Insert(at++, it);
+        if (at == 0) return;
+        StackLog($"{at} earlier copies added – {Queue.Count} in the stack");
+        SetQueueHead();
+        var next = Queue[0].Title ?? "";
+        if (next.Length > 24) next = next[..23].TrimEnd() + "…";
+        Notice?.Invoke($"{Queue.Count} im Stapel · als Erstes: {next}");
+    }
+
     public void Remove(ClipItem item)
     {
         Items.Remove(item);

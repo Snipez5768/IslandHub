@@ -725,6 +725,39 @@ public partial class IslandWindow
                     using (var fs = File.Create(Path.Combine(dir, "sizes.png"))) enc.Save(fs);
                     break;
                 }
+                case "offer":
+                {
+                    // the stack is switched on after copying: the island offers the copies from just before.
+                    // The real clipboard is NOT touched (the stack is on only inside the service, nothing is promised).
+                    fh = 200;
+                    var qf = typeof(PeakPill.Services.ClipboardService).GetField("_queueMode", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+                    var fakes = new[] { "Rechnung Nr. 4711", "Musterstraße 12, Berlin", "demo@example.com" }
+                        .Select((t, i) => new ClipItem { Kind = ClipKind.Text, Text = t, Time = DateTime.Now.AddMinutes(-3 + i), Source = "Demo" }).ToList();
+                    foreach (var f in fakes) H.Clipboard.Items.Insert(0, f);
+                    qf.SetValue(H.Clipboard, true);
+                    OfferRecentCopies();
+                    await Film(14, 120);
+                    Save("1_offer");
+                    File.WriteAllText(Path.Combine(dir, "order.txt"), string.Join(" | ", H.Clipboard.RecentCopies(TimeSpan.FromMinutes(10)).Select(i => i.Text)));
+                    qf.SetValue(H.Clipboard, false);
+                    foreach (var f in fakes) H.Clipboard.Items.Remove(f);
+                    break;
+                }
+                case "listen":
+                {
+                    // a known app starts listening while a Discord call runs – the wave must still come
+                    fh = 120;
+                    var claude = System.Diagnostics.Process.GetProcessesByName("Claude").Select(p => { try { return p.MainModule?.FileName; } catch { return null; } }).FirstOrDefault(f => f != null);
+                    H.Privacy.Demo((claude ?? @"C:\Windows\System32\notepad.exe", true, false, false, 3));
+                    _knownLive ??= Storage.Load<Dictionary<string, DateTime>>("privacy_known.json") ?? new();
+                    File.WriteAllText(Path.Combine(dir, "app.txt"), $"{H.Privacy.Apps[0].Name} bekannt: {_knownLive.ContainsKey("m:" + H.Privacy.Apps[0].Name)}");
+                    await Task.Delay(400);
+                    H.Privacy.DemoStarted('m');
+                    await Film(12, 110);
+                    Save("1_listen");
+                    H.Privacy.EndDemo();
+                    break;
+                }
                 case "queue2":
                 {
                     // another process pastes (reads the clipboard) – the queue must move once per paste

@@ -96,6 +96,7 @@ public partial class IslandWindow : Window
         H.Clipboard.PropertyChanged += (_, e) =>
         {
             if (e.PropertyName is nameof(ClipboardService.QueueMode) or nameof(ClipboardService.QueueCount)) UpdateQueueUi();
+            if (e.PropertyName == nameof(ClipboardService.QueueMode) && H.Clipboard.QueueMode) OfferRecentCopies();
         };
         H.Clipboard.Notice += msg => ShowHint("stack", msg, (Brush)FindResource("Accent"), key: "queue");
         H.Clipboard.Captured += OnCaptured;
@@ -2936,7 +2937,8 @@ public partial class IslandWindow : Window
         {
             // an app you know starts listening (user's pick 2026-11-15, "B · Hört zu"): the island says so itself –
             // "Claude hört zu" with the orange wave – then the wave lives on as the small bubble next to it
-            if (kind == 'm' && !app.IsDiscord && !H.Discord.InVoice) { ShowListening(app); return; }
+            // (a Discord call no longer hides it – that another app listens matters most during a call; 2026-11-16)
+            if (kind == 'm' && !app.IsDiscord) { ShowListening(app); return; }
             GlowBubble(Act.Live, kind == 'm' ? (Brush)FindResource("Orange") : (Brush)FindResource("Green"));
             return;
         }
@@ -2962,7 +2964,7 @@ public partial class IslandWindow : Window
         var orange = (Brush)FindResource("Orange");
         if (S.Animations == AnimationLevel.Aus) { GlowBubble(Act.Live, orange); return; }
         ShowHint("mic", $"{app.Name} hört zu", orange, key: "listen");
-        if (_state != State.Hint) return;
+        if (_state != State.Hint) { GlowBubble(Act.Live, orange); return; } // the island is busy (open, …) – at least it glows
         if (HintWave.Children.Count == 0) MakeWave(HintWave, 5, 13, 2);
         HintIcon.Visibility = Visibility.Collapsed;
         HintWave.Visibility = Visibility.Visible;
@@ -4073,6 +4075,33 @@ public partial class IslandWindow : Window
         }
         finally { _queueSkipping = false; }
         await RefreshQueueNow();
+    }
+
+    /// <summary>The stack was switched on (island, tray, settings or hotkey) – what you copied just before is not in it
+    /// yet. User 2026-11-16: "wenn man ohne den Modus kopiert, dann funktioniert das nicht". The island offers the
+    /// copies of the last 10 minutes (oldest first, at most 9); one click and they are the first in the stack.</summary>
+    private void OfferRecentCopies()
+    {
+        var recent = H.Clipboard.RecentCopies(TimeSpan.FromMinutes(10));
+        if (recent.Count == 0) return;
+        // after the short "Stapel an" (when it came from the island's own switch)
+        Dispatcher.BeginInvoke(new Action(async () =>
+        {
+            await Task.Delay(1100);
+            if (!H.Clipboard.QueueMode) return;
+            recent = H.Clipboard.RecentCopies(TimeSpan.FromMinutes(10)).Where(i => !H.Clipboard.Queue.Contains(i)).ToList();
+            if (recent.Count == 0) return;
+            var p = new PeekInfo
+            {
+                Key = "queue-offer", Source = "Zwischenablage", SourceIcon = "stack.fill", Icon = "stack.fill",
+                GlyphBrush = (Brush)FindResource("Accent"),
+                Title = recent.Count == 1 ? "Letzte Kopie mit dazu?" : $"{recent.Count} Kopien von eben dazu?",
+                Text = "kommen zuerst – so, wie du sie kopiert hast",
+                TimeoutMs = 9000
+            };
+            p.Button("plus", "Mit hinein", () => H.Clipboard.AddToQueueFront(recent), (Brush)FindResource("Accent"));
+            ShowPeek(p);
+        }));
     }
 
     private void SetQueueMode(bool on)
