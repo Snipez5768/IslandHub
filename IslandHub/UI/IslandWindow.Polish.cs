@@ -555,30 +555,26 @@ public partial class IslandWindow
                     EndPeek();
                     break;
                 case "eyes":
-                    // the eyes as on a quiet island (here something else plays, so they are shown directly)
+                    // music plays: the eyes come out left of the cover (the island widens), go again; then pause → no bars
                     fh = 60;
                     _sticky = false;
                     Collapse();
+                    H.Media.Fake("Nachtlicht", "Lena Ost", orange, false);
                     await Task.Delay(1500);
-                    _uiTimer.Stop(); // the periodic pill update would put the music back meanwhile
-                    LeadCover.Visibility = Visibility.Collapsed; Equalizer.Visibility = Visibility.Collapsed; Trail.Visibility = Visibility.Collapsed;
-                    HideBubbleNow(Bubble); HideBubbleNow(Bubble2);
-                    AnimateSize(IdleW, PillH + NotchExtra, PillH / 2, true);
-                    UpdateEyes(true);
-                    await Task.Delay(700);
-                    Lead.Visibility = Visibility.Collapsed; HideBubbleNow(Bubble); HideBubbleNow(Bubble2);
-                    Eyes.Visibility = Visibility.Visible;
-                    UpdateLayout();
-                    _eyeLast = default;
-                    LookAtPointer();
                     Frame();
-                    EyeL.X = EyeR.X = -1.8; EyeL.Y = EyeR.Y = -1.5; Frame(); // looking up left
-                    EyeL.X = EyeR.X = 1.8; EyeL.Y = EyeR.Y = 2.2; Frame();   // down right
-                    Blink();
-                    await Task.Delay(80);
+                    ShowEyes();
+                    await Film(6, 70);
+                    EyeL.X = EyeR.X = -1.8; EyeL.Y = EyeR.Y = 1.5; Frame();
+                    _eyesUntil = DateTime.Now; // as if the pointer had left a while ago
+                    await Film(5, 70);
+                    Save("1_eyes_music");
+                    H.Media.FakePlaying(false);
+                    await Task.Delay(900);
                     Frame();
-                    Lead.Visibility = Visibility.Visible;
-                    Save("1_eyes");
+                    H.Media.FakePlaying(true);
+                    await Task.Delay(900);
+                    Frame();
+                    Save("2_pause_play");
                     break;
                 case "lyrics":
                     fh = 320;

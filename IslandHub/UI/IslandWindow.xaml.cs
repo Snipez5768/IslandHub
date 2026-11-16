@@ -1720,7 +1720,8 @@ public partial class IslandWindow : Window
                     if (!_songPending) { PillCover.ImageSource = H.Media.Cover; _shownCoverHash = H.Media.CoverHash; }
                     if (H.Media.Cover != null || _songPending) LeadCover.Visibility = Visibility.Visible;
                     else ShowLeadIcon("music", musicColor);
-                    Equalizer.Visibility = Visibility.Visible;
+                    // paused / nothing playing: no visualizer (user wish 2026-11-16) – the cover stays
+                    Equalizer.Visibility = H.Media.IsPlaying ? Visibility.Visible : Visibility.Collapsed;
                     break;
                 case Act.Recording:
                     ShowLeadIcon("record", color);
