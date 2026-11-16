@@ -1,0 +1,102 @@
+<Window x:Class="PeakPillSetup.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="PeakPill" Width="440" Height="480" ResizeMode="NoResize" WindowStyle="None" AllowsTransparency="True"
+        Background="Transparent" WindowStartupLocation="CenterScreen" UseLayoutRounding="True"
+        TextOptions.TextFormattingMode="Display">
+    <Border Background="{StaticResource Bg}" BorderBrush="{StaticResource Line}" BorderThickness="1" CornerRadius="16" Margin="10">
+        <Border.Effect>
+            <DropShadowEffect BlurRadius="18" ShadowDepth="3" Opacity="0.45" Color="Black" />
+        </Border.Effect>
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="34" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
+
+            <!-- title bar: drag anywhere, ✕ on the right -->
+            <Border Background="Transparent" MouseLeftButtonDown="Drag" />
+            <Button x:Name="CloseBtn" HorizontalAlignment="Right" Width="34" Height="26" Margin="0,6,8,0" VerticalAlignment="Top" Click="Close_Click" Cursor="Hand" ToolTip="Schließen">
+                <Button.Template>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="B" Background="Transparent" CornerRadius="8">
+                            <TextBlock Text="✕" FontSize="12" Foreground="{StaticResource Dim}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="B" Property="Background" Value="#FF3A3A3C" /></Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Button.Template>
+            </Button>
+
+            <!-- the pill with its eyes (they blink now and then) -->
+            <StackPanel Grid.Row="1" HorizontalAlignment="Center" Margin="0,4,0,0">
+                <Border Width="116" Height="54" CornerRadius="27" Background="Black" BorderBrush="#FF3A3A3E" BorderThickness="2" HorizontalAlignment="Center">
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center" RenderTransformOrigin="0.5,0.5">
+                        <StackPanel.RenderTransform><ScaleTransform x:Name="LogoBlink" /></StackPanel.RenderTransform>
+                        <Grid Width="13" Height="22" Margin="0,0,7,0">
+                            <Ellipse Fill="White" />
+                            <Ellipse Width="5.4" Height="11.6" Fill="#FF9A9AA0"><Ellipse.RenderTransform><TranslateTransform x:Name="PupilL" X="1.2" Y="1.6" /></Ellipse.RenderTransform></Ellipse>
+                        </Grid>
+                        <Grid Width="13" Height="22">
+                            <Ellipse Fill="White" />
+                            <Ellipse Width="5.4" Height="11.6" Fill="#FF9A9AA0"><Ellipse.RenderTransform><TranslateTransform x:Name="PupilR" X="1.2" Y="1.6" /></Ellipse.RenderTransform></Ellipse>
+                        </Grid>
+                    </StackPanel>
+                </Border>
+                <TextBlock x:Name="Heading" Text="PeakPill" FontSize="26" FontWeight="SemiBold" HorizontalAlignment="Center" Margin="0,16,0,0" />
+                <TextBlock x:Name="Sub" Text="Eine Dynamic Island für Windows" Foreground="{StaticResource Dim}" HorizontalAlignment="Center" TextAlignment="Center" Margin="24,4,24,0" />
+            </StackPanel>
+
+            <!-- ============ welcome ============ -->
+            <DockPanel x:Name="PageWelcome" Grid.Row="2" Margin="28,22,28,24">
+                <StackPanel DockPanel.Dock="Bottom">
+                    <TextBlock x:Name="WelcomeNote" Foreground="{StaticResource Dim}" FontSize="12" TextAlignment="Center" Margin="0,0,0,14" />
+                    <Button x:Name="InstallBtn" Style="{StaticResource Primary}" Content="Installieren" HorizontalAlignment="Center" Click="Install_Click" IsDefault="True" />
+                </StackPanel>
+                <Border Background="{StaticResource Card}" CornerRadius="12" VerticalAlignment="Top">
+                    <StackPanel>
+                        <CheckBox x:Name="OptAutostart" Style="{StaticResource Switch}" Content="Mit Windows starten" IsChecked="True" />
+                        <Border Height="1" Background="{StaticResource Line}" Margin="14,0,0,0" />
+                        <CheckBox x:Name="OptDesktop" Style="{StaticResource Switch}" Content="Verknüpfung auf dem Desktop" />
+                    </StackPanel>
+                </Border>
+            </DockPanel>
+
+            <!-- ============ working ============ -->
+            <StackPanel x:Name="PageProgress" Grid.Row="2" Margin="40,42,40,24" Visibility="Collapsed">
+                <Border Height="6" CornerRadius="3" Background="{StaticResource Card}">
+                    <Border x:Name="Bar" HorizontalAlignment="Left" Width="0" CornerRadius="3" Background="{StaticResource Accent}" />
+                </Border>
+                <TextBlock x:Name="Status" Foreground="{StaticResource Dim}" FontSize="12" TextAlignment="Center" Margin="0,14,0,0" Text="Einen Moment …" />
+            </StackPanel>
+
+            <!-- ============ done ============ -->
+            <DockPanel x:Name="PageDone" Grid.Row="2" Margin="28,22,28,24" Visibility="Collapsed">
+                <Button x:Name="DoneBtn" DockPanel.Dock="Bottom" Style="{StaticResource Primary}" Content="Fertig" HorizontalAlignment="Center" Click="Done_Click" IsDefault="True" />
+                <StackPanel VerticalAlignment="Top">
+                    <Border x:Name="LaunchCard" Background="{StaticResource Card}" CornerRadius="12">
+                        <CheckBox x:Name="OptLaunch" Style="{StaticResource Switch}" Content="PeakPill jetzt starten" IsChecked="True" />
+                    </Border>
+                    <TextBlock x:Name="DoneNote" Foreground="{StaticResource Dim}" FontSize="12" TextAlignment="Center" Margin="0,14,0,0" />
+                </StackPanel>
+            </DockPanel>
+
+            <!-- ============ remove ============ -->
+            <DockPanel x:Name="PageRemove" Grid.Row="2" Margin="28,22,28,24" Visibility="Collapsed">
+                <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" HorizontalAlignment="Center">
+                    <Button Style="{StaticResource Secondary}" Content="Abbrechen" Click="Close_Click" Margin="0,0,10,0" IsCancel="True" />
+                    <Button x:Name="RemoveBtn" Style="{StaticResource Primary}" Background="{StaticResource Danger}" Content="Entfernen" Click="Remove_Click" />
+                </StackPanel>
+                <StackPanel VerticalAlignment="Top">
+                    <Border Background="{StaticResource Card}" CornerRadius="12">
+                        <CheckBox x:Name="OptKeep" Style="{StaticResource Switch}" Content="Einstellungen und Verläufe behalten" IsChecked="True" />
+                    </Border>
+                    <TextBlock Foreground="{StaticResource Dim}" FontSize="12" TextAlignment="Center" Margin="0,14,0,0"
+                               Text="Behalten heißt: installierst du PeakPill später wieder, ist alles wie vorher." />
+                </StackPanel>
+            </DockPanel>
+        </Grid>
+    </Border>
+</Window>

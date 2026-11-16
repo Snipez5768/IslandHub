@@ -12,3 +12,7 @@ publish/
 *.log
 appsettings.local.json
 settings.json
+
+# installer build
+Setup/bin/
+Setup/obj/
