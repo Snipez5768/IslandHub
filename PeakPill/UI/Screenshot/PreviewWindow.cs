@@ -68,6 +68,8 @@ public sealed class PreviewWindow : Window
         rim.SetResourceReference(Border.BorderBrushProperty, "GlassRim");
 
         _actions = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Bottom, Margin = new Thickness(0, 0, 0, 8), Opacity = 0 };
+        // the screenshot to the KI chat, with a prompt of your own (user wish 2026-11-17)
+        _actions.Children.Add(Act("bubble", L.T("KI fragen"), "Blue", () => { var pic = LoadImage(_item.ImageFile); Dismiss(true); if (pic != null) App.Island.AskAiAbout(pic); }));
         _actions.Children.Add(Act("text.viewfinder", L.T("Text erkennen"), "Teal", () => { Dismiss(true); EditorWindow.Open(_item, true); }));
         _actions.Children.Add(Act("pencil", L.T("Bearbeiten"), "Yellow", () => { Dismiss(true); EditorWindow.Open(_item, false); }));
         _actions.Children.Add(Act("save", L.T("Auf dem PC sichern"), "Green", () => { App.Island.SaveImageItem(_item); Dismiss(true); }));

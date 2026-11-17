@@ -143,23 +143,30 @@ public partial class IslandWindow
     {
         if (m.IsUser)
         {
-            var tb = new TextBlock { Text = m.Text, TextWrapping = TextWrapping.Wrap, FontSize = 12.5, Foreground = Brushes.White };
-            return new Border
+            // the pictures sent with the question sit above its bubble (2026-11-17)
+            var q = new StackPanel { Margin = new Thickness(48, 5, 0, 3), HorizontalAlignment = HorizontalAlignment.Right };
+            if (m.Images.Count > 0)
             {
-                Background = (Brush)FindResource("Accent"),
-                CornerRadius = new CornerRadius(14, 14, 4, 14),
-                Padding = new Thickness(11, 6, 11, 7),
-                Margin = new Thickness(48, 5, 0, 3),
-                HorizontalAlignment = HorizontalAlignment.Right,
-                Child = tb,
-                ToolTip = null,
-            };
+                var pics = new WrapPanel { HorizontalAlignment = HorizontalAlignment.Right, Margin = new Thickness(0, 0, 0, m.Text.Length > 0 ? 4 : 0) };
+                foreach (var path in m.Images) if (AiThumb(path, 150, 96) is { } thumb) pics.Children.Add(thumb);
+                q.Children.Add(pics);
+            }
+            if (m.Text.Length > 0)
+                q.Children.Add(new Border
+                {
+                    Background = (Brush)FindResource("Accent"),
+                    CornerRadius = new CornerRadius(14, 14, 4, 14),
+                    Padding = new Thickness(11, 6, 11, 7),
+                    HorizontalAlignment = HorizontalAlignment.Right,
+                    Child = new TextBlock { Text = m.Text, TextWrapping = TextWrapping.Wrap, FontSize = 12.5, Foreground = Brushes.White },
+                });
+            return q;
         }
 
         var row = new StackPanel { Margin = new Thickness(0, 3, 30, 3), HorizontalAlignment = HorizontalAlignment.Left, Background = Brushes.Transparent };
         FrameworkElement content = m.IsStreaming && m.Text.Length == 0 ? TypingDots()
             : m.Failed ? AiFailure(m)
-            : AiMarkdown(m.Text, AiText);
+            : AiRich(m.Text, AiText);
         row.Children.Add(new Border
         {
             Background = m.Failed ? AiFailBg : AiBubble,
@@ -184,6 +191,112 @@ public partial class IslandWindow
             row.Children.Add(meta);
         }
         return row;
+    }
+
+    // ---------- pictures for the chat: pasted (Ctrl+V), dropped, chosen, or from a screenshot ----------
+
+    private readonly List<string> _aiPics = new();
+
+    /// <summary>A rounded picture (read without locking the file).</summary>
+    private static FrameworkElement AiThumb(string path, double maxW, double maxH)
+    {
+        try
+        {
+            var bi = new System.Windows.Media.Imaging.BitmapImage();
+            bi.BeginInit();
+            bi.CacheOption = System.Windows.Media.Imaging.BitmapCacheOption.OnLoad;
+            bi.UriSource = new Uri(path);
+            bi.DecodePixelWidth = (int)(maxW * 2);
+            bi.EndInit();
+            bi.Freeze();
+            double scale = Math.Min(maxW / bi.PixelWidth, maxH / bi.PixelHeight);
+            return new Border
+            {
+                Width = Math.Max(24, bi.PixelWidth * scale),
+                Height = Math.Max(24, bi.PixelHeight * scale),
+                CornerRadius = new CornerRadius(10),
+                Margin = new Thickness(4, 0, 0, 0),
+                Background = new ImageBrush(bi) { Stretch = Stretch.UniformToFill },
+                BorderBrush = new SolidColorBrush(Color.FromArgb(0x26, 0xFF, 0xFF, 0xFF)),
+                BorderThickness = new Thickness(0.5),
+            };
+        }
+        catch { return null; }
+    }
+
+    /// <summary>Adds a picture to the next question (it shows above the field, × removes it).</summary>
+    public void AiAttach(System.Windows.Media.Imaging.BitmapSource img)
+    {
+        if (img == null || _aiPics.Count >= 4) return;
+        try { _aiPics.Add(AiService.StoreImage(img)); } catch { return; }
+        ShowAiPics();
+    }
+
+    private void AiAttachFile(string path)
+    {
+        try
+        {
+            var bi = new System.Windows.Media.Imaging.BitmapImage();
+            bi.BeginInit();
+            bi.CacheOption = System.Windows.Media.Imaging.BitmapCacheOption.OnLoad;
+            bi.UriSource = new Uri(path);
+            bi.EndInit();
+            bi.Freeze();
+            AiAttach(bi);
+        }
+        catch { }
+    }
+
+    private void ShowAiPics()
+    {
+        AiPics.Children.Clear();
+        foreach (var path in _aiPics.ToList())
+        {
+            if (AiThumb(path, 64, 44) is not FrameworkElement thumb) continue;
+            var g = new Grid { Margin = new Thickness(0, 0, 6, 0) };
+            thumb.Margin = new Thickness(0);
+            g.Children.Add(thumb);
+            var x = new Border
+            {
+                Width = 18, Height = 18, CornerRadius = new CornerRadius(9), Cursor = Cursors.Hand, ToolTip = L.T("Entfernen"),
+                HorizontalAlignment = HorizontalAlignment.Right, VerticalAlignment = VerticalAlignment.Top, Margin = new Thickness(0, -6, -6, 0),
+                Background = new SolidColorBrush(Color.FromRgb(0x48, 0x48, 0x4A)), BorderBrush = Brushes.Black, BorderThickness = new Thickness(1.5),
+                Child = new SfIcon { Kind = "xmark", Size = 8, Foreground = Brushes.White, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center },
+            };
+            var p = path;
+            x.MouseLeftButtonUp += (_, e) => { e.Handled = true; _aiPics.Remove(p); ShowAiPics(); };
+            g.Children.Add(x);
+            AiPics.Children.Add(g);
+            if (S.Animations != AnimationLevel.Aus && path == _aiPics[^1]) Pop(g);
+        }
+        AiPicsRow.Visibility = _aiPics.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
+        UpdateAiSend();
+        UpdateAiHeight();
+    }
+
+    private void AiPicture_Click(object sender, RoutedEventArgs e)
+    {
+        var dlg = new Microsoft.Win32.OpenFileDialog { Filter = L.T("Bilder") + "|*.png;*.jpg;*.jpeg;*.webp;*.bmp;*.gif", Multiselect = true };
+        _sticky = true;
+        if (dlg.ShowDialog(this) == true) foreach (var f in dlg.FileNames.Take(4)) AiAttachFile(f);
+        AiInput.Focus();
+    }
+
+    private void TabAi_Drop(object sender, DragEventArgs e)
+    {
+        if (e.Data.GetData(DataFormats.FileDrop) is string[] files)
+            foreach (var f in files.Where(f => ShellIcon.IsImage(f)).Take(4)) AiAttachFile(f);
+        else if (e.Data.GetData(DataFormats.Bitmap) is System.Windows.Media.Imaging.BitmapSource bmp) AiAttach(bmp);
+        e.Handled = true;
+    }
+
+    /// <summary>From the screenshot: open the KI page with the picture attached, the field ready for a prompt.</summary>
+    public void AskAiAbout(System.Windows.Media.Imaging.BitmapSource shot)
+    {
+        _aiPics.Clear();
+        AiAttach(shot);
+        Expand("Ai", true);
+        Dispatcher.BeginInvoke(new Action(() => { AiInput.Focus(); AiInput.CaretIndex = AiInput.Text.Length; }), DispatcherPriority.Input);
     }
 
     private void AiCopy(Button b, string text)
@@ -351,6 +464,156 @@ public partial class IslandWindow
 
     private static TextBlock MdText(Brush fg) => new() { TextWrapping = TextWrapping.Wrap, FontSize = 12.5, Foreground = fg, LineHeight = 17 };
 
+    // ---------- answers you can select (user wish 2026-11-17: copy parts of an answer) ----------
+
+    private const double AiBubbleMax = 318;
+
+    /// <summary>
+    /// The answer as a read-only rich text: select with the mouse, Ctrl+C or right-click › Copy. Same light Markdown
+    /// as before (paragraphs, bold, italic, `code`, code blocks, lists, headings, links).
+    /// </summary>
+    private FrameworkElement AiRich(string text, Brush fg)
+    {
+        var doc = new FlowDocument { PagePadding = new Thickness(0), FontFamily = new FontFamily("Segoe UI"), FontSize = 12.5, Foreground = fg, LineHeight = 17 };
+        var para = new List<string>();
+        var code = new StringBuilder();
+        bool inCode = false;
+        var plain = new StringBuilder(); // for the bubble's width
+
+        Paragraph P(double top = 5) => new() { Margin = new Thickness(0, doc.Blocks.Count == 0 ? 0 : top, 0, 0) };
+        void FlushPara()
+        {
+            if (para.Count == 0) return;
+            var p = P();
+            for (int i = 0; i < para.Count; i++)
+            {
+                if (i > 0) p.Inlines.Add(new LineBreak());
+                MdInlines(p.Inlines, para[i]);
+                plain.AppendLine(para[i]);
+            }
+            doc.Blocks.Add(p);
+            para.Clear();
+        }
+        void CodeBlock(string c)
+        {
+            var p = P(6);
+            p.Background = AiCodeBg;
+            p.Padding = new Thickness(8, 6, 8, 6);
+            p.FontFamily = AiMono;
+            p.FontSize = 11;
+            p.LineHeight = 15;
+            p.Inlines.Add(new Run(c));
+            doc.Blocks.Add(p);
+            foreach (var line in c.Split('\n')) plain.AppendLine(line + "   ");
+        }
+
+        foreach (var raw in text.Replace("\r", "").Split('\n'))
+        {
+            if (raw.TrimStart().StartsWith("```"))
+            {
+                if (inCode) { CodeBlock(code.ToString().TrimEnd('\n')); code.Clear(); inCode = false; }
+                else { FlushPara(); inCode = true; }
+                continue;
+            }
+            if (inCode) { code.Append(raw).Append('\n'); continue; }
+            var t = raw.Trim();
+            if (t.Length == 0) { FlushPara(); continue; }
+            if (Regex.IsMatch(t, @"^(-{3,}|\*{3,}|_{3,})$")) { FlushPara(); continue; }
+            var h = MdHeading.Match(t);
+            if (h.Success)
+            {
+                FlushPara();
+                var p = P(7);
+                p.FontWeight = FontWeights.SemiBold;
+                p.FontSize = 13;
+                MdInlines(p.Inlines, h.Groups[1].Value);
+                doc.Blocks.Add(p);
+                plain.AppendLine(h.Groups[1].Value);
+                continue;
+            }
+            var b = MdBullet.Match(raw);
+            if (b.Success)
+            {
+                FlushPara();
+                bool follows = doc.Blocks.LastBlock is Paragraph { Tag: "li" };
+                var p = P(follows ? 2 : 5);
+                p.Tag = "li";
+                double indent = 14 + Math.Min(b.Groups[1].Value.Length, 8) * 5;
+                p.Margin = new Thickness(indent, p.Margin.Top, 0, 0);
+                p.TextIndent = -12; // the marker hangs left of the text
+                var marker = b.Groups[2].Value is "-" or "*" or "+" or "•" ? "•" : b.Groups[2].Value;
+                var mk = new Run(marker + "  ");
+                if (marker == "•") mk.Foreground = (Brush)FindResource("SubText");
+                p.Inlines.Add(mk);
+                MdInlines(p.Inlines, b.Groups[3].Value);
+                doc.Blocks.Add(p);
+                plain.AppendLine("    " + b.Groups[3].Value);
+                continue;
+            }
+            if (t.StartsWith('|'))
+            {
+                if (Regex.IsMatch(t, @"^\|[\s:|-]+\|$")) continue;
+                FlushPara();
+                var row = string.Join("  ", t.Trim('|').Split('|').Select(c => c.Trim()));
+                var p = P(doc.Blocks.LastBlock is Paragraph { Tag: "tr" } ? 1 : 5);
+                p.Tag = "tr";
+                p.FontFamily = AiMono;
+                p.FontSize = 11;
+                p.Inlines.Add(new Run(row));
+                doc.Blocks.Add(p);
+                plain.AppendLine(row);
+                continue;
+            }
+            para.Add(t.StartsWith("> ") ? t[2..] : t);
+        }
+        if (inCode) CodeBlock(code.ToString().TrimEnd('\n')); // still arriving
+        FlushPara();
+
+        var box = new RichTextBox
+        {
+            Document = doc,
+            IsReadOnly = true,
+            IsDocumentEnabled = true, // links stay clickable
+            Background = Brushes.Transparent,
+            BorderThickness = new Thickness(0),
+            Padding = new Thickness(0),
+            Foreground = fg,
+            CaretBrush = Brushes.Transparent,
+            SelectionBrush = (Brush)FindResource("Accent"),
+            SelectionOpacity = 0.45,
+            VerticalScrollBarVisibility = ScrollBarVisibility.Disabled,
+            HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled,
+            FocusVisualStyle = null,
+            Cursor = Cursors.IBeam,
+            Width = BubbleWidth(plain.ToString()),
+        };
+        // the chat scrolls, not the answer
+        box.PreviewMouseWheel += (_, e) =>
+        {
+            e.Handled = true;
+            AiScroll.ScrollToVerticalOffset(AiScroll.VerticalOffset - e.Delta / 3.0);
+            _aiFollow = AiScroll.VerticalOffset >= AiScroll.ScrollableHeight - 6;
+        };
+        return box;
+    }
+
+    /// <summary>As wide as the longest line needs (a short answer keeps a short bubble), at most the chat's width.</summary>
+    private double BubbleWidth(string plain)
+    {
+        double widest = 0;
+        var face = new Typeface("Segoe UI");
+        double ppd = VisualTreeHelper.GetDpi(this).PixelsPerDip;
+        foreach (var line in plain.Split('\n'))
+        {
+            var clean = Regex.Replace(line, @"\*\*|`|\[([^\]]+)\]\([^)]+\)", "$1").TrimEnd();
+            if (clean.Length == 0) continue;
+            var ft = new FormattedText(clean, System.Globalization.CultureInfo.CurrentCulture, FlowDirection.LeftToRight, face, 12.5, Brushes.White, ppd);
+            widest = Math.Max(widest, ft.WidthIncludingTrailingWhitespace);
+            if (widest >= AiBubbleMax) break;
+        }
+        return Math.Clamp(Math.Ceiling(widest) + 10, 40, AiBubbleMax);
+    }
+
     private void MdInlines(InlineCollection into, string s)
     {
         int at = 0;
@@ -420,7 +683,7 @@ public partial class IslandWindow
         AiSendIcon.Kind = busy ? "stop" : "arrow.up";
         AiSendIcon.Size = busy ? 11 : 13;
         AiSendBtn.ToolTip = busy ? L.T("Antwort stoppen (Esc)") : L.T("Senden (Enter)");
-        AiSendBtn.Opacity = busy || AiInput.Text.Trim().Length > 0 ? 1 : 0.35;
+        AiSendBtn.Opacity = busy || AiInput.Text.Trim().Length > 0 || _aiPics.Count > 0 ? 1 : 0.35;
         AiSendBtn.Background = busy ? (Brush)FindResource("SubText") : (Brush)FindResource("Accent");
     }
 
@@ -431,6 +694,11 @@ public partial class IslandWindow
         double w = ExpW - 24;
         AiInputBox.Measure(new Size(w, double.PositiveInfinity));
         double h = Chrome + AiInputBox.DesiredSize.Height;
+        if (AiPicsRow.Visibility == Visibility.Visible)
+        {
+            AiPicsRow.Measure(new Size(w, double.PositiveInfinity));
+            h += AiPicsRow.DesiredSize.Height;
+        }
         if (H.Ai.Messages.Count == 0)
         {
             AiEmpty.Measure(new Size(w, double.PositiveInfinity));
@@ -460,6 +728,9 @@ public partial class IslandWindow
     private void AiInput_PreviewKeyDown(object sender, KeyEventArgs e)
     {
         if (e.Key == Key.Enter && (Keyboard.Modifiers & ModifierKeys.Shift) == 0) { e.Handled = true; AiSend(); }
+        // a picture in the clipboard (screenshot, copied photo): Ctrl+V adds it to the question
+        else if (e.Key == Key.V && Keyboard.Modifiers == ModifierKeys.Control && Clipboard.ContainsImage()) { e.Handled = true; AiAttach(Clipboard.GetImage()); }
+        else if (e.Key == Key.V && Keyboard.Modifiers == ModifierKeys.Control && Clipboard.ContainsFileDropList() && Clipboard.GetFileDropList().Cast<string>().Any(ShellIcon.IsImage)) { e.Handled = true; foreach (var f in Clipboard.GetFileDropList().Cast<string>().Where(ShellIcon.IsImage).Take(4)) AiAttachFile(f); }
         else if (e.Key == Key.Escape && H.Ai.Busy) { e.Handled = true; H.Ai.Stop(); }
         else if (e.Key == Key.Up && AiInput.Text.Length == 0 && H.Ai.LastQuestion.Length > 0)
         {
@@ -475,7 +746,10 @@ public partial class IslandWindow
     {
         if (H.Ai.Busy) { H.Ai.Stop(); return; }
         var text = AiInput.Text.Trim();
-        if (text.Length == 0) return;
+        if (text.Length == 0 && _aiPics.Count == 0) return;
+        var pics = _aiPics.ToList();
+        _aiPics.Clear();
+        ShowAiPics();
         AiInput.Clear();
         if (S.Animations != AnimationLevel.Aus)
         {
@@ -485,7 +759,7 @@ public partial class IslandWindow
             AiSendScale.BeginAnimation(ScaleTransform.ScaleXProperty, pop);
             AiSendScale.BeginAnimation(ScaleTransform.ScaleYProperty, pop);
         }
-        _ = H.Ai.SendAsync(text);
+        _ = H.Ai.SendAsync(text, pics);
         AiInput.Focus();
     }
 

@@ -926,6 +926,64 @@ public partial class IslandWindow
                     Root.IsHitTestVisible = true;
                     break;
                 }
+                case "localsend":
+                {
+                    // the LocalSend page with made-up devices, then a made-up incoming request (declined in the test)
+                    Root.IsHitTestVisible = false;
+                    fh = 200;
+                    var real = H.LocalSend.Devices.ToList();
+                    H.LocalSend.Devices.Clear();
+                    Expand("Send", false);
+                    _sticky = true;
+                    await Task.Delay(900);
+                    Frame(); Save("0_empty");
+                    H.LocalSend.Devices.Add(new LocalSendDevice { Fingerprint = "a", Alias = "Lenas iPhone", DeviceType = "mobile", DeviceModel = "iPhone", Ip = "192.168.0.20" });
+                    H.LocalSend.Devices.Add(new LocalSendDevice { Fingerprint = "b", Alias = "Pixel 9", DeviceType = "mobile", DeviceModel = "Google", Ip = "192.168.0.21" });
+                    H.LocalSend.Devices.Add(new LocalSendDevice { Fingerprint = "c", Alias = "Laptop", DeviceType = "desktop", DeviceModel = "Windows", Ip = "192.168.0.22" });
+                    await Task.Delay(600);
+                    Frame(); Save("1_devices");
+                    Collapse();
+                    await Task.Delay(1000);
+                    var ask = AskReceive(new LocalSendRequest("Lenas iPhone", "mobile", new List<(string, long)> { ("Urlaub.jpg", 2_400_000), ("Notiz.pdf", 180_000) }));
+                    await Film(8, 80);
+                    Save("2_incoming");
+                    EndPeek();
+                    H.LocalSend.Devices.Clear();
+                    foreach (var d in real) H.LocalSend.Devices.Add(d);
+                    Root.IsHitTestVisible = true;
+                    break;
+                }
+                case "aipics":
+                {
+                    // KI chat with pictures and selectable answers – a made-up picture and answer, nothing is sent
+                    Root.IsHitTestVisible = false;
+                    fh = 400;
+                    var keep = H.Ai.Messages.ToList();
+                    var keys = new Dictionary<string, string>(S.AiKeysProtected);
+                    H.Ai.Messages.Clear();
+                    AiService.SetKey(S.AiProvider, "demo");
+                    var demo = Pic(Color.FromRgb(0x0A, 0x84, 0xFF), Color.FromRgb(0xBF, 0x5A, 0xF2));
+                    AskAiAbout(demo);
+                    _sticky = true;
+                    AiInput.Text = "Was ist das für eine Farbe?";
+                    await Task.Delay(900);
+                    Frame(); Save("1_attached");
+                    var path = _aiPics.FirstOrDefault();
+                    _aiPics.Clear();
+                    ShowAiPics();
+                    AiInput.Clear();
+                    H.Ai.Messages.Add(new AiMessage { IsUser = true, Text = "Was ist das für eine Farbe?", Images = path != null ? new List<string> { path } : new() });
+                    H.Ai.Messages.Add(new AiMessage { By = "Gemini · gemini-2.5-flash", Text = "Ein **Verlauf** von Blau nach Lila:\n\n- oben links: `#0A84FF`\n- unten rechts: `#BF5AF2`\n\nDu kannst diesen Text markieren und mit Strg+C kopieren." });
+                    await Task.Delay(800);
+                    Frame(); Save("2_answer");
+                    H.Ai.Messages.Clear();
+                    foreach (var m in keep) H.Ai.Messages.Add(m);
+                    S.AiKeysProtected.Clear();
+                    foreach (var (k, v) in keys) S.AiKeysProtected[k] = v;
+                    Collapse();
+                    Root.IsHitTestVisible = true;
+                    break;
+                }
                 case "langshots":
                 {
                     // every Settings page and every island page, to spot texts that are still German

@@ -39,6 +39,7 @@ public sealed class Hub
     public LiveFeeds Feeds { get; private set; }
     public ClockModel Clock { get; private set; }
     public AiService Ai { get; private set; }
+    public LocalSendService LocalSend { get; private set; }
 
     public void Init()
     {
@@ -57,6 +58,8 @@ public sealed class Hub
         Shelf.Load();
         Ai = new AiService();
         Ai.Load();
+        LocalSend = new LocalSendService();
+        if (App.Settings.LocalSendOn) LocalSend.Start();
         Launcher = new LauncherService();
         Launcher.Load();
         // the Steam tile comes once by itself (user wish 2026-11-14); if it is removed later it stays away
@@ -124,6 +127,7 @@ public sealed class Hub
     public void Shutdown()
     {
         try { Room?.Stop(); } catch { }
+        try { LocalSend?.Stop(); } catch { }
         try { Devices?.Dispose(); } catch { }
         try { Clipboard?.Shutdown(); } catch { }
         try { Hotkeys?.UnregisterAll(); } catch { }

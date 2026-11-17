@@ -25,7 +25,7 @@ public partial class IslandWindow : Window
     private enum State { Collapsed, Hint, Peek, Expanded }
     private enum Act { Live, Agent, Obs, Steam, Timer, Music, MicMuted, Queue, Recording, Alarm }
 
-    private static readonly string[] TabOrder = { "Live", "Obs", "Music", "Clip", "Shelf", "Agent", "Ai", "Games", "Notify", L.T("Timer"), "Today", "Remind", "Controls" };
+    private static readonly string[] TabOrder = { "Live", "Obs", "Music", "Clip", "Shelf", "Send", "Agent", "Ai", "Games", "Notify", L.T("Timer"), "Today", "Remind", "Controls" };
     // one fixed size for every tab – the island never jumps when switching tabs
     private const double ExpW = 380, ExpH = 128, PeekW = 340, PillH = 32, IdleW = 176, ExpRadius = 24;
 
@@ -63,6 +63,7 @@ public partial class IslandWindow : Window
     private bool _queueOpen;
     private double TabHeight(string tab) => tab == "Clip" ? ClipHeight()
         : tab == "Ai" ? AiHeight()
+        : tab == "Send" && H.LocalSend.Devices.Count > 0 ? 156
         : tab == "Notify" ? NotifyHeight()
         : tab == "Music" && (_queueOpen || _lyricsOpen) ? 300
         : tab == "Live" && _livePick ? LivePickH
@@ -117,6 +118,7 @@ public partial class IslandWindow : Window
         H.Timer.Completed += () => Ui.Run(() => Note(L.T("Timer"), 60));
         H.Reminders.Due += _ => Ui.Run(() => Note("Remind", 120));
         WireAi();
+        WireSend();
 
         // timer wheels start at the last used duration
         var secs = H.Timer.DurationSeconds;
@@ -2599,6 +2601,8 @@ public partial class IslandWindow : Window
         if (_state is State.Collapsed or State.Hint) { _hintGen++; ShowNextPeek(); }
     }
 
+    private static readonly string[] RoundLabels = { "Ablehnen", "Annehmen", "Später", "Nochmal", "Erledigt", "OK", "Aus", "Öffnen", "Chat öffnen", "Einstellungen", "Zeigen" };
+
     private void ShowNextPeek()
     {
         if (_peeks.Count == 0)
@@ -2716,8 +2720,12 @@ public partial class IslandWindow : Window
             b.SetResourceReference(StyleProperty, accent ? "AccentButton" : "PillButton");
             // the usual answers become round symbol buttons (snooze, done, again, open); in the card look every
             // answer is round – grey for "later", coloured for the main thing
-            var round = label switch
+            // the labels arrive already translated – look the German word up again for the symbol
+            var de = RoundLabels.FirstOrDefault(d => d == label || L.T(d) == label) ?? label;
+            var round = de switch
             {
+                "Ablehnen" => ("xmark", (Brush)null),
+                "Annehmen" => ("check", (Brush)FindResource("Green")),
                 "Später" => ("clock", (Brush)null),
                 "Nochmal" => ("refresh", null),
                 "Erledigt" or "OK" or "Aus" => ("check", (Brush)FindResource("Green")),
@@ -4309,6 +4317,7 @@ public partial class IslandWindow : Window
         TabMusic.Visibility = tab == "Music" ? Visibility.Visible : Visibility.Collapsed;
         TabAgent.Visibility = tab == "Agent" ? Visibility.Visible : Visibility.Collapsed;
         TabAi.Visibility = tab == "Ai" ? Visibility.Visible : Visibility.Collapsed;
+        TabSend.Visibility = tab == "Send" ? Visibility.Visible : Visibility.Collapsed;
         TabObs.Visibility = tab == "Obs" ? Visibility.Visible : Visibility.Collapsed;
         TabNotify.Visibility = tab == "Notify" ? Visibility.Visible : Visibility.Collapsed;
         TabClip.Visibility = tab == "Clip" ? Visibility.Visible : Visibility.Collapsed;
@@ -4352,6 +4361,7 @@ public partial class IslandWindow : Window
             case "Live": UpdateLiveUi(); break;
             case "Agent": UpdateAgentUi(); break;
             case "Ai": UpdateAiUi(); break;
+            case "Send": UpdateSendUi(); _ = H.LocalSend.Announce(); break;
             case "Games": UpdateGamesUi(); break;
             case "Obs": UpdateObsUi(); break;
             case "Notify": UpdateNotifyUi(); break;
@@ -4364,8 +4374,8 @@ public partial class IslandWindow : Window
     //  optional "D" for all of them: fades to page dots while the pointer is not on the bar
     // =====================================================================
 
-    private static readonly string[] FlatTabOrder = { "Live", "Obs", "Music", "Clip", "Shelf", "Agent", "Ai", "Games", "Notify", L.T("Timer"), "Today", "Remind", "Controls" };
-    private static readonly string[] GroupTabOrder = { "Live", "Obs", "Music", "|", "Clip", "Shelf", "Games", L.T("Timer"), "Today", "Remind", "|", "Agent", "Ai", "Notify", "Controls" };
+    private static readonly string[] FlatTabOrder = { "Live", "Obs", "Music", "Clip", "Shelf", "Send", "Agent", "Ai", "Games", "Notify", L.T("Timer"), "Today", "Remind", "Controls" };
+    private static readonly string[] GroupTabOrder = { "Live", "Obs", "Music", "|", "Clip", "Shelf", "Send", "Games", L.T("Timer"), "Today", "Remind", "|", "Agent", "Ai", "Notify", "Controls" };
     private static readonly SolidColorBrush LiveBadge = Frozen(Color.FromRgb(0x30, 0xD1, 0x58));
     private static readonly SolidColorBrush RedBadge = Frozen(Color.FromRgb(0xFF, 0x45, 0x3A));
     private static readonly SolidColorBrush DotBrush = Frozen(Color.FromRgb(0x48, 0x48, 0x4A));
@@ -4381,7 +4391,7 @@ public partial class IslandWindow : Window
 
     private static readonly Dictionary<string, int> TabGroup = new()
     {
-        ["Live"] = 0, ["Obs"] = 0, ["Music"] = 0, ["Clip"] = 1, ["Shelf"] = 1, ["Games"] = 1, ["Timer"] = 1, ["Today"] = 1, ["Remind"] = 1,
+        ["Live"] = 0, ["Obs"] = 0, ["Music"] = 0, ["Clip"] = 1, ["Shelf"] = 1, ["Send"] = 1, ["Games"] = 1, ["Timer"] = 1, ["Today"] = 1, ["Remind"] = 1,
         ["Agent"] = 2, ["Ai"] = 2, ["Notify"] = 2, ["Controls"] = 2
     };
 

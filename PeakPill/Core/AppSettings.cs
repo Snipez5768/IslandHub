@@ -111,6 +111,10 @@ public sealed class AppSettings
     /// chosen model per service.</summary>
     /// <summary>"en" (default) or "de" – asked by the installer, switchable in Settings › Allgemein (2026-11-17).</summary>
     public string Language { get; set; } = "en";
+    /// <summary>LocalSend in the island (2026-11-17): on/off, the name others see (empty = PC name), our random id.</summary>
+    public bool LocalSendOn { get; set; } = true;
+    public string LocalSendName { get; set; } = "";
+    public string LocalSendId { get; set; } = "";
     public AiProvider AiProvider { get; set; } = AiProvider.Claude;
     public Dictionary<string, string> AiKeysProtected { get; set; } = new();
     public Dictionary<string, string> AiModels { get; set; } = new();

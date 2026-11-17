@@ -25,6 +25,8 @@ public sealed class AiMessage : ObservableObject
     public bool Failed { get => _failed; set => Set(ref _failed, value); }
     /// <summary>Who answered ("Claude · Opus 5.5").</summary>
     public string By { get; set; }
+    /// <summary>Pictures sent with a question (2026-11-17): PNG files in the data folder (ai-images).</summary>
+    public List<string> Images { get; set; } = new();
 }
 
 /// <summary>
@@ -126,6 +128,7 @@ public sealed class AiService : ObservableObject
         public string Text { get; set; }
         public bool Failed { get; set; }
         public string By { get; set; }
+        public List<string> Images { get; set; }
     }
 
     public void Load()
@@ -133,7 +136,8 @@ public sealed class AiService : ObservableObject
         try
         {
             foreach (var m in Storage.Load<List<Saved>>(FileName))
-                if (!string.IsNullOrEmpty(m.Text)) Messages.Add(new AiMessage { IsUser = m.IsUser, Text = m.Text, Failed = m.Failed, By = m.By });
+                if (!string.IsNullOrEmpty(m.Text) || m.Images is { Count: > 0 })
+                    Messages.Add(new AiMessage { IsUser = m.IsUser, Text = m.Text ?? "", Failed = m.Failed, By = m.By, Images = m.Images?.Where(File.Exists).ToList() ?? new() });
         }
         catch { }
     }
@@ -142,11 +146,39 @@ public sealed class AiService : ObservableObject
     {
         try
         {
-            Storage.Save(FileName, Messages.Where(m => !m.IsStreaming).TakeLast(60)
-                .Select(m => new Saved { IsUser = m.IsUser, Text = m.Text, Failed = m.Failed, By = m.By }).ToList());
+            var keep = Messages.Where(m => !m.IsStreaming).TakeLast(60).ToList();
+            Storage.Save(FileName, keep.Select(m => new Saved { IsUser = m.IsUser, Text = m.Text, Failed = m.Failed, By = m.By, Images = m.Images.Count > 0 ? m.Images : null }).ToList());
+            // pictures no message refers to any more go
+            var used = keep.SelectMany(m => m.Images).ToHashSet(StringComparer.OrdinalIgnoreCase);
+            if (Directory.Exists(ImageDir))
+                foreach (var f in Directory.GetFiles(ImageDir, "*.png"))
+                    if (!used.Contains(f) && File.GetCreationTime(f) < DateTime.Now.AddMinutes(-30)) try { File.Delete(f); } catch { }
         }
         catch { }
     }
+
+    // ---------- pictures (screenshot, pasted photo) ----------
+
+    public static string ImageDir => Storage.PathOf("ai-images");
+
+    /// <summary>Keeps a picture for the chat: at most 1800 px on the long side, as PNG. Returns its file.</summary>
+    public static string StoreImage(System.Windows.Media.Imaging.BitmapSource src)
+    {
+        Directory.CreateDirectory(ImageDir);
+        double scale = Math.Min(1, 1800.0 / Math.Max(src.PixelWidth, src.PixelHeight));
+        System.Windows.Media.Imaging.BitmapSource bmp = src;
+        if (scale < 1) bmp = new System.Windows.Media.Imaging.TransformedBitmap(src, new System.Windows.Media.ScaleTransform(scale, scale));
+        var enc = new System.Windows.Media.Imaging.PngBitmapEncoder();
+        enc.Frames.Add(System.Windows.Media.Imaging.BitmapFrame.Create(bmp));
+        var path = Path.Combine(ImageDir, $"{DateTime.Now:yyyyMMdd-HHmmss}-{Guid.NewGuid().ToString("N")[..6]}.png");
+        using (var fs = File.Create(path)) enc.Save(fs);
+        return path;
+    }
+
+    private static string Base64(string path) => Convert.ToBase64String(File.ReadAllBytes(path));
+
+    /// <summary>What a question with only a picture asks.</summary>
+    private static string PictureOnly => L.English ? "What’s in this picture?" : "Was ist auf dem Bild?";
 
     public void NewChat()
     {
@@ -162,9 +194,10 @@ public sealed class AiService : ObservableObject
     {
         if (Busy || Messages.Count < 2 || !Messages[^1].Failed || !Messages[^2].IsUser) return;
         var question = Messages[^2].Text;
+        var pics = Messages[^2].Images;
         Messages.RemoveAt(Messages.Count - 1);
         Messages.RemoveAt(Messages.Count - 1);
-        await SendAsync(question);
+        await SendAsync(question, pics);
     }
 
 #if DEBUG
@@ -187,15 +220,16 @@ public sealed class AiService : ObservableObject
     /// <summary>The user's last question (↑ in the empty field brings it back).</summary>
     public string LastQuestion => Messages.LastOrDefault(m => m.IsUser)?.Text ?? "";
 
-    public async Task SendAsync(string text)
+    public async Task SendAsync(string text, IList<string> images = null)
     {
-        text = text?.Trim();
-        if (string.IsNullOrEmpty(text) || Busy) return;
+        text = text?.Trim() ?? "";
+        var pics = images?.Where(File.Exists).ToList() ?? new List<string>();
+        if ((text.Length == 0 && pics.Count == 0) || Busy) return;
         var provider = S.AiProvider;
         var key = GetKey(provider);
         var model = GetModel(provider);
         var history = History();
-        Messages.Add(new AiMessage { IsUser = true, Text = text });
+        Messages.Add(new AiMessage { IsUser = true, Text = text, Images = pics });
         history.Add(Messages[^1]);
         var answer = new AiMessage { IsStreaming = true, By = Label(provider) };
         Messages.Add(answer);
@@ -278,7 +312,7 @@ public sealed class AiService : ObservableObject
             System = SystemPrompt,
             CacheControl = new BetaCacheControlEphemeral(),
             Messages = history.Select(m => m.IsUser
-                ? (BetaMessageParam)new BetaUserMessageParam { Content = m.Text }
+                ? (BetaMessageParam)new BetaUserMessageParam { Content = ClaudeContent(m) }
                 : new BetaAssistantMessageParam { Content = m.Text }).ToList(),
             Betas = fallback ? ["server-side-fallback-2026-07-01"] : null,
             Fallbacks = fallback ? new Default() : null,
@@ -290,6 +324,16 @@ public sealed class AiService : ObservableObject
             else if (ev.TryPickDelta(out var md) && md.Delta.StopReason == BetaStopReason.Refusal) refused = true;
         }
         if (refused) throw new AiException(L.T("Claude hat diese Anfrage abgelehnt. Formulier sie anders oder versuch ein anderes Modell."));
+    }
+
+    /// <summary>A question as Claude reads it: its pictures first, then the words.</summary>
+    private static List<BetaContentBlockParam> ClaudeContent(AiMessage m)
+    {
+        var blocks = new List<BetaContentBlockParam>();
+        foreach (var img in m.Images.Where(File.Exists))
+            blocks.Add(new BetaImageBlockParam { Source = new BetaBase64ImageSource { Data = Base64(img), MediaType = MediaType.ImagePng } });
+        blocks.Add(new BetaTextBlockParam { Text = m.Text.Length > 0 ? m.Text : PictureOnly });
+        return blocks;
     }
 
     public static async Task<List<string>> ClaudeModels(string key, CancellationToken ct)
@@ -304,7 +348,14 @@ public sealed class AiService : ObservableObject
     private static async Task StreamOpenAi(List<AiMessage> history, string key, string model, Action<string> add, CancellationToken ct)
     {
         var msgs = new JsonArray { new JsonObject { ["role"] = "system", ["content"] = SystemPrompt } };
-        foreach (var m in history) msgs.Add(new JsonObject { ["role"] = m.IsUser ? "user" : "assistant", ["content"] = m.Text });
+        foreach (var m in history)
+        {
+            if (!m.IsUser || m.Images.Count == 0) { msgs.Add(new JsonObject { ["role"] = m.IsUser ? "user" : "assistant", ["content"] = m.Text }); continue; }
+            var parts = new JsonArray { new JsonObject { ["type"] = "text", ["text"] = m.Text.Length > 0 ? m.Text : PictureOnly } };
+            foreach (var img in m.Images.Where(File.Exists))
+                parts.Add(new JsonObject { ["type"] = "image_url", ["image_url"] = new JsonObject { ["url"] = "data:image/png;base64," + Base64(img) } });
+            msgs.Add(new JsonObject { ["role"] = "user", ["content"] = parts });
+        }
         var body = new JsonObject { ["model"] = model, ["stream"] = true, ["messages"] = msgs };
         using var req = new HttpRequestMessage(HttpMethod.Post, "https://api.openai.com/v1/chat/completions")
         {
@@ -335,7 +386,14 @@ public sealed class AiService : ObservableObject
     {
         var contents = new JsonArray();
         foreach (var m in history)
-            contents.Add(new JsonObject { ["role"] = m.IsUser ? "user" : "model", ["parts"] = new JsonArray { new JsonObject { ["text"] = m.Text } } });
+        {
+            var parts = new JsonArray();
+            if (m.IsUser)
+                foreach (var img in m.Images.Where(File.Exists))
+                    parts.Add(new JsonObject { ["inline_data"] = new JsonObject { ["mime_type"] = "image/png", ["data"] = Base64(img) } });
+            parts.Add(new JsonObject { ["text"] = m.Text.Length > 0 ? m.Text : PictureOnly });
+            contents.Add(new JsonObject { ["role"] = m.IsUser ? "user" : "model", ["parts"] = parts });
+        }
         var body = new JsonObject
         {
             ["systemInstruction"] = new JsonObject { ["parts"] = new JsonArray { new JsonObject { ["text"] = SystemPrompt } } },

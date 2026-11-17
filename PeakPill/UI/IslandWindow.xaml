@@ -694,6 +694,7 @@
                                 <RadioButton Style="{StaticResource TabButton}" Tag="Music" Content="Musik" ui:Ext.Icon="music" Checked="Tab_Checked" ToolTip="Musik" />
                                 <RadioButton Style="{StaticResource TabButton}" Tag="Clip" Content="Zwischenablage" ui:Ext.Icon="clipboard" Checked="Tab_Checked" ToolTip="Zwischenablage" />
                                 <RadioButton x:Name="ShelfTabBtn" Style="{StaticResource TabButton}" Tag="Shelf" Content="Ablage" ui:Ext.Icon="folder" Checked="Tab_Checked" ToolTip="Ablage" Visibility="Collapsed" />
+                                <RadioButton Style="{StaticResource TabButton}" Tag="Send" Content="LocalSend" ui:Ext.Icon="share" Checked="Tab_Checked" ToolTip="LocalSend – Dateien mit Handy und PC teilen" />
                                 <RadioButton Style="{StaticResource TabButton}" Tag="Agent" Content="Agent" ui:Ext.Icon="sparkles" Checked="Tab_Checked" ToolTip="KI-Agenten" />
                                 <RadioButton Style="{StaticResource TabButton}" Tag="Ai" Content="KI" ui:Ext.Icon="bubble" Checked="Tab_Checked" ToolTip="KI – mit Claude, ChatGPT oder Gemini schreiben" />
                                 <RadioButton Style="{StaticResource TabButton}" Tag="Games" Content="Spiele" ui:Ext.Icon="gamecontroller" Checked="Tab_Checked" ToolTip="Spiele und Programme" />
@@ -1292,6 +1293,58 @@
 
                         <!-- ===== SHELF ===== -->
                         <!-- Ablage (approved 2026-11-14): empty = a calm invitation; with files = tiles, the actions only then -->
+                        <!-- ===== LOCALSEND (2026-11-17): devices nearby, drop files on one to send; incoming files ask first ===== -->
+                        <Grid x:Name="TabSend" Visibility="Collapsed" AllowDrop="True" Drop="Send_Drop" Background="Transparent">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="*" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+                            <DockPanel Margin="2,0,0,0">
+                                <Button DockPanel.Dock="Right" Style="{StaticResource BareIconButton}" Width="24" Height="22" ui:Ext.Icon="refresh" ui:Ext.IconSize="12"
+                                        Foreground="#FF8E8E93" ui:Ext.Hover="White" ToolTip="Neu suchen" Click="SendRefresh_Click" />
+                                <Button DockPanel.Dock="Right" Style="{StaticResource BareIconButton}" Width="24" Height="22" ui:Ext.Icon="folder" ui:Ext.IconSize="12"
+                                        Foreground="#FF8E8E93" ui:Ext.Hover="White" ToolTip="Empfangene Dateien" Click="SendFolder_Click" />
+                                <TextBlock x:Name="SendMe" FontSize="10.5" Foreground="{StaticResource SubText}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                            </DockPanel>
+                            <ScrollViewer Grid.Row="1" HorizontalScrollBarVisibility="Hidden" VerticalScrollBarVisibility="Disabled" Margin="0,4,0,0">
+                                <ItemsControl x:Name="SendDevices" ItemsSource="{Binding LocalSend.Devices}">
+                                    <ItemsControl.ItemsPanel>
+                                        <ItemsPanelTemplate><StackPanel Orientation="Horizontal" /></ItemsPanelTemplate>
+                                    </ItemsControl.ItemsPanel>
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Border x:Name="tile" Width="74" Margin="0,0,6,0" Padding="2,6,2,4" CornerRadius="12" Background="Transparent" Cursor="Hand"
+                                                    AllowDrop="True" Drop="SendDevice_Drop" DragEnter="SendDevice_DragEnter" DragLeave="SendDevice_DragLeave"
+                                                    MouseLeftButtonUp="SendDevice_Click" Tag="{Binding}" ToolTip="{Binding Detail}">
+                                                <StackPanel>
+                                                    <Border Width="40" Height="40" CornerRadius="20" Background="#FF2C2C2E" HorizontalAlignment="Center">
+                                                        <ui:SfIcon Kind="{Binding Icon}" Size="18" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                                    </Border>
+                                                    <TextBlock Text="{Binding Alias}" FontSize="10.5" FontWeight="SemiBold" HorizontalAlignment="Center" TextTrimming="CharacterEllipsis" Margin="0,5,0,0" />
+                                                </StackPanel>
+                                            </Border>
+                                            <DataTemplate.Triggers>
+                                                <Trigger SourceName="tile" Property="IsMouseOver" Value="True">
+                                                    <Setter TargetName="tile" Property="Background" Value="#14FFFFFF" />
+                                                </Trigger>
+                                            </DataTemplate.Triggers>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </ScrollViewer>
+                            <StackPanel x:Name="SendEmpty" Grid.Row="1" HorizontalAlignment="Center" VerticalAlignment="Center" IsHitTestVisible="False">
+                                <TextBlock Text="Keine Geräte in der Nähe" FontSize="12.5" FontWeight="SemiBold" HorizontalAlignment="Center" />
+                                <TextBlock Text="Öffne LocalSend auf dem Handy – im selben WLAN" FontSize="10.5" Foreground="{StaticResource SubText}" HorizontalAlignment="Center" Margin="0,2,0,0" />
+                            </StackPanel>
+                            <Grid x:Name="SendStatusRow" Grid.Row="2" Margin="2,2,2,0" Visibility="Collapsed">
+                                <TextBlock x:Name="SendStatus" FontSize="10.5" Foreground="{StaticResource SubText}" TextTrimming="CharacterEllipsis" />
+                                <Border x:Name="SendBar" Height="3" CornerRadius="1.5" Background="#26FFFFFF" VerticalAlignment="Bottom" Margin="0,0,0,-4" Visibility="Collapsed">
+                                    <Border x:Name="SendBarFill" CornerRadius="1.5" Background="{StaticResource Accent}" HorizontalAlignment="Left" Width="0" />
+                                </Border>
+                            </Grid>
+                        </Grid>
+
                         <Grid x:Name="TabShelf" Visibility="Collapsed">
                             <Grid.RowDefinitions>
                                 <RowDefinition Height="Auto" />
@@ -1577,9 +1630,10 @@
                         </Grid>
 
                         <!-- ===== KI: chat with Claude / ChatGPT / Gemini on the user's own key (2026-11-17) ===== -->
-                        <Grid x:Name="TabAi" Visibility="Collapsed">
+                        <Grid x:Name="TabAi" Visibility="Collapsed" AllowDrop="True" Drop="TabAi_Drop" Background="Transparent">
                             <Grid.RowDefinitions>
                                 <RowDefinition Height="*" />
+                                <RowDefinition Height="Auto" />
                                 <RowDefinition Height="Auto" />
                             </Grid.RowDefinitions>
                             <ScrollViewer x:Name="AiScroll" VerticalScrollBarVisibility="Auto" ScrollChanged="AiScroll_ScrollChanged">
@@ -1591,7 +1645,11 @@
                                 <Button x:Name="AiSetupBtn" Style="{StaticResource MacButton}" Content="API-Schlüssel eintragen" FontSize="11" Padding="10,2" Margin="0,6,0,0"
                                         HorizontalAlignment="Center" Click="AiSetup_Click" Visibility="Collapsed" />
                             </StackPanel>
-                            <Border x:Name="AiInputBox" Grid.Row="1" CornerRadius="15" Background="#1AFFFFFF" BorderBrush="#14FFFFFF" BorderThickness="0.5" Padding="12,2,3,2" MinHeight="30">
+                            <!-- pictures for the next question (pasted, dropped, chosen or from a screenshot) -->
+                            <Border x:Name="AiPicsRow" Grid.Row="1" Visibility="Collapsed" Margin="4,6,0,6">
+                                <WrapPanel x:Name="AiPics" />
+                            </Border>
+                            <Border x:Name="AiInputBox" Grid.Row="2" CornerRadius="15" Background="#1AFFFFFF" BorderBrush="#14FFFFFF" BorderThickness="0.5" Padding="12,2,3,2" MinHeight="30">
                                 <Grid>
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="*" />
@@ -1600,8 +1658,10 @@
                                     </Grid.ColumnDefinitions>
                                     <TextBox x:Name="AiInput" Style="{StaticResource BareBox}" Tag="Frag Claude …" FontSize="12.5" MinHeight="24" MaxHeight="58"
                                              TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" PreviewKeyDown="AiInput_PreviewKeyDown" TextChanged="AiInput_TextChanged" />
-                                    <Button x:Name="AiNewBtn" Grid.Column="1" Style="{StaticResource BareIconButton}" Width="24" Height="24" ui:Ext.Icon="square.pencil" ui:Ext.IconSize="13"
-                                            Foreground="#FF8E8E93" ui:Ext.Hover="White" ToolTip="Neuer Chat" Click="AiNew_Click" VerticalAlignment="Bottom" Margin="0,0,0,1" />
+                                    <Button x:Name="AiPicBtn" Grid.Column="1" Style="{StaticResource BareIconButton}" Width="24" Height="24" ui:Ext.Icon="photo" ui:Ext.IconSize="13" HorizontalAlignment="Left"
+                                            Foreground="#FF8E8E93" ui:Ext.Hover="White" ToolTip="Bild anhängen (oder Strg+V, hineinziehen)" Click="AiPicture_Click" VerticalAlignment="Bottom" Margin="0,0,0,1" />
+                                    <Button x:Name="AiNewBtn" Grid.Column="1" Margin="24,0,0,1" Style="{StaticResource BareIconButton}" Width="24" Height="24" ui:Ext.Icon="square.pencil" ui:Ext.IconSize="13"
+                                            Foreground="#FF8E8E93" ui:Ext.Hover="White" ToolTip="Neuer Chat" Click="AiNew_Click" VerticalAlignment="Bottom" />
                                     <Border x:Name="AiSendBtn" Grid.Column="2" Width="24" Height="24" CornerRadius="12" Background="{StaticResource Accent}" Cursor="Hand"
                                             VerticalAlignment="Bottom" Margin="3,0,0,1" MouseLeftButtonUp="AiSend_Click" ToolTip="Senden (Enter)" RenderTransformOrigin="0.5,0.5">
                                         <Border.RenderTransform><ScaleTransform x:Name="AiSendScale" /></Border.RenderTransform>
