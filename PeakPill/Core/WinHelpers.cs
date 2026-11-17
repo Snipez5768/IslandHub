@@ -409,8 +409,8 @@ public static class ThemeManager
 {
     public static readonly (string Name, string Hex)[] Accents =
     {
-        ("Blau", "#0A84FF"), ("Türkis", "#64D2FF"), ("Grün", "#30D158"), ("Gelb", "#FFD60A"),
-        ("Orange", "#FF9F0A"), ("Rot", "#FF453A"), ("Pink", "#FF375F"), ("Lila", "#BF5AF2")
+        (L.T("Blau"), "#0A84FF"), (L.T("Türkis"), "#64D2FF"), (L.T("Grün"), "#30D158"), (L.T("Gelb"), "#FFD60A"),
+        (L.T("Orange"), "#FF9F0A"), (L.T("Rot"), "#FF453A"), (L.T("Pink"), "#FF375F"), (L.T("Lila"), "#BF5AF2")
     };
 
     public static void Apply()

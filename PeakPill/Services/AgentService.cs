@@ -205,7 +205,7 @@ public sealed class AgentService : ObservableObject
                 // and the plan with its "2 / 5" stays (unless the session went silent long ago and missed its Stop)
                 if (s.IsRunning && s.HasPlan && quiet < TimeSpan.FromMinutes(10)) break;
                 s.Task = FirstLine(Str(e, "prompt"));
-                s.Step = "Denkt nach …";
+                s.Step = L.T("Denkt nach …");
                 s.State = AgentState.Running;
                 s.StartedAt = DateTime.Now;
                 s.FinishedAt = null;
@@ -227,7 +227,7 @@ public sealed class AgentService : ObservableObject
                 var msg = Str(e, "message") ?? "";
                 if (s.IsDone && (kind.Contains("idle") || msg.Contains("waiting for your input", StringComparison.OrdinalIgnoreCase))) break;
                 s.State = AgentState.Waiting;
-                s.Step = "Wartet auf dich";
+                s.Step = L.T("Wartet auf dich");
                 NeedsYou?.Invoke(s);
                 break;
 
@@ -235,7 +235,7 @@ public sealed class AgentService : ObservableObject
                 s.State = AgentState.Done;
                 s.FinishedAt = DateTime.Now;
                 if (s.Total > 0) s.Done = s.Total;
-                s.Step = "Fertig";
+                s.Step = L.T("Fertig");
                 UpdateElapsed(s);
                 Finished?.Invoke(s);
                 break;
@@ -250,27 +250,27 @@ public sealed class AgentService : ObservableObject
         switch (tool)
         {
             case "Edit" or "Write" or "MultiEdit" or "NotebookEdit":
-                s.Step = $"Bearbeitet {file}"; break;
+                s.Step = L.T($"Bearbeitet {file}"); break;
             case "Read":
-                s.Step = $"Liest {file}"; break;
+                s.Step = L.T($"Liest {file}"); break;
             case "Bash" or "PowerShell":
-                s.Step = FirstLine(Str(input, "description")) is { Length: > 0 } d ? d : "Führt einen Befehl aus"; break;
+                s.Step = FirstLine(Str(input, "description")) is { Length: > 0 } d ? d : L.T("Führt einen Befehl aus"); break;
             case "Grep" or "Glob":
-                s.Step = "Durchsucht den Code"; break;
+                s.Step = L.T("Durchsucht den Code"); break;
             case "WebSearch" or "WebFetch":
-                s.Step = "Sucht im Web"; break;
+                s.Step = L.T("Sucht im Web"); break;
             case "Agent" or "Task":
-                s.Step = "Startet einen Helfer"; break;
+                s.Step = L.T("Startet einen Helfer"); break;
             case "AskUserQuestion":
-                s.Step = "Hat eine Frage an dich"; break;
+                s.Step = L.T("Hat eine Frage an dich"); break;
             case "TodoWrite":
                 ReadPlan(s, input, "todos"); break;
             case "mcp__ccd_turn__update_plan":
                 ReadPlan(s, input, "items"); break;
             case "mcp__ccd_turn__wrap_up":
-                s.Step = "Fasst zusammen"; break;
+                s.Step = L.T("Fasst zusammen"); break;
             default:
-                s.Step = tool.StartsWith("mcp__", StringComparison.Ordinal) ? "Nutzt ein Werkzeug" : tool; break;
+                s.Step = tool.StartsWith("mcp__", StringComparison.Ordinal) ? L.T("Nutzt ein Werkzeug") : tool; break;
         }
     }
 

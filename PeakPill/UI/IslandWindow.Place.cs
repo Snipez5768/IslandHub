@@ -145,7 +145,7 @@ public partial class IslandWindow
     /// <summary>A browser download stopped growing: ask – hide it, or open the browser to look.</summary>
     private void OnDownloadStuck(string name, string app)
     {
-        string where = string.IsNullOrEmpty(app) ? "im Browser" : $"in {app}";
+        string where = string.IsNullOrEmpty(app) ? L.T("im Browser") : L.T($"in {app}");
         _hintHoldMs = 8000;
         ShowHint("download", $"{name} hängt", (Brush)FindResource("Orange"), key: "dlstuck",
                  actions: new List<(string, string, Brush, Action)>
@@ -177,15 +177,15 @@ public partial class IslandWindow
     /// </summary>
     private void BuildCalendar(int weeks)
     {
-        var de = System.Globalization.CultureInfo.GetCultureInfo("de-DE");
+        var de = L.Culture;
         var today = DateTime.Today;
         var monday = today.AddDays(-(((int)today.DayOfWeek + 6) % 7));
         var last = monday.AddDays(weeks * 7 - 1);
         string Month(DateTime d) => d.ToString("MMMM", de);
-        CalMonth.Text = monday.Month == last.Month ? $"{Month(today)} {today.Year}" : $"{Month(monday)} · {Month(last)}";
+        CalMonth.Text = monday.Month == last.Month ? $"{Month(today)} {today.Year}" : L.T($"{Month(monday)} · {Month(last)}");
         CalGrid.Children.Clear();
         var sub = (Brush)FindResource("SubText");
-        foreach (var letter in new[] { "M", "D", "M", "D", "F", "S", "S" })
+        foreach (var letter in L.English ? new[] { "M", "T", "W", "T", "F", "S", "S" } : new[] { "M", "D", "M", "D", "F", "S", "S" })
             CalGrid.Children.Add(new TextBlock { Text = letter, FontSize = 9, FontWeight = FontWeights.SemiBold, Foreground = sub, HorizontalAlignment = HorizontalAlignment.Center, Margin = new Thickness(0, 0, 0, 2) });
         for (int i = 0; i < weeks * 7; i++)
         {
@@ -214,11 +214,11 @@ public partial class IslandWindow
         var p = new PeekInfo
         {
             Key = "feed:" + m.Kind + m.Title, Icon = m.Icon, GlyphBrush = brush, Ticker = true,
-            Source = m.Kind switch { "sport" => "Fußball", "twitch" => "Twitch", "youtube" => "YouTube", "parcel" => "DHL", _ => "PeakPill" },
+            Source = m.Kind switch { "sport" => L.T("Fußball"), "twitch" => "Twitch", "youtube" => "YouTube", "parcel" => "DHL", _ => "PeakPill" },
             SourceIcon = m.Icon, SourceBrush = brush, Title = m.Title, Text = m.Text, TimeoutMs = 10000
         };
         if (m.Link != null)
-            p.Button("open", "Öffnen", () => { try { System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(m.Link) { UseShellExecute = true }); } catch { } }, brush);
+            p.Button("open", L.T("Öffnen"), () => { try { System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(m.Link) { UseShellExecute = true }); } catch { } }, brush);
         if (m.Kind == "sport" && m.Title == "Tor!" && S.Animations != AnimationLevel.Aus) Ripples(((SolidColorBrush)brush).Color);
         ShowPeek(p);
     }

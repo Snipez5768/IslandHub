@@ -25,7 +25,7 @@ public partial class IslandWindow : Window
     private enum State { Collapsed, Hint, Peek, Expanded }
     private enum Act { Live, Agent, Obs, Steam, Timer, Music, MicMuted, Queue, Recording, Alarm }
 
-    private static readonly string[] TabOrder = { "Live", "Obs", "Music", "Clip", "Shelf", "Agent", "Ai", "Games", "Notify", "Timer", "Today", "Remind", "Controls" };
+    private static readonly string[] TabOrder = { "Live", "Obs", "Music", "Clip", "Shelf", "Agent", "Ai", "Games", "Notify", L.T("Timer"), "Today", "Remind", "Controls" };
     // one fixed size for every tab – the island never jumps when switching tabs
     private const double ExpW = 380, ExpH = 128, PeekW = 340, PillH = 32, IdleW = 176, ExpRadius = 24;
 
@@ -81,6 +81,8 @@ public partial class IslandWindow : Window
     public IslandWindow()
     {
         InitializeComponent();
+        L.TranslateTree(this); // the chosen language (2026-11-17) – again once loaded, for generated parts
+        Loaded += (_, _) => L.TranslateTree(this);
         _activePanel = PillPanel;
         InitRoom();
         // game tiles: drag left/right only, they snap into place (user wish 2026-11-14)
@@ -112,7 +114,7 @@ public partial class IslandWindow : Window
         H.Notifications.AgentNotice += _ => Ui.Run(() => Note("Agent", 180));
         H.Shelf.Items.CollectionChanged += (_, _) => Ui.Run(UpdateShelfTab);
         H.Privacy.Started += (_, _) => Ui.Run(() => Note("Live", 60));
-        H.Timer.Completed += () => Ui.Run(() => Note("Timer", 60));
+        H.Timer.Completed += () => Ui.Run(() => Note(L.T("Timer"), 60));
         H.Reminders.Due += _ => Ui.Run(() => Note("Remind", 120));
         WireAi();
 
@@ -124,7 +126,7 @@ public partial class IslandWindow : Window
         // quick picks under Start: set the wheels (Start then runs it)
         foreach (var m in new[] { 5, 10, 25 })
         {
-            var t = new TextBlock { Text = $"{m} Min", FontSize = 11, Cursor = Cursors.Hand, Margin = new Thickness(m == 5 ? 0 : 12, 0, 0, 0), Background = Brushes.Transparent };
+            var t = new TextBlock { Text = L.T($"{m} Min"), FontSize = 11, Cursor = Cursors.Hand, Margin = new Thickness(m == 5 ? 0 : 12, 0, 0, 0), Background = Brushes.Transparent };
             t.SetResourceReference(TextBlock.ForegroundProperty, "SubText");
             t.MouseEnter += (_, _) => t.SetResourceReference(TextBlock.ForegroundProperty, "Orange");
             t.MouseLeave += (_, _) => t.SetResourceReference(TextBlock.ForegroundProperty, "SubText");
@@ -420,7 +422,7 @@ public partial class IslandWindow : Window
     /// <summary>Instead of an empty page: music if something plays, else a call / download, else Spiele, else Timer.</summary>
     private static string FallbackTab()
     {
-        foreach (var t in new[] { "Music", "Live", "Games", "Timer" })
+        foreach (var t in new[] { "Music", "Live", "Games", L.T("Timer") })
             if (TabAvailable(t) && !(t == "Games" && H.Launcher.Items.Count == 0)) return t;
         return null;
     }
@@ -507,13 +509,13 @@ public partial class IslandWindow : Window
         S.Animations = AnimationLevel.An;
         await Task.Delay(1500);
         // a notification: equalizer steps aside, the bell rings, then the island opens downwards
-        OnNotificationArrived(new IslandNotification { Id = 0, AppName = "WhatsApp", Title = "Anna", Text = "Kommst du heute noch vorbei?", Time = DateTime.Now });
+        OnNotificationArrived(new IslandNotification { Id = 0, AppName = "WhatsApp", Title = "Anna", Text = L.T("Kommst du heute noch vorbei?"), Time = DateTime.Now });
         for (int i = 0; i < 16; i++) { Frame(); await Task.Delay(75); }
         SaveStrip("00_notification");
         if (Environment.GetEnvironmentVariable("ISLAND_NOTIF_ONLY") == "1") { S.Animations = anim; App.Quit(); return; }
         await Task.Delay(5000);
         // Claude working (bubble next to the music) → done
-        H.Agents.Demo("Spotify-Lautstärke einbauen", "Bearbeitet IslandWindow.xaml.cs", 3, 5, 600, AgentState.Running);
+        H.Agents.Demo(L.T("Spotify-Lautstärke einbauen"), "Bearbeitet IslandWindow.xaml.cs", 3, 5, 600, AgentState.Running);
         // the bubble is born: symbol small in the island → drop → island keeps the group centred
         for (int i = 0; i < 20; i++) { Frame(); await Task.Delay(60); }
         SaveStrip("0_bubble_birth");
@@ -531,7 +533,7 @@ public partial class IslandWindow : Window
         await Task.Delay(1000);
 
         // copied: squash + the check slides in
-        OnCaptured(new ClipItem { Kind = ClipKind.Text, Text = "Test" }, true);
+        OnCaptured(new ClipItem { Kind = ClipKind.Text, Text = L.T("Test") }, true);
         for (int i = 0; i < 5; i++) { Frame(); await Task.Delay(80); }
         SaveStrip("3_copied");
         await Task.Delay(2500);
@@ -617,19 +619,19 @@ public partial class IslandWindow : Window
             frames.Clear();
         }
         var log = new System.Text.StringBuilder();
-        H.Media.Fake("Song A", "Test", red, true);
+        H.Media.Fake("Song A", L.T("Test"), red, true);
         await Task.Delay(1500);
         // 1) Spotify-like: new title with the OLD picture (a new object), the new one 300 ms later
-        H.Media.Fake("Song B", "Test", Pic(Color.FromRgb(0xFF, 0x9F, 0x0A), Color.FromRgb(0xFF, 0x37, 0x5F)), true);
+        H.Media.Fake("Song B", L.T("Test"), Pic(Color.FromRgb(0xFF, 0x9F, 0x0A), Color.FromRgb(0xFF, 0x37, 0x5F)), true);
         log.AppendLine($"after title: pending={_songPending}");
         for (int i = 0; i < 4; i++) { Frame(); await Task.Delay(75); }
-        H.Media.Fake("Song B", "Test", blue, false);
+        H.Media.Fake("Song B", L.T("Test"), blue, false);
         for (int i = 0; i < 12; i++) { Frame(); await Task.Delay(75); }
         log.AppendLine($"after picture: pending={_songPending} cover is blue={ReferenceEquals(PillCover.ImageSource, blue)}");
         Save("1_title_then_picture");
         await Task.Delay(1500);
         // 2) browser-like: a new title, the picture never changes
-        H.Media.Fake("Song C", "Test", blue, true);
+        H.Media.Fake("Song C", L.T("Test"), blue, true);
         for (int i = 0; i < 18; i++) { Frame(); await Task.Delay(75); }
         log.AppendLine($"same picture: pending={_songPending}");
         Save("2_same_picture");
@@ -671,7 +673,7 @@ public partial class IslandWindow : Window
             S.TabBar = st;
             ApplyTabStyle();
             SetAlarmMode(false);
-            Expand("Timer", true);
+            Expand(L.T("Timer"), true);
             _sticky = true;
             await Task.Delay(1200);
             Snap(Root, $"{st}_1_timer", 1, 190);
@@ -736,7 +738,7 @@ public partial class IslandWindow : Window
             enc.Save(fs);
             frames.Clear();
         }
-        H.Media.Fake("Nachtlicht", "Lena Ost", Pic(Color.FromRgb(0xFF, 0x9F, 0x0A), Color.FromRgb(0xFF, 0x37, 0x5F)), true);
+        H.Media.Fake(L.T("Nachtlicht"), "Lena Ost", Pic(Color.FromRgb(0xFF, 0x9F, 0x0A), Color.FromRgb(0xFF, 0x37, 0x5F)), true);
         Expand("Music", true);
         _sticky = true;
         await Task.Delay(1500);
@@ -750,7 +752,7 @@ public partial class IslandWindow : Window
         if (_state != State.Expanded) { Expand("Music", true); await Task.Delay(900); }
         BeginSkip(-1);
         await Task.Delay(420);
-        H.Media.Fake("Nachtlicht", "Lena Ost", Pic(Color.FromRgb(0xFF, 0x9F, 0x0A), Color.FromRgb(0xFF, 0x37, 0x5F)), true);
+        H.Media.Fake(L.T("Nachtlicht"), "Lena Ost", Pic(Color.FromRgb(0xFF, 0x9F, 0x0A), Color.FromRgb(0xFF, 0x37, 0x5F)), true);
         for (int i = 0; i < 16; i++) { Frame(); await Task.Delay(70); }
         Save("2_zurueck");
         S.Animations = anim;
@@ -788,12 +790,12 @@ public partial class IslandWindow : Window
             frames.Clear();
         }
         await Task.Delay(1500);
-        OnNotificationArrived(new IslandNotification { Id = 0, AppName = "WhatsApp", Title = "Anna", Text = "Kommst du heute noch vorbei? Ich bring Pizza mit und den Film von letzter Woche", Time = DateTime.Now });
+        OnNotificationArrived(new IslandNotification { Id = 0, AppName = "WhatsApp", Title = "Anna", Text = L.T("Kommst du heute noch vorbei? Ich bring Pizza mit und den Film von letzter Woche"), Time = DateTime.Now });
         for (int i = 0; i < 14; i++) { Frame(); await Task.Delay(i < 8 ? 110 : 350); }
         Save("1_bell_ticker");
         OpenTicker();
         for (int i = 0; i < 6; i++) { Frame(); await Task.Delay(110); }
-        ShowNotificationBanner(new IslandNotification { Id = 0, AppName = "WhatsApp", Title = "Anna", Text = "Und bring bitte Getränke mit", Time = DateTime.Now });
+        ShowNotificationBanner(new IslandNotification { Id = 0, AppName = "WhatsApp", Title = "Anna", Text = L.T("Und bring bitte Getränke mit"), Time = DateTime.Now });
         for (int i = 0; i < 4; i++) { Frame(); await Task.Delay(150); }
         Save("2_card");
         EndPeek();
@@ -804,7 +806,7 @@ public partial class IslandWindow : Window
         await Task.Delay(1500);
         // a plain notice (timer end) – narrow first, the card on hover; stays because it rings
         ShowPeek(new PeekInfo { Key = "timer", Important = true, Icon = "timer", GlyphBrush = (Brush)FindResource("Orange"), Title = "Timer abgelaufen", Text = "25 Min · Fokus", TimeoutMs = 0 }
-            .Action("Nochmal", null).Action("OK", null, true));
+            .Action(L.T("Nochmal"), null).Action("OK", null, true));
         for (int i = 0; i < 8; i++) { Frame(); await Task.Delay(150); }
         OpenTicker();
         for (int i = 0; i < 5; i++) { Frame(); await Task.Delay(150); }
@@ -812,7 +814,7 @@ public partial class IslandWindow : Window
         EndPeek();
         await Task.Delay(800);
         ShowPeek(new PeekInfo { Key = "price:1", Important = true, Icon = "cart", GlyphBrush = (Brush)FindResource("Green"), Title = "AirPods Pro", Text = "jetzt 189 € · vorher 229 €", TimeoutMs = 9000 }
-            .Action("Öffnen", null, true));
+            .Action(L.T("Öffnen"), null, true));
         for (int i = 0; i < 5; i++) { Frame(); await Task.Delay(150); }
         OpenTicker();
         for (int i = 0; i < 5; i++) { Frame(); await Task.Delay(150); }
@@ -845,22 +847,22 @@ public partial class IslandWindow : Window
         await Task.Delay(1500);
         var green = (Brush)FindResource("Green");
         ShowPeek(new PeekInfo { Key = "t1", Ring = 1, Icon = "check", GlyphBrush = green, Source = "Claude Code · dynamic island", SourceIcon = "asterisk", SourceBrush = AgentBrush,
-            Title = "Fertig: Spotify-Lautstärke einbauen", Text = "5 von 5 Schritten · 12:35", TimeoutMs = 0, Click = () => { } }
+            Title = L.T("Fertig: Spotify-Lautstärke einbauen"), Text = L.T("5 von 5 Schritten · 12:35"), TimeoutMs = 0, Click = () => { } }
             .Button("arrow.up.right", "Claude öffnen", null, (Brush)FindResource("Blue")));
         await Snap("1_claude_done");
         ShowPeek(new PeekInfo { Key = "t2", Ring = 0.6, Icon = "asterisk", GlyphBrush = AgentBrush, Source = "Claude Code · dynamic island", SourceIcon = "asterisk", SourceBrush = AgentBrush,
-            Title = "Claude braucht deine Antwort", Text = "Benachrichtigungen bauen · 3 / 5", TimeoutMs = 0, Click = () => { } }
-            .Button("arrow.up.right", "Claude öffnen", null, AgentBrush, darkGlyph: true));
+            Title = L.T("Claude braucht deine Antwort"), Text = L.T("Benachrichtigungen bauen · 3 / 5"), TimeoutMs = 0, Click = () => { } }
+            .Button("arrow.up.right", L.T("Claude öffnen"), null, AgentBrush, darkGlyph: true));
         await Snap("2_claude_wait");
         ShowPeek(new PeekInfo { Key = "t3", Icon = "mic", GlyphBrush = (Brush)FindResource("Orange"), Source = "Datenschutz", SourceIcon = "shield",
-            Title = "Zoom nutzt dein Mikrofon", Text = "zum ersten Mal", TimeoutMs = 0 }
-            .Button("mic.slash", "Stumm", null).Button("open", "Öffnen", null));
+            Title = L.T("Zoom nutzt dein Mikrofon"), Text = L.T("zum ersten Mal"), TimeoutMs = 0 }
+            .Button("mic.slash", L.T("Stumm"), null).Button("open", L.T("Öffnen"), null));
         await Snap("3_privacy");
-        ShowPeek(new PeekInfo { Key = "t4", Icon = "bell.badge", Source = "Discord · jetzt", Avatar = "A", AvatarBrush = AvatarColor("Mia"),
-            Title = "Mia", Text = "Hast du heute Abend kurz Zeit?", TimeoutMs = 0, Click = () => { } });
+        ShowPeek(new PeekInfo { Key = "t4", Icon = "bell.badge", Source = L.T("Discord · jetzt"), Avatar = "A", AvatarBrush = AvatarColor("Mia"),
+            Title = "Mia", Text = L.T("Hast du heute Abend kurz Zeit?"), TimeoutMs = 0, Click = () => { } });
         await Snap("4_message");
         ShowPeek(new PeekInfo { Key = "t5", Icon = "download", GlyphBrush = SteamBrush, Source = "Steam", SourceIcon = "download", SourceBrush = SteamBrush,
-            Title = "ELDEN RING ist bereit", Text = "34,2 GB geladen in 38 Min", TimeoutMs = 0 }
+            Title = L.T("ELDEN RING ist bereit"), Text = L.T("34,2 GB geladen in 38 Min"), TimeoutMs = 0 }
             .Button("play.fill", "Spielen", null, (Brush)FindResource("Green"), darkGlyph: true));
         await Snap("5_steam");
         App.Quit();
@@ -908,29 +910,29 @@ public partial class IslandWindow : Window
             sb.AppendLine($"{(got == expect ? "OK " : "FEHLER")} {what}: {got} (erwartet {expect})");
         }
         S.SmartTab = true;
-        S.LastTab = "Timer";
+        S.LastTab = L.T("Timer");
         _moments.Clear(); _closedTab = null;
         // a copy / a notification always leaves an entry behind – the test window starts with none (nothing is saved)
         H.Clipboard.Persist = false;
-        var sample = new ClipItem { Kind = ClipKind.Text, Text = "Test" };
-        var note = new IslandNotification { Id = 0, AppName = "Test", Title = "Test", Time = DateTime.Now };
+        var sample = new ClipItem { Kind = ClipKind.Text, Text = L.T("Test") };
+        var note = new IslandNotification { Id = 0, AppName = L.T("Test"), Title = L.T("Test"), Time = DateTime.Now };
         H.Clipboard.Items.Add(sample);
         H.Notifications.Items.Add(note);
-        Check("nichts passiert", H.Privacy.InUse ? "Live" : "Timer");
-        Note("Clip", 45); Check("eben kopiert", "Clip");
+        Check("nichts passiert", H.Privacy.InUse ? "Live" : L.T("Timer"));
+        Note("Clip", 45); Check(L.T("eben kopiert"), "Clip");
         Note("Agent", 180); Check("danach Claude fertig", "Agent");
         _moments.Add(new Moment("Notify", DateTime.Now.AddMinutes(-5), TimeSpan.FromSeconds(120))); Check("alte Mitteilung zählt nicht", "Agent");
         _closedTab = "Remind"; _closedAt = DateTime.Now; Check("danach auf Erinnerungen gewesen und eben geschlossen", "Remind");
         _closedAt = DateTime.Now.AddSeconds(-20); Check("vor 20 s geschlossen", "Agent");
-        ForgetMoment("Agent"); Check("Agent von Hand verlassen", "Clip");
+        ForgetMoment("Agent"); Check(L.T("Agent von Hand verlassen"), "Clip");
         // the user's case: a notification opens Mitteilungen, they scroll to Musik, close, open again
         _moments.Clear(); _closedTab = null;
-        Note("Notify", 120); Check("Mitteilung eben angekommen", "Notify");
+        Note("Notify", 120); Check(L.T("Mitteilung eben angekommen"), "Notify");
         ForgetMoment("Notify"); _closedTab = "Music"; _closedAt = DateTime.Now.AddSeconds(-3); Check("zu Musik gescrollt, zu, gleich wieder auf", "Music");
         _closedAt = DateTime.Now.AddSeconds(-30); Check("zu Musik gescrollt, nach 30 s wieder auf (zuletzt benutzt)", H.Privacy.InUse ? "Live" : S.LastTab);
         _closedAt = DateTime.Now.AddSeconds(-4); Note("Notify", 120); Check("nach dem Schließen kommt eine neue Mitteilung", "Notify");
         _moments.Clear(); _closedTab = null;
-        Check("alles abgelaufen", H.Privacy.InUse ? "Live" : "Timer");
+        Check("alles abgelaufen", H.Privacy.InUse ? "Live" : L.T("Timer"));
         // the user's case: Claude done → Agent once; looked, closed, > 5 s later → the usual page (Musik) again
         _moments.Clear(); _closedTab = null;
         S.LastTab = "Music";
@@ -947,7 +949,7 @@ public partial class IslandWindow : Window
         if (H.Shelf.Items.Count == 0)
         {
             sb.AppendLine($"{(ShelfTabBtn.Visibility != Visibility.Visible ? "OK " : "FEHLER")} leere Ablage hat kein Symbol");
-            S.LastTab = "Shelf"; Check("leere Ablage, zuletzt dort", H.Media.HasMedia ? "Music" : H.Privacy.InUse || H.Steam.Downloading ? "Live" : H.Launcher.Items.Count > 0 ? "Games" : "Timer");
+            S.LastTab = "Shelf"; Check("leere Ablage, zuletzt dort", H.Media.HasMedia ? "Music" : H.Privacy.InUse || H.Steam.Downloading ? "Live" : H.Launcher.Items.Count > 0 ? "Games" : L.T("Timer"));
         }
         // an emptied page is skipped (test copy only – the real history is put back, nothing is saved)
         H.Clipboard.Items.Remove(sample);
@@ -955,12 +957,12 @@ public partial class IslandWindow : Window
         var keep = H.Clipboard.Items.ToList();
         var keepQ = H.Clipboard.Queue.ToList();
         H.Clipboard.Items.Clear(); H.Clipboard.Queue.Clear();
-        string alive = H.Media.HasMedia ? "Music" : H.Privacy.InUse || H.Steam.Downloading ? "Live" : H.Launcher.Items.Count > 0 ? "Games" : "Timer";
-        S.LastTab = "Clip"; Check("Zwischenablage geleert, zuletzt dort", alive);
-        _closedTab = "Clip"; _closedAt = DateTime.Now.AddSeconds(-2); Check("Zwischenablage geleert, eben geschlossen", H.Privacy.InUse ? "Live" : alive);
+        string alive = H.Media.HasMedia ? "Music" : H.Privacy.InUse || H.Steam.Downloading ? "Live" : H.Launcher.Items.Count > 0 ? "Games" : L.T("Timer");
+        S.LastTab = "Clip"; Check(L.T("Zwischenablage geleert, zuletzt dort"), alive);
+        _closedTab = "Clip"; _closedAt = DateTime.Now.AddSeconds(-2); Check(L.T("Zwischenablage geleert, eben geschlossen"), H.Privacy.InUse ? "Live" : alive);
         _closedTab = null;
         H.Clipboard.Items.Add(new ClipItem { Kind = ClipKind.Text, Text = "x" });
-        Check("Zwischenablage mit Eintrag", H.Privacy.InUse ? "Live" : "Clip");
+        Check(L.T("Zwischenablage mit Eintrag"), H.Privacy.InUse ? "Live" : "Clip");
         H.Clipboard.Items.Clear();
         foreach (var i in keep) H.Clipboard.Items.Add(i);
         foreach (var i in keepQ) H.Clipboard.Queue.Add(i);
@@ -1737,7 +1739,7 @@ public partial class IslandWindow : Window
                 case Act.Recording:
                     ShowLeadIcon("record", color);
                     ShowTrail(_recordingText, color);
-                    Lead.ToolTip = "Aufnahme läuft – klicken zum Beenden";
+                    Lead.ToolTip = L.T("Aufnahme läuft – klicken zum Beenden");
                     break;
                 case Act.Live:
                 {
@@ -1761,7 +1763,7 @@ public partial class IslandWindow : Window
                     TrailLive.Visibility = Visibility.Visible;
                     var target = DiscordMuteTarget();
                     TrailLive.Cursor = target != null ? Cursors.Hand : null;
-                    TrailLive.ToolTip = target == null ? null : target.SelfMuted ? "In Discord stumm – klicken zum Entstummen" : "Klicken: in Discord stummschalten";
+                    TrailLive.ToolTip = target == null ? null : target.SelfMuted ? L.T("In Discord stumm – klicken zum Entstummen") : L.T("Klicken: in Discord stummschalten");
                     Lead.ToolTip = string.Join("\n", H.Privacy.Apps.Select(a => $"{a.Name}: {a.Parts} · {a.Elapsed}"));
                     break;
                 }
@@ -2046,7 +2048,7 @@ public partial class IslandWindow : Window
             Act.MicMuted => H.Privacy.InUse ? "Live" : "Controls",
             Act.Agent => "Agent",
             Act.Obs => "Obs",
-            Act.Timer or Act.Alarm => "Timer",
+            Act.Timer or Act.Alarm => L.T("Timer"),
             Act.Music => "Music",
             Act.Queue => "Clip",
             _ => null, // GIF recording: no page of its own
@@ -2269,7 +2271,7 @@ public partial class IslandWindow : Window
                     screen.HorizontalAlignment = both ? HorizontalAlignment.Right : HorizontalAlignment.Center;
                     screen.Margin = both ? new Thickness(0, 0, 10, 0) : new Thickness(0);
                 }
-                bubble.ToolTip = DiscordMuteTarget() is { } t ? (t.SelfMuted ? "In Discord stumm – klicken zum Entstummen" : "Klicken: in Discord stummschalten") : null;
+                bubble.ToolTip = DiscordMuteTarget() is { } t ? (t.SelfMuted ? L.T("In Discord stumm – klicken zum Entstummen") : L.T("Klicken: in Discord stummschalten")) : null;
                 break;
             }
             case Act.Obs:
@@ -2290,7 +2292,7 @@ public partial class IslandWindow : Window
                     x.Text.Margin = new Thickness(0, 0, 9, 0);
                     x.Text.Visibility = Visibility.Visible;
                 }
-                bubble.ToolTip = H.Obs.Streaming ? $"OBS live · {H.Obs.StreamTime}" : $"OBS nimmt auf · {H.Obs.RecordTime}";
+                bubble.ToolTip = H.Obs.Streaming ? L.T($"OBS live · {H.Obs.StreamTime}") : L.T($"OBS nimmt auf · {H.Obs.RecordTime}");
                 break;
             case Act.Agent:
             {
@@ -2304,7 +2306,7 @@ public partial class IslandWindow : Window
                     icon.Kind = "check";
                     icon.Foreground = green;
                     icon.Size = 13;
-                    bubble.ToolTip = ag == null ? "Claude ist fertig" : $"Claude ist fertig · {ag.Elapsed}";
+                    bubble.ToolTip = ag == null ? L.T("Claude ist fertig") : L.T($"Claude ist fertig · {ag.Elapsed}");
                     break;
                 }
                 icon.Kind = "asterisk";
@@ -2335,7 +2337,7 @@ public partial class IslandWindow : Window
                 icon.Kind = "check";
                 icon.Foreground = green;
                 icon.Size = 12;
-                bubble.ToolTip = $"{Dl.Name} ist fertig";
+                bubble.ToolTip = L.T($"{Dl.Name} ist fertig");
                 break;
             case Act.Steam:
             {
@@ -2359,7 +2361,7 @@ public partial class IslandWindow : Window
                 x.Text.FontSize = 8.5;
                 x.Text.Foreground = orange;
                 x.Text.Visibility = Visibility.Visible;
-                bubble.ToolTip = $"Timer · {H.Timer.RemainingText}";
+                bubble.ToolTip = L.T($"Timer · {H.Timer.RemainingText}");
                 break;
             case Act.Recording:
                 icon.Visibility = Visibility.Collapsed;
@@ -2376,7 +2378,7 @@ public partial class IslandWindow : Window
                 break;
             case Act.Alarm:
                 icon.Kind = "bell";
-                bubble.ToolTip = $"Wecker {H.Alarm.At:HH:mm} · {H.Alarm.UntilText}";
+                bubble.ToolTip = L.T($"Wecker {H.Alarm.At:HH:mm} · {H.Alarm.UntilText}");
                 break;
             default: // music
                 icon.Kind = "music";
@@ -2572,12 +2574,12 @@ public partial class IslandWindow : Window
         p.Ticker = true;
         string src = p.Key switch
         {
-            "timer" => "Timer", "alarm" => "Wecker", "call" => "Anruf", "track" => "Musik", "live" => "Live",
-            { } k when k.StartsWith("rem:") => "Erinnerung",
-            { } k when k.StartsWith("price:") => "Preisalarm",
-            _ => p.Icon == "record" ? "Aufnahme" : "PeakPill"
+            "timer" => L.T("Timer"), "alarm" => L.T("Wecker"), "call" => L.T("Anruf"), "track" => L.T("Musik"), "live" => "Live",
+            { } k when k.StartsWith("rem:") => L.T("Erinnerung"),
+            { } k when k.StartsWith("price:") => L.T("Preisalarm"),
+            _ => p.Icon == "record" ? L.T("Aufnahme") : "PeakPill"
         };
-        p.Source = $"{src} · jetzt";
+        p.Source = L.T($"{src} · jetzt");
         p.SourceIcon = p.Icon;
         p.SourceBrush = p.GlyphBrush;
         if (p.Key == "track") p.Cover = p.Image != null;
@@ -2755,7 +2757,7 @@ public partial class IslandWindow : Window
         PeekReplyBox.Text = "";
         if (_peek.Reply != null)
         {
-            var rb = new Button { ToolTip = "Antworten", Margin = new Thickness(6, 0, 0, 0), Width = 30, Height = 30, Padding = new Thickness(0) };
+            var rb = new Button { ToolTip = L.T("Antworten"), Margin = new Thickness(6, 0, 0, 0), Width = 30, Height = 30, Padding = new Thickness(0) };
             rb.SetResourceReference(StyleProperty, "GlassIcon");
             Ext.SetIcon(rb, "reply");
             Ext.SetIconSize(rb, 14);
@@ -2918,7 +2920,7 @@ public partial class IslandWindow : Window
             case HotkeyAction.Clipboard: ToggleTab("Clip"); break;
             case HotkeyAction.Shelf: ToggleTab("Shelf"); break;
             case HotkeyAction.Music: ToggleTab("Music"); break;
-            case HotkeyAction.Widgets: ToggleTab("Timer"); break;
+            case HotkeyAction.Widgets: ToggleTab(L.T("Timer")); break;
             case HotkeyAction.Reminders: ToggleTab("Remind"); break;
             case HotkeyAction.AiChat: ToggleTab("Ai"); break;
             case HotkeyAction.Controls: ToggleTab("Controls"); break;
@@ -2948,7 +2950,7 @@ public partial class IslandWindow : Window
         bool muted = H.Audio.ToggleMic();
         // replaces an earlier mic hint immediately – no stale "muted" after switching back on
         if (muted) ShowHint("mic.slash", "Stumm", (Brush)FindResource("Danger"), key: "mic");
-        else ShowHint("mic", "An", null, key: "mic");
+        else ShowHint("mic", L.T("An"), null, key: "mic");
         UpdatePill();
         UpdateControlsUi();
         if (muted) MuteMoment();
@@ -2983,17 +2985,17 @@ public partial class IslandWindow : Window
         var orange = (Brush)FindResource("Orange");
         var p = new PeekInfo
         {
-            Key = "live", Source = "Datenschutz", SourceIcon = "shield",
+            Key = "live", Source = L.T("Datenschutz"), SourceIcon = "shield",
             Icon = kind switch { 's' => "screen.share", 'm' => "mic", _ => "camera" },
             GlyphBrush = kind switch { 's' => ShareBrush, 'm' => orange, _ => (Brush)FindResource("Green") },
-            Title = kind switch { 's' => $"{app.Name} teilt deinen Bildschirm", 'm' => $"{app.Name} nutzt dein Mikrofon", _ => $"{app.Name} nutzt deine Kamera" },
-            Text = kind == 's' ? "Mit einem Klick beenden" : last == default ? "zum ersten Mal" : $"zum ersten Mal seit {(int)(DateTime.Now - last).TotalDays} Tagen",
+            Title = kind switch { 's' => L.T($"{app.Name} teilt deinen Bildschirm"), 'm' => L.T($"{app.Name} nutzt dein Mikrofon"), _ => L.T($"{app.Name} nutzt deine Kamera") },
+            Text = kind == 's' ? L.T("Mit einem Klick beenden") : last == default ? L.T("zum ersten Mal") : L.T($"zum ersten Mal seit {(int)(DateTime.Now - last).TotalDays} Tagen"),
             TimeoutMs = 6000
         };
         if (kind == 's') p.Button("stop", "Teilen beenden", () => _ = StopSharing(app), (Brush)FindResource("Danger"));
         else if (kind == 'm' && !H.Audio.MicMuted && !app.SelfMuted)
-            p.Button("mic.slash", app.IsDiscord && H.Discord.Connected ? "In Discord stummschalten" : "Mikrofon stummschalten", () => MuteLiveApp(app));
-        p.Button("open", $"{app.Name} öffnen", () => OpenLiveApp(app));
+            p.Button("mic.slash", app.IsDiscord && H.Discord.Connected ? L.T("In Discord stummschalten") : L.T("Mikrofon stummschalten"), () => MuteLiveApp(app));
+        p.Button("open", L.T($"{app.Name} öffnen"), () => OpenLiveApp(app));
         ShowPeek(p);
     }
 
@@ -3001,7 +3003,7 @@ public partial class IslandWindow : Window
     {
         var orange = (Brush)FindResource("Orange");
         if (S.Animations == AnimationLevel.Aus) { GlowBubble(Act.Live, orange); return; }
-        ShowHint("mic", $"{app.Name} hört zu", orange, key: "listen");
+        ShowHint("mic", L.T($"{app.Name} hört zu"), orange, key: "listen");
         if (_state != State.Hint) { GlowBubble(Act.Live, orange); return; } // the island is busy (open, …) – at least it glows
         if (HintWave.Children.Count == 0) MakeWave(HintWave, 5, 13, 2);
         HintIcon.Visibility = Visibility.Collapsed;
@@ -3009,7 +3011,7 @@ public partial class IslandWindow : Window
         StartWaves();
         HintText.Inlines.Clear();
         HintText.Inlines.Add(new System.Windows.Documents.Run(app.Name) { Foreground = orange });
-        HintText.Inlines.Add(new System.Windows.Documents.Run(" hört zu") { Foreground = Brushes.White });
+        HintText.Inlines.Add(new System.Windows.Documents.Run(L.T(" hört zu")) { Foreground = Brushes.White });
     }
 
     /// <summary>The bubble of an activity glows up for a moment (instead of a banner).</summary>
@@ -3033,7 +3035,7 @@ public partial class IslandWindow : Window
         if (!Dispatcher.CheckAccess()) { Dispatcher.BeginInvoke(new Action(UpdateLiveUi)); return; }
         bool apps = H.Privacy.InUse, steam = AnyDl;
         if (steam && (SteamRow.DataContext as DlHolder)?.Steam != Dl) SteamRow.DataContext = new DlHolder { Steam = Dl };
-        SteamRow.ToolTip = Dl == H.Downloads ? "Browser-Download" : "Steam-Download";
+        SteamRow.ToolTip = Dl == H.Downloads ? L.T("Browser-Download") : L.T("Steam-Download");
         bool any = apps || steam;
         foreach (var a in H.Privacy.Apps)
         {
@@ -3079,11 +3081,11 @@ public partial class IslandWindow : Window
             bool dc = p.IsDiscord && H.Discord.Connected && H.Discord.InVoice;
             LiveMembers.Visibility = dc && H.Discord.Members.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
             LiveSingleDeaf.Visibility = dc ? Visibility.Visible : Visibility.Collapsed;
-            LiveSingleDeafText.Text = H.Discord.Deafened ? "Hören" : "Taub";
+            LiveSingleDeafText.Text = H.Discord.Deafened ? L.T("Hören") : L.T("Taub");
             Ext.SetIcon(LiveSingleDeafBtn, H.Discord.Deafened ? "speaker" : "speaker.slash");
             LiveSingleDeafBtn.Foreground = H.Discord.Deafened ? (Brush)FindResource("Danger") : Brushes.White;
             LiveSingleName.Text = dc && !string.IsNullOrEmpty(H.Discord.Channel) ? H.Discord.Channel : p.Name;
-            LiveSingleMuteText.Text = H.Audio.MicMuted || p.SelfMuted ? "An" : "Stumm";
+            LiveSingleMuteText.Text = H.Audio.MicMuted || p.SelfMuted ? L.T("An") : L.T("Stumm");
             LiveSingleBadge.Kind = p.Screen ? "display" : p.Mic ? (p.SelfMuted ? "mic.slash" : "mic") : "camera";
             // on a white badge (white mic colour) the symbol is dark
             LiveSingleBadge.Foreground = ReferenceEquals(p.Accent, Brushes.White) ? Brushes.Black : Brushes.White;
@@ -3106,7 +3108,7 @@ public partial class IslandWindow : Window
             bool ok = await H.Discord.ToggleMute();
             if (!ok) { ShowHint("xmark", "Discord hat nicht reagiert", (Brush)FindResource("Danger"), key: "mic"); return; }
             if (H.Discord.Muted) { ShowHint("mic.slash", "Stumm in Discord", (Brush)FindResource("Danger"), key: "mic"); MuteMoment(); }
-            else ShowHint("mic", "In Discord an", null, key: "mic");
+            else ShowHint("mic", L.T("In Discord an"), null, key: "mic");
             return;
         }
         ToggleMic();
@@ -3151,8 +3153,8 @@ public partial class IslandWindow : Window
         Icon = "display",
         Key = "live",
         GlyphBrush = (Brush)FindResource("Blue"),
-        Title = "Wähl in Discord, was du teilst",
-        Text = "Fenster oder Bildschirm auswählen, dann „Live gehen“.",
+        Title = L.T("Wähl in Discord, was du teilst"),
+        Text = L.T("Fenster oder Bildschirm auswählen, dann „Live gehen“."),
         TimeoutMs = 5000,
     });
 
@@ -3203,8 +3205,8 @@ public partial class IslandWindow : Window
             Icon = "phone",
             Key = "live",
             GlyphBrush = (Brush)FindResource("Danger"),
-            Title = "Discord geöffnet",
-            Text = "Leg dort auf – der Knopf war nicht erreichbar.",
+            Title = L.T("Discord geöffnet"),
+            Text = L.T("Leg dort auf – der Knopf war nicht erreichbar."),
             TimeoutMs = 4500,
         });
     }
@@ -3248,8 +3250,8 @@ public partial class IslandWindow : Window
             Icon = "record",
             Key = "live",
             GlyphBrush = (Brush)FindResource("Danger"),
-            Title = $"{app.Name} geöffnet",
-            Text = "Beende das Teilen dort – der Knopf war nicht erreichbar.",
+            Title = L.T($"{app.Name} geöffnet"),
+            Text = L.T("Beende das Teilen dort – der Knopf war nicht erreichbar."),
             TimeoutMs = 4500
         });
     }
@@ -3580,8 +3582,8 @@ public partial class IslandWindow : Window
                     if (S.Animations != AnimationLevel.Aus) RingBell();
                     After(S.Animations != AnimationLevel.Aus ? 760 : 1, () => ShowPeek(new PeekInfo
                     {
-                        Key = "notif", Icon = "bell.badge", Source = "WhatsApp · jetzt", Avatar = "A", AvatarBrush = AvatarColor("Anna"),
-                        Title = "Anna", Text = "Kommst du heute noch vorbei?", TimeoutMs = 3500, Click = () => { }
+                        Key = "notif", Icon = "bell.badge", Source = L.T("WhatsApp · jetzt"), Avatar = "A", AvatarBrush = AvatarColor("Anna"),
+                        Title = "Anna", Text = L.T("Kommst du heute noch vorbei?"), TimeoutMs = 3500, Click = () => { }
                     }));
                     break;
                 case "copy":
@@ -3647,11 +3649,11 @@ public partial class IslandWindow : Window
             {
                 Key = "agentwait", Important = true, Ring = s.HasPlan ? Math.Max(0.06, s.Progress) : 1, Icon = "asterisk", GlyphBrush = AgentBrush,
                 Source = string.IsNullOrEmpty(s.Project) ? "Claude Code" : $"Claude Code · {s.Project}", SourceIcon = "asterisk", SourceBrush = AgentBrush,
-                Title = "Claude braucht deine Antwort",
+                Title = L.T("Claude braucht deine Antwort"),
                 Text = string.Join(" · ", new[] { s.Task, s.HasPlan ? s.Counter : null }.Where(x => !string.IsNullOrWhiteSpace(x))),
                 TimeoutMs = 0, Click = () => AgentService.OpenHost()
             }
-            .Button("arrow.up.right", "Claude öffnen", () => AgentService.OpenHost(), AgentBrush, darkGlyph: true));
+            .Button("arrow.up.right", L.T("Claude öffnen"), () => AgentService.OpenHost(), AgentBrush, darkGlyph: true));
     }
 
     // =====================================================================
@@ -3710,7 +3712,7 @@ public partial class IslandWindow : Window
         if (!Dispatcher.CheckAccess()) { Dispatcher.BeginInvoke(new Action(UpdateNotifyUi)); return; }
         UpdateNotifyHeight();
         NotifBadge.Visibility = _unreadNotif > 0 ? Visibility.Visible : Visibility.Collapsed;
-        NotifClearWord.Text = _unreadNotif > 0 ? "Alle gelesen" : "Alle löschen";
+        NotifClearWord.Text = _unreadNotif > 0 ? L.T("Alle gelesen") : L.T("Alle löschen");
         ScheduleMarkRead();
         UpdateTabBadges();
         int sug = H.Suggestions.Items.Count;
@@ -3749,8 +3751,8 @@ public partial class IslandWindow : Window
         {
             // incoming call: important, stays a while, shows through a tucked island; answering happens in the app
             ShowPeek(new PeekInfo { Key = "call", Important = true, Image = n.Icon, Icon = "mic", GlyphBrush = (Brush)FindResource("Green"),
-                                    Title = $"Anruf · {(string.IsNullOrEmpty(n.Title) ? n.AppName : n.Title)}", Text = n.AppName, TimeoutMs = 20000 }
-                .Action("Öffnen", () => H.Notifications.Open(n), true));
+                                    Title = L.T($"Anruf · {(string.IsNullOrEmpty(n.Title) ? n.AppName : n.Title)}"), Text = n.AppName, TimeoutMs = 20000 }
+                .Action(L.T("Öffnen"), () => H.Notifications.Open(n), true));
             return;
         }
         if (_state == State.Expanded) return; // it is in the list – no alert over the open island
@@ -3825,7 +3827,7 @@ public partial class IslandWindow : Window
         var shown = code.Length == 6 ? $"{code[..3]} {code[3..]}" : code;
         ShowPeek(new PeekInfo
             {
-                Key = "notif", Image = n.Icon, Icon = "lock", Source = $"{n.AppName} · Code", SourceIcon = "lock",
+                Key = "notif", Image = n.Icon, Icon = "lock", Source = L.T($"{n.AppName} · Code"), SourceIcon = "lock",
                 Title = shown, Text = string.IsNullOrWhiteSpace(n.Title) ? n.AppName : n.Title, TimeoutMs = 15000, Click = Copy
             }
             .Button("copy", "Kopieren", Copy, (Brush)FindResource("Green"), darkGlyph: true));
@@ -3845,14 +3847,14 @@ public partial class IslandWindow : Window
         ShowPeek(new PeekInfo
             {
                 Key = "notif", Image = n.Icon, Icon = "bell.badge", Ticker = true, Open = open, Count = count,
-                Source = count > 1 ? $"{n.AppName} · jetzt · {count} neue" : $"{n.AppName} · jetzt",
+                Source = count > 1 ? L.T($"{n.AppName} · jetzt · {count} neue") : L.T($"{n.AppName} · jetzt"),
                 Avatar = person ? n.Title.Trim()[..1].ToUpperInvariant() : null, AvatarBrush = person ? AvatarColor(n.Title) : null,
                 Title = person ? n.Title : string.IsNullOrWhiteSpace(n.Title) ? n.AppName : n.Title,
                 Text = n.Text, TimeoutMs = messenger ? 6000 : 4500,
                 Click = () => { H.Notifications.Open(n); n.Unread = false; },
                 Reply = person ? text => { n.Unread = false; _ = ReplyService.SendAsync(n, text, S.ReplyAutoSend); } : null
             }
-            .Button("check", "Gelesen", () => { n.Unread = false; UpdateNotifyUi(); })
+            .Button("check", L.T("Gelesen"), () => { n.Unread = false; UpdateNotifyUi(); })
             .Button("open", "Öffnen", () => { H.Notifications.Open(n); n.Unread = false; }, (Brush)FindResource("Green"), darkGlyph: true));
     }
 
@@ -3935,7 +3937,7 @@ public partial class IslandWindow : Window
         var green = (Brush)FindResource("Green");
         H.Notifications.AddOwn(a.Name, msg, a.IconKind, green, a.Url);
         ShowPeek(new PeekInfo { Key = "price:" + a.Id, Important = true, Icon = a.IconKind, GlyphBrush = green, Title = a.Name, Text = msg, TimeoutMs = 9000 }
-            .Action("Öffnen", () => OpenUrl(a.Url), true));
+            .Action(L.T("Öffnen"), () => OpenUrl(a.Url), true));
     }
 
     private static void OpenUrl(string url)
@@ -3952,7 +3954,7 @@ public partial class IslandWindow : Window
         ShowHint(s.IconKind, s.Text, (Brush)FindResource("Blue"), key: "suggest",
                  actions: new List<(string, string, Brush, Action)>
                  {
-                     (null, "Aktivieren", null, () => _ = ActivateSuggestion(s)),
+                     (null, L.T("Aktivieren"), null, () => _ = ActivateSuggestion(s)),
                      ("xmark", "Nein danke", (Brush)FindResource("Danger"), () => H.Suggestions.Remove(s))
                  });
     }
@@ -3997,14 +3999,14 @@ public partial class IslandWindow : Window
         UpdateTabBadges();
         if (!o.Connected && _tab == "Obs") SelectTab("Music", false);
         var parts = new List<string>();
-        if (o.Recording) parts.Add($"● Aufnahme {o.RecordTime}");
-        if (o.Streaming) parts.Add($"Stream {o.StreamTime}");
-        ObsStatus.Text = parts.Count > 0 ? string.Join(" · ", parts) : o.Connected ? "Bereit" : o.Status;
+        if (o.Recording) parts.Add(L.T($"● Aufnahme {o.RecordTime}"));
+        if (o.Streaming) parts.Add(L.T($"Stream {o.StreamTime}"));
+        ObsStatus.Text = parts.Count > 0 ? string.Join(" · ", parts) : o.Connected ? L.T("Bereit") : o.Status;
         ObsStatus.Foreground = o.Recording ? (Brush)FindResource("Danger") : o.Streaming ? (Brush)FindResource("Green") : (Brush)FindResource("SubText");
-        ObsRecBtn.Content = o.Recording ? "Stopp" : "Aufnahme";
+        ObsRecBtn.Content = o.Recording ? "Stopp" : L.T("Aufnahme");
         Ext.SetIcon(ObsRecBtn, o.Recording ? "stop" : "record");
         if (o.Recording) ObsRecBtn.Background = (Brush)FindResource("Danger"); else ObsRecBtn.ClearValue(BackgroundProperty);
-        ObsStreamBtn.Content = o.Streaming ? "Live beenden" : "Live gehen";
+        ObsStreamBtn.Content = o.Streaming ? L.T("Live beenden") : L.T("Live gehen");
         if (o.Streaming) ObsStreamBtn.Background = new SolidColorBrush(Color.FromArgb(0xCC, 0x30, 0xD1, 0x58)); else ObsStreamBtn.ClearValue(BackgroundProperty);
 
         // scene chips – the active one white
@@ -4053,7 +4055,7 @@ public partial class IslandWindow : Window
             {
                 Key = "filedl", Icon = "download", GlyphBrush = (Brush)FindResource("Green"), Image = ShellIcon.Get(path),
                 Source = "Download", SourceIcon = "download", SourceBrush = SteamBrush,
-                Title = name, Text = $"{BrowserDownloadService.Bytes(size)} · fertig", TimeoutMs = 6000,
+                Title = name, Text = L.T($"{BrowserDownloadService.Bytes(size)} · fertig"), TimeoutMs = 6000,
                 Click = () => OpenPath(path)
             }
             .Button("folder", "Im Ordner zeigen", () => { try { Process.Start("explorer.exe", $"/select,\"{path}\""); } catch { } })
@@ -4107,14 +4109,14 @@ public partial class IslandWindow : Window
         }
         catch { }
         var parts = new List<string>();
-        if (H.Steam.LastSizeBytes > 0) parts.Add($"{FormatBytes(H.Steam.LastSizeBytes)} geladen");
+        if (H.Steam.LastSizeBytes > 0) parts.Add(L.T($"{FormatBytes(H.Steam.LastSizeBytes)} geladen"));
         var dur = H.Steam.LastDuration;
-        if (dur.TotalMinutes >= 1) parts.Add(dur.TotalHours >= 1 ? $"in {(int)dur.TotalHours} Std {dur.Minutes} Min" : $"in {(int)dur.TotalMinutes} Min");
+        if (dur.TotalMinutes >= 1) parts.Add(dur.TotalHours >= 1 ? L.T($"in {(int)dur.TotalHours} Std {dur.Minutes} Min") : L.T($"in {(int)dur.TotalMinutes} Min"));
         ShowPeek(new PeekInfo
             {
                 Key = "steam", Image = cover, Cover = cover != null, Icon = "download", GlyphBrush = SteamBrush,
                 Source = "Steam", SourceIcon = "download", SourceBrush = SteamBrush,
-                Title = $"{name} ist bereit", Text = parts.Count > 0 ? string.Join(" ", parts) : "Fertig geladen", TimeoutMs = 7000
+                Title = L.T($"{name} ist bereit"), Text = parts.Count > 0 ? string.Join(" ", parts) : L.T("Fertig geladen"), TimeoutMs = 7000
             }
             .Button("play.fill", "Spielen", () => SteamService.Play(appId), (Brush)FindResource("Green"), darkGlyph: true));
     }
@@ -4123,8 +4125,8 @@ public partial class IslandWindow : Window
     {
         if (!H.Spotify.Connected)
         {
-            ShowPeek(new PeekInfo { Icon = "checklist", Title = "Spotify verbinden", Text = "Für die Warteschlange einmal deine Spotify-App in den Einstellungen verbinden.", TimeoutMs = 6000 }
-                .Action("Einstellungen", () => SettingsWindow.ShowSingle("General"), true));
+            ShowPeek(new PeekInfo { Icon = "checklist", Title = L.T("Spotify verbinden"), Text = L.T("Für die Warteschlange einmal deine Spotify-App in den Einstellungen verbinden."), TimeoutMs = 6000 }
+                .Action(L.T("Einstellungen"), () => SettingsWindow.ShowSingle("General"), true));
             return;
         }
         if (!_queueOpen && _lyricsOpen) MusicLyrics_Click(null, null); // one of the two at a time
@@ -4137,9 +4139,9 @@ public partial class IslandWindow : Window
         AnimateSize(ExpW, TabHeight(_tab) + NotchExtra, ExpRadius, true);
         if (_queueOpen)
         {
-            QueueHint.Text = "lädt …";
+            QueueHint.Text = L.T("lädt …");
             await RefreshQueueNow();
-            QueueHint.Text = H.Spotify.Queue.Count == 0 ? "leer" : $"{H.Spotify.Queue.Count} Titel";
+            QueueHint.Text = H.Spotify.Queue.Count == 0 ? "leer" : L.T($"{H.Spotify.Queue.Count} Titel");
         }
     }
 
@@ -4148,9 +4150,9 @@ public partial class IslandWindow : Window
     /// <summary>Queue as Spotify has it for the song that is playing right now.</summary>
     private async Task RefreshQueueNow()
     {
-        QueueHint.Text = "lädt …";
+        QueueHint.Text = L.T("lädt …");
         await H.Spotify.RefreshQueueAsync(H.Media.Title);
-        QueueHint.Text = H.Spotify.Queue.Count == 0 ? "leer" : $"{H.Spotify.Queue.Count} Titel";
+        QueueHint.Text = H.Spotify.Queue.Count == 0 ? "leer" : L.T($"{H.Spotify.Queue.Count} Titel");
     }
 
     /// <summary>Click on a song in the queue: skip forward until it plays (same as pressing "next" that often).</summary>
@@ -4160,7 +4162,7 @@ public partial class IslandWindow : Window
         int skips = H.Spotify.Queue.IndexOf(item) + 1;
         if (skips <= 0) return;
         _queueSkipping = true;
-        QueueHint.Text = $"springe zu „{item.Name}“ …";
+        QueueHint.Text = L.T($"springe zu „{item.Name}“ …");
         try
         {
             for (int i = 0; i < skips; i++)
@@ -4192,10 +4194,10 @@ public partial class IslandWindow : Window
             if (recent.Count == 0) return;
             var p = new PeekInfo
             {
-                Key = "queue-offer", Source = "Zwischenablage", SourceIcon = "stack.fill", Icon = "stack.fill",
+                Key = "queue-offer", Source = L.T("Zwischenablage"), SourceIcon = "stack.fill", Icon = "stack.fill",
                 GlyphBrush = (Brush)FindResource("Accent"),
-                Title = recent.Count == 1 ? "Letzte Kopie mit dazu?" : $"{recent.Count} Kopien von eben dazu?",
-                Text = "kommen zuerst – so, wie du sie kopiert hast",
+                Title = recent.Count == 1 ? L.T("Letzte Kopie mit dazu?") : L.T($"{recent.Count} Kopien von eben dazu?"),
+                Text = L.T("kommen zuerst – so, wie du sie kopiert hast"),
                 TimeoutMs = 9000
             };
             p.Button("plus", "Mit hinein", () => H.Clipboard.AddToQueueFront(recent), (Brush)FindResource("Accent"));
@@ -4362,8 +4364,8 @@ public partial class IslandWindow : Window
     //  optional "D" for all of them: fades to page dots while the pointer is not on the bar
     // =====================================================================
 
-    private static readonly string[] FlatTabOrder = { "Live", "Obs", "Music", "Clip", "Shelf", "Agent", "Ai", "Games", "Notify", "Timer", "Today", "Remind", "Controls" };
-    private static readonly string[] GroupTabOrder = { "Live", "Obs", "Music", "|", "Clip", "Shelf", "Games", "Timer", "Today", "Remind", "|", "Agent", "Ai", "Notify", "Controls" };
+    private static readonly string[] FlatTabOrder = { "Live", "Obs", "Music", "Clip", "Shelf", "Agent", "Ai", "Games", "Notify", L.T("Timer"), "Today", "Remind", "Controls" };
+    private static readonly string[] GroupTabOrder = { "Live", "Obs", "Music", "|", "Clip", "Shelf", "Games", L.T("Timer"), "Today", "Remind", "|", "Agent", "Ai", "Notify", "Controls" };
     private static readonly SolidColorBrush LiveBadge = Frozen(Color.FromRgb(0x30, 0xD1, 0x58));
     private static readonly SolidColorBrush RedBadge = Frozen(Color.FromRgb(0xFF, 0x45, 0x3A));
     private static readonly SolidColorBrush DotBrush = Frozen(Color.FromRgb(0x48, 0x48, 0x4A));
@@ -4488,7 +4490,7 @@ public partial class IslandWindow : Window
         if (_timerSwitch == null || Math.Abs(_timerSwitchFont - fs) > 0.1)
         {
             (_timerSwitch?.Parent as Panel)?.Children.Remove(_timerSwitch);
-            _timerSwitch = new MilledSwitch("Timer", "Wecker", fs) { Second = _alarmMode };
+            _timerSwitch = new MilledSwitch(L.T("Timer"), L.T("Wecker"), fs) { Second = _alarmMode };
             _timerSwitch.Changed += SetAlarmMode;
             _timerSwitchFont = fs;
         }
@@ -4591,7 +4593,7 @@ public partial class IslandWindow : Window
         SecondWheel.Visibility = TimerUnitS.Visibility = a ? Visibility.Collapsed : Visibility.Visible;
         HourWheel.TwoDigits = MinuteWheel.TwoDigits = a;
         TimerUnitH.Text = a ? ":" : "h";
-        TimerUnitM.Text = a ? "Uhr" : "m";
+        TimerUnitM.Text = a ? L.T("Uhr") : "m";
         TimerUnitM.Margin = new Thickness(a ? 4 : 0, 0, 8, 0);
         TimerPresets.Visibility = a ? Visibility.Collapsed : Visibility.Visible;
         AlarmPresets.Visibility = AlarmStatus.Visibility = a ? Visibility.Visible : Visibility.Collapsed;
@@ -4599,10 +4601,10 @@ public partial class IslandWindow : Window
         {
             bool showsSet = H.Alarm.At is { } at && at.Hour == HourWheel.Value && at.Minute == MinuteWheel.Value;
             // set and unchanged → "Aus"; otherwise orange "Stellen"
-            TimerStartBtn.Content = showsSet ? "Aus" : "Stellen";
+            TimerStartBtn.Content = showsSet ? L.T("Aus") : L.T("Stellen");
             TimerStartBtn.Background = showsSet ? Tint((Brush)FindResource("Danger"), 0.24) : Tint((Brush)FindResource("Orange"), 0.24);
             TimerStartBtn.Foreground = showsSet ? (Brush)FindResource("Danger") : (Brush)FindResource("Orange");
-            AlarmStatus.Text = H.Alarm.IsSet ? $"{H.Alarm.At:HH:mm} · {H.Alarm.UntilText}" : "Kein Wecker gestellt";
+            AlarmStatus.Text = H.Alarm.IsSet ? L.T($"{H.Alarm.At:HH:mm} · {H.Alarm.UntilText}") : L.T("Kein Wecker gestellt");
         }
         else
         {
@@ -4617,7 +4619,7 @@ public partial class IslandWindow : Window
         if (_alarmMode)
         {
             bool showsSet = H.Alarm.At is { } at && at.Hour == HourWheel.Value && at.Minute == MinuteWheel.Value;
-            if (showsSet) { H.Alarm.Clear(); ShowHint("bell", "Wecker aus", null, key: "alarm"); }
+            if (showsSet) { H.Alarm.Clear(); ShowHint("bell", L.T("Wecker aus"), null, key: "alarm"); }
             else
             {
                 H.Alarm.SetTime(HourWheel.Value, MinuteWheel.Value);
@@ -4697,7 +4699,7 @@ public partial class IslandWindow : Window
         // in a browser: the service itself (SoundCloud, YouTube Music …) instead of "Google Chrome" (2026-11-16)
         var source = PlayerService() ?? SourceName(m.AppName, m.Title);
         MusicArtist.Text = string.Join(" · ", new[] { m.Artist, source }.Where(s => !string.IsNullOrWhiteSpace(s)));
-        MusicArtist.ToolTip = string.IsNullOrEmpty(source) ? null : $"{source} öffnen";
+        MusicArtist.ToolTip = string.IsNullOrEmpty(source) ? null : L.T($"{source} öffnen");
         MusicApp.Text = m.AppName ?? "";
         MusicCover.ImageSource = m.Cover;
         Ext.SetIcon(PlayPauseBtn, m.IsPlaying ? "pause.fill" : "play.fill");
@@ -4706,7 +4708,7 @@ public partial class IslandWindow : Window
         // every player gets its own volume (its mixer slider); the queue stays Spotify's (needs its login)
         bool ownVolume = PlayerProcess(m.AppName) != null;
         MusicVolBtn.Visibility = ownVolume ? Visibility.Visible : Visibility.Collapsed;
-        if (!_volMode) MusicVolBtn.ToolTip = BrowserProcess.ContainsKey(m.AppName ?? "") ? $"Lautstärke von {m.AppName} (alle Tabs)" : $"{m.AppName}-Lautstärke";
+        if (!_volMode) MusicVolBtn.ToolTip = BrowserProcess.ContainsKey(m.AppName ?? "") ? L.T($"Lautstärke von {m.AppName} (alle Tabs)") : L.T($"{m.AppName}-Lautstärke");
         MusicQueueBtn.Visibility = IsSpotify ? Visibility.Visible : Visibility.Collapsed;
         if (!IsSpotify && _queueOpen) MusicQueue_Click(null, null);
         if (!ownVolume || _volApp != null && _volApp != PlayerProcess(m.AppName)) ExitVolMode();
@@ -4768,7 +4770,7 @@ public partial class IslandWindow : Window
         var proc = PlayerProcess(H.Media.AppName);
         if (proc == null || !_spotifyVol.Attach(proc))
         {
-            MusicVolBtn.ToolTip = $"{H.Media.AppName} gibt gerade keinen Ton aus";
+            MusicVolBtn.ToolTip = L.T($"{H.Media.AppName} gibt gerade keinen Ton aus");
             return;
         }
         _volApp = proc;
@@ -4781,7 +4783,7 @@ public partial class IslandWindow : Window
         MusicPos.Visibility = Visibility.Collapsed;
         MusicVolIcon.Visibility = Visibility.Visible;
         MusicVolBtn.Foreground = (Brush)FindResource("Green");
-        MusicVolBtn.ToolTip = "Zurück zum Fortschritt";
+        MusicVolBtn.ToolTip = L.T("Zurück zum Fortschritt");
         MusicVolume.BeginAnimation(OpacityProperty, new DoubleAnimation(0, 1, TimeSpan.FromMilliseconds(180)));
         UpdateVolText();
     }
@@ -4797,7 +4799,7 @@ public partial class IslandWindow : Window
         MusicPos.Visibility = Visibility.Visible;
         MusicVolIcon.Visibility = Visibility.Collapsed;
         MusicVolBtn.ClearValue(ForegroundProperty);
-        MusicVolBtn.ToolTip = $"{H.Media.AppName}-Lautstärke";
+        MusicVolBtn.ToolTip = L.T($"{H.Media.AppName}-Lautstärke");
         MusicProgress.BeginAnimation(OpacityProperty, new DoubleAnimation(0, 1, TimeSpan.FromMilliseconds(180)));
         UpdateMusicPosition();
     }
@@ -5029,7 +5031,7 @@ public partial class IslandWindow : Window
         UpdateClipStrip();
         bool none = H.Clipboard.Items.Count == 0;
         ClipChipsRow.Visibility = S.ClipLayout != ClipLayout.Streifen && !none ? Visibility.Visible : Visibility.Collapsed;
-        ClipEmpty.Text = none ? "Noch nichts kopiert" : "Nichts gefunden";
+        ClipEmpty.Text = none ? L.T("Noch nichts kopiert") : L.T("Nichts gefunden");
         ClipEmpty.Visibility = _clipView.IsEmpty && ClipStripRow.Visibility != Visibility.Visible ? Visibility.Visible : Visibility.Collapsed;
         UpdateClipHeight();
     }
@@ -5070,7 +5072,7 @@ public partial class IslandWindow : Window
     // ---------- clipboard layouts (Settings › Zwischenablage): A list by day · B tiles · C picture strip + list ----------
 
     private static readonly (string Key, string Label)[] ClipFilters =
-        { ("All", "Alle"), ("Text", "Text"), ("Link", "Links"), ("Image", "Bilder"), ("Files", "Dateien"), ("Pinned", "Angeheftet") };
+        { ("All", L.T("Alle")), ("Text", "Text"), ("Link", "Links"), ("Image", L.T("Bilder")), ("Files", L.T("Dateien")), ("Pinned", L.T("Angeheftet")) };
 
     private void ApplyClipLayout()
     {
@@ -5126,7 +5128,7 @@ public partial class IslandWindow : Window
         int show = pics.Count > 5 ? 4 : pics.Count;
         ClipStrip.ItemsSource = pics.Take(show).ToList();
         ClipStripMore.Visibility = pics.Count > 5 ? Visibility.Visible : Visibility.Collapsed;
-        ClipStripMoreText.Text = $"+ {pics.Count - 4}";
+        ClipStripMoreText.Text = L.T($"+ {pics.Count - 4}");
         ClipStripRow.Visibility = pics.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
         // a hairline under the search only when nothing else separates it from the list
         ClipHeader.BorderThickness = new Thickness(0, 0, 0, S.ClipLayout == ClipLayout.Streifen && pics.Count == 0 ? 0.5 : 0);
@@ -5158,7 +5160,7 @@ public partial class IslandWindow : Window
     private void FilterBtn_Click(object sender, RoutedEventArgs e)
     {
         var menu = new ContextMenu { PlacementTarget = (UIElement)sender, Placement = PlacementMode.Bottom };
-        foreach (var (key, label) in new[] { ("All", "Alle"), ("Text", "Text"), ("Link", "Links"), ("Image", "Bilder"), ("Files", "Dateien"), ("Pinned", "Angeheftet") })
+        foreach (var (key, label) in new[] { ("All", L.T("Alle")), ("Text", "Text"), ("Link", "Links"), ("Image", L.T("Bilder")), ("Files", L.T("Dateien")), ("Pinned", L.T("Angeheftet")) })
         {
             var mi = new MenuItem { Header = label, IsChecked = _clipFilter == key };
             var k = key;
@@ -5172,7 +5174,7 @@ public partial class IslandWindow : Window
             menu.Items.Add(mi);
         }
         menu.Items.Add(new Separator());
-        var clear = new MenuItem { Header = "Verlauf leeren" };
+        var clear = new MenuItem { Header = L.T("Verlauf leeren") };
         clear.Click += (_, _) => { H.Clipboard.ClearUnpinned(); RefreshClipView(); };
         menu.Items.Add(clear);
         menu.IsOpen = true;
@@ -5271,7 +5273,7 @@ public partial class IslandWindow : Window
         QuickLookWindow.Show(item,
             copy: i =>
             {
-                if (H.Clipboard.SetClipboard(i)) ShowHint("copy", "Kopiert", null, check: true, key: "copy");
+                if (H.Clipboard.SetClipboard(i)) ShowHint("copy", L.T("Kopiert"), null, check: true, key: "copy");
             },
             liveText: i => EditorWindow.Open(i, liveText: true),
             save: SaveImageItem,
@@ -5279,7 +5281,7 @@ public partial class IslandWindow : Window
             edited: img =>
             {
                 H.Clipboard.AddImage(img, item.IsScreenshot);
-                ShowHint("pencil", "Bearbeitet · kopiert", null, check: true, key: "copy");
+                ShowHint("pencil", L.T("Bearbeitet · kopiert"), null, check: true, key: "copy");
             });
     }
 
@@ -5301,7 +5303,7 @@ public partial class IslandWindow : Window
 
     private void ShowClipConfirm(int n, int pinned)
     {
-        ClipConfirmText.Text = (n == 1 ? "Der Eintrag wird gelöscht" : $"Alle {n} Einträge werden gelöscht")
+        ClipConfirmText.Text = (n == 1 ? L.T("Der Eintrag wird gelöscht") : L.T($"Alle {n} Einträge werden gelöscht"))
                                + (pinned > 0 ? $" – auch {(pinned == 1 ? "der angeheftete" : $"{pinned} angeheftete")}." : ".");
         _sticky = true; // moving the pointer away must not close the island while asking
         ClipConfirm.Visibility = Visibility.Visible;
@@ -5359,8 +5361,8 @@ public partial class IslandWindow : Window
         QueuePanel.Visibility = on ? Visibility.Visible : Visibility.Collapsed;
         var next = H.Clipboard.Queue.FirstOrDefault();
         QueueHeader.Text = H.Clipboard.QueueCount == 0
-            ? "Stapel an – kopiere nacheinander, Strg+V fügt der Reihe nach ein"
-            : $"Stapel · {H.Clipboard.QueueCount} · als Nächstes: {next?.Preview}";
+            ? L.T("Stapel an – kopiere nacheinander, Strg+V fügt der Reihe nach ein")
+            : L.T($"Stapel · {H.Clipboard.QueueCount} · als Nächstes: {next?.Preview}");
         UpdatePill();
     }
 
@@ -5507,14 +5509,14 @@ public partial class IslandWindow : Window
 
     private void ShelfAdd_Click(object sender, RoutedEventArgs e)
     {
-        var dlg = new OpenFileDialog { Multiselect = true, Title = "Dateien zur Ablage hinzufügen" };
+        var dlg = new OpenFileDialog { Multiselect = true, Title = L.T("Dateien zur Ablage hinzufügen") };
         if (dlg.ShowDialog() == true) H.Shelf.Add(dlg.FileNames);
     }
 
     private void ShelfCopyTo_Click(object sender, RoutedEventArgs e)
     {
         if (H.Shelf.Items.Count == 0) return;
-        using var dlg = new WF.FolderBrowserDialog { Description = "Zielordner", UseDescriptionForTitle = true };
+        using var dlg = new WF.FolderBrowserDialog { Description = L.T("Zielordner"), UseDescriptionForTitle = true };
         if (dlg.ShowDialog() != WF.DialogResult.OK) return;
         foreach (var i in H.Shelf.Items.ToList())
         {
@@ -5531,7 +5533,7 @@ public partial class IslandWindow : Window
         foreach (var i in H.Shelf.Items) sc.Add(i.Path);
         try { Clipboard.SetFileDropList(sc); } catch { }
         Collapse();
-        ShowHint("copy", "Kopiert", null, check: true, key: "copy");
+        ShowHint("copy", L.T("Kopiert"), null, check: true, key: "copy");
     }
 
     private void ShelfClear_Click(object sender, RoutedEventArgs e) => H.Shelf.Clear();
@@ -5638,7 +5640,7 @@ public partial class IslandWindow : Window
     {
         var item = await H.Launcher.AddLinkAsync(url, name);
         UpdateGamesUi();
-        if (item == null) { ShowHint("link", "Schon da", null); return; }
+        if (item == null) { ShowHint("link", L.T("Schon da"), null); return; }
         Dispatcher.BeginInvoke(new Action(() => GamesScroll.ScrollToRightEnd()), DispatcherPriority.Background);
     }
 
@@ -5661,7 +5663,7 @@ public partial class IslandWindow : Window
         int n = H.Launcher.AddFiles(files);
         UpdateGamesUi();
         if (n > 0) Dispatcher.BeginInvoke(new Action(() => GamesScroll.ScrollToRightEnd()), DispatcherPriority.Background);
-        else ShowHint("gamecontroller", "Schon da", null);
+        else ShowHint("gamecontroller", L.T("Schon da"), null);
     }
 
     private void GamesScroll_PreviewMouseWheel(object sender, MouseWheelEventArgs e)
@@ -5693,7 +5695,7 @@ public partial class IslandWindow : Window
         if (H.Launcher.Launch(g))
         {
             Collapse();
-            ShowHint("gamecontroller", $"{g.Name} startet", null, check: true);
+            ShowHint("gamecontroller", L.T($"{g.Name} startet"), null, check: true);
         }
         else ShowHint("xmark", "Start fehlgeschlagen", (Brush)FindResource("Danger"));
     }
@@ -5732,14 +5734,14 @@ public partial class IslandWindow : Window
         {
             // the Steam tile: the installed games right here, the last played first – a click starts it
             var games = H.Steam.RecentGames();
-            if (games.Count == 0) menu.Items.Add(new MenuItem { Header = "Keine Steam-Spiele gefunden", IsEnabled = false });
+            if (games.Count == 0) menu.Items.Add(new MenuItem { Header = L.T("Keine Steam-Spiele gefunden"), IsEnabled = false });
             foreach (var (id, name, _) in games)
             {
                 var mi = Item(name, () =>
                 {
                     SteamService.Play(id);
                     Collapse();
-                    ShowHint("gamecontroller", $"{name} startet", null, check: true);
+                    ShowHint("gamecontroller", L.T($"{name} startet"), null, check: true);
                 });
                 if (H.Steam.SmallIcon(id) is { } file)
                 {
@@ -5753,20 +5755,20 @@ public partial class IslandWindow : Window
                 }
             }
             menu.Items.Add(new Separator());
-            Item("Steam-Bibliothek öffnen", () => LaunchGame(g));
+            Item(L.T("Steam-Bibliothek öffnen"), () => LaunchGame(g));
         }
-        else Item("Starten", () => LaunchGame(g));
-        Item("Umbenennen", () => { foreach (var i in H.Launcher.Items) i.Editing = false; g.Editing = true; });
+        else Item(L.T("Starten"), () => LaunchGame(g));
+        Item(L.T("Umbenennen"), () => { foreach (var i in H.Launcher.Items) i.Editing = false; g.Editing = true; });
         if (g.SteamAppId == null && (File.Exists(g.Target) || Directory.Exists(g.Target)))
-            Item("Im Explorer zeigen", () =>
+            Item(L.T("Im Explorer zeigen"), () =>
             {
                 try { Process.Start(new ProcessStartInfo("explorer.exe", $"/select,\"{g.Target}\"") { UseShellExecute = true }); } catch { }
             });
         int idx = H.Launcher.Items.IndexOf(g);
-        if (idx > 0) Item("Nach links", () => H.Launcher.Move(g, idx - 1));
-        if (idx < H.Launcher.Items.Count - 1) Item("Nach rechts", () => H.Launcher.Move(g, idx + 1));
+        if (idx > 0) Item(L.T("Nach links"), () => H.Launcher.Move(g, idx - 1));
+        if (idx < H.Launcher.Items.Count - 1) Item(L.T("Nach rechts"), () => H.Launcher.Move(g, idx + 1));
         menu.Items.Add(new Separator());
-        Item("Entfernen", () => { H.Launcher.Remove(g); UpdateGamesUi(); });
+        Item(L.T("Entfernen"), () => { H.Launcher.Remove(g); UpdateGamesUi(); });
         menu.IsOpen = true;
     }
 
@@ -5793,13 +5795,13 @@ public partial class IslandWindow : Window
     {
         e.Handled = true;
         var menu = new ContextMenu { PlacementTarget = (UIElement)sender, Placement = PlacementMode.Bottom };
-        var file = new MenuItem { Header = "Programm oder Verknüpfung …" };
+        var file = new MenuItem { Header = L.T("Programm oder Verknüpfung …") };
         file.Click += (_, _) =>
         {
             var dlg = new OpenFileDialog
             {
                 Multiselect = true,
-                Title = "Spiel oder Programm hinzufügen",
+                Title = L.T("Spiel oder Programm hinzufügen"),
                 Filter = "Programme und Verknüpfungen|*.exe;*.lnk;*.url;*.bat;*.cmd|Alle Dateien|*.*",
                 DereferenceLinks = false
             };
@@ -5808,7 +5810,7 @@ public partial class IslandWindow : Window
         menu.Items.Add(file);
 
         // a web address as a tile (user wish 2026-11-15) – a link on the clipboard is filled in already
-        var link = new MenuItem { Header = "Link …" };
+        var link = new MenuItem { Header = L.T("Link …") };
         link.Click += async (_, _) =>
         {
             string pre = null;
@@ -5822,14 +5824,14 @@ public partial class IslandWindow : Window
 
         if (!H.Launcher.Items.Any(i => i.IsSteamLibrary) && LauncherService.SteamInstalled)
         {
-            var lib = new MenuItem { Header = "Steam (alle Spiele per Rechtsklick)" };
+            var lib = new MenuItem { Header = L.T("Steam (alle Spiele per Rechtsklick)") };
             lib.Click += (_, _) => { H.Launcher.AddSteamLibrary(); UpdateGamesUi(); };
             menu.Items.Add(lib);
         }
 
-        var steam = new MenuItem { Header = "Steam-Spiel" };
+        var steam = new MenuItem { Header = L.T("Steam-Spiel") };
         var games = H.Steam.InstalledGames();
-        if (games.Count == 0) steam.Items.Add(new MenuItem { Header = "Keine Steam-Spiele gefunden", IsEnabled = false });
+        if (games.Count == 0) steam.Items.Add(new MenuItem { Header = L.T("Keine Steam-Spiele gefunden"), IsEnabled = false });
         foreach (var (id, name) in games)
         {
             bool had = H.Launcher.Items.Any(i => i.SteamAppId == id);
@@ -5861,7 +5863,7 @@ public partial class IslandWindow : Window
     private void RemindQuickMenu_Click(object sender, RoutedEventArgs e)
     {
         var menu = new ContextMenu { PlacementTarget = (UIElement)sender, Placement = PlacementMode.Bottom };
-        foreach (var (label, tag) in new[] { ("In 5 Minuten", "5"), ("In 15 Minuten", "15"), ("In 1 Stunde", "60"), ("Heute 18:00", "T18"), ("Morgen 9:00", "M9") })
+        foreach (var (label, tag) in new[] { (L.T("In 5 Minuten"), "5"), (L.T("In 15 Minuten"), "15"), (L.T("In 1 Stunde"), "60"), (L.T("Heute 18:00"), "T18"), (L.T("Morgen 9:00"), "M9") })
         {
             var mi = new MenuItem { Header = label, Tag = tag };
             mi.Click += RemindQuick_Click;
@@ -5891,7 +5893,7 @@ public partial class IslandWindow : Window
     {
         var rest = raw.Trim();
         var repeat = ReminderService.TakeRepeat(ref rest, out var weekday);
-        string text = rest.Length == 0 ? "Erinnerung" : rest;
+        string text = rest.Length == 0 ? L.T("Erinnerung") : rest;
         bool hasTime = ReminderService.TryParseQuick(rest, out var parsedText, out var due);
         if (hasTime) text = parsedText;
         else due = weekday != null ? DateTime.Today.AddHours(9) : DateTime.Now.AddMinutes(10);
@@ -5910,12 +5912,12 @@ public partial class IslandWindow : Window
         var raw = RemindText.Text.Trim();
         if (raw.Length == 0) { RemindPreview.Text = ""; return; }
         var (_, due, repeat, has) = ParseReminder(raw);
-        var de = new System.Globalization.CultureInfo("de-DE");
-        string when = !has ? "in 10 Min"
-            : due.Date == DateTime.Today ? $"heute {due:HH:mm}"
-            : due.Date == DateTime.Today.AddDays(1) ? $"morgen {due:HH:mm}"
+        var de = L.Culture;
+        string when = !has ? L.T("in 10 Min")
+            : due.Date == DateTime.Today ? L.T($"heute {due:HH:mm}")
+            : due.Date == DateTime.Today.AddDays(1) ? L.T($"morgen {due:HH:mm}")
             : due.ToString("ddd HH:mm", de);
-        RemindPreview.Text = repeat == RepeatKind.Einmal ? when : $"{when} · {repeat.ToString().ToLower(de)}";
+        RemindPreview.Text = repeat == RepeatKind.Einmal ? when : L.T($"{when} · {repeat.ToString().ToLower(de)}");
     }
 
     private void AddReminder(DateTime? forced)
@@ -5945,8 +5947,8 @@ public partial class IslandWindow : Window
         SystemSounds.Asterisk.Play();
         if (_state == State.Expanded && !IsActive) Collapse();
         ShowPeek(new PeekInfo { Key = "rem:" + r.Id, Important = true, Icon = "bell.ring", GlyphBrush = (Brush)FindResource("Orange"), Title = r.Text, Text = "Erinnerung · jetzt", TimeoutMs = 0 }
-            .Action("Später", () => H.Reminders.Snooze(r, 10))
-            .Action("Erledigt", () => H.Reminders.Complete(r), true));
+            .Action(L.T("Später"), () => H.Reminders.Snooze(r, 10))
+            .Action(L.T("Erledigt"), () => H.Reminders.Complete(r), true));
     }
 
     private void OnTimerCompleted()
@@ -5964,7 +5966,7 @@ public partial class IslandWindow : Window
             wait = 450;
         }
         After(wait, () => ShowPeek(new PeekInfo { Key = "timer", Important = true, Icon = "timer", GlyphBrush = (Brush)FindResource("Orange"), Title = "Timer abgelaufen", Text = H.Timer.ModeText, TimeoutMs = 0 }
-            .Action("Nochmal", () => { H.Sounds.Stop(); H.Timer.SetDurationSeconds(again); H.Timer.Start(); })
+            .Action(L.T("Nochmal"), () => { H.Sounds.Stop(); H.Timer.SetDurationSeconds(again); H.Timer.Start(); })
             .Action("OK", () => H.Sounds.Stop(), true)));
     }
 
@@ -5975,8 +5977,8 @@ public partial class IslandWindow : Window
             {
                 Key = "update", Icon = "download", GlyphBrush = (Brush)FindResource("Blue"),
                 Source = "PeakPill · Update", SourceIcon = "download", SourceBrush = (Brush)FindResource("Blue"), Ticker = true,
-                Title = $"Version {rel.Version.ToString(3)} ist da",
-                Text = FirstNoteLine(rel.Notes) ?? $"Du hast {UpdateService.Current.ToString(3)}",
+                Title = L.T($"Version {rel.Version.ToString(3)} ist da"),
+                Text = FirstNoteLine(rel.Notes) ?? L.T($"Du hast {UpdateService.Current.ToString(3)}"),
                 TimeoutMs = 12000
             }
             .Button("open", "Was ist neu", () => { try { Process.Start(new ProcessStartInfo(rel.Page) { UseShellExecute = true }); } catch { } })
@@ -6012,7 +6014,7 @@ public partial class IslandWindow : Window
     private void OnAlarmRang()
     {
         H.Sounds.Play(S.TimerSound, true);
-        Note("Timer", 60);
+        Note(L.T("Timer"), 60);
         if (_state == State.Expanded && !IsActive) Collapse();
         int wait = 0;
         if (S.Animations != AnimationLevel.Aus && _state != State.Expanded)
@@ -6022,8 +6024,8 @@ public partial class IslandWindow : Window
             wait = 450;
         }
         After(wait, () => ShowPeek(new PeekInfo { Key = "alarm", Important = true, Icon = "bell.ring", GlyphBrush = (Brush)FindResource("Orange"),
-                                                  Title = $"Wecker · {DateTime.Now:HH:mm}", Text = "Schlummern: 5 Minuten", TimeoutMs = 0 }
-            .Action("Später", () => { H.Sounds.Stop(); H.Alarm.Snooze(5); })
+                                                  Title = L.T($"Wecker · {DateTime.Now:HH:mm}"), Text = L.T("Schlummern: 5 Minuten"), TimeoutMs = 0 }
+            .Action(L.T("Später"), () => { H.Sounds.Stop(); H.Alarm.Snooze(5); })
             .Action("OK", () => H.Sounds.Stop(), true)));
     }
 
@@ -6046,9 +6048,9 @@ public partial class IslandWindow : Window
         SliderGap.Width = new GridLength(bright ? 8 : 0);
         var mode = PowerMode.Current();
         PowerTile.IsChecked = mode != "Ausgeglichen";
-        PowerTile.ToolTip = $"Energiemodus: {mode}";
+        PowerTile.ToolTip = L.T($"Energiemodus: {mode}");
         var micApp = H.Privacy.Apps.FirstOrDefault(a => a.Mic);
-        MicTile.ToolTip = micApp != null ? $"Mikrofon wird benutzt von {micApp.Name} · {micApp.Elapsed}" : "Alle Mikrofone stummschalten";
+        MicTile.ToolTip = micApp != null ? L.T($"Mikrofon wird benutzt von {micApp.Name} · {micApp.Elapsed}") : L.T("Alle Mikrofone stummschalten");
     }
 
 
@@ -6238,7 +6240,7 @@ public partial class IslandWindow : Window
         Expand("Music", true);
         await Task.Delay(1800);
         Frame();
-        SelectTab("Timer", false);
+        SelectTab(L.T("Timer"), false);
         await Task.Delay(200);
         Frame();
         Save("7_tabbar");
@@ -6276,15 +6278,15 @@ public partial class IslandWindow : Window
             var now = DateTime.Now;
             var demo = new List<ClipItem>
             {
-                new() { Kind = ClipKind.Text, Text = "IBAN DE89 3704 0044 0532 0130 00", Source = "Notizen", Time = now.AddDays(-1), Pinned = true },
+                new() { Kind = ClipKind.Text, Text = "IBAN DE89 3704 0044 0532 0130 00", Source = L.T("Notizen"), Time = now.AddDays(-1), Pinned = true },
                 new() { Kind = ClipKind.Link, Text = "https://example.com/rezepte/lasagne", Source = "Browser", Time = now.AddMinutes(-2) },
                 new() { Kind = ClipKind.Image, ImageFile = Pic("a", Color.FromRgb(0x3B, 0x6E, 0xA8), Color.FromRgb(0x9C, 0xC3, 0xEA), 856, 553), ImageWidth = 856, ImageHeight = 553, IsScreenshot = true, Source = "Screenshot", Time = now.AddMinutes(-14) },
-                new() { Kind = ClipKind.Text, Text = "Einkaufsliste: Milch, Brot, Tomaten, Basilikum", Source = "Notizen", Time = now.AddMinutes(-32) },
+                new() { Kind = ClipKind.Text, Text = L.T("Einkaufsliste: Milch, Brot, Tomaten, Basilikum"), Source = L.T("Notizen"), Time = now.AddMinutes(-32) },
                 new() { Kind = ClipKind.Image, ImageFile = Pic("b", Color.FromRgb(0xC9, 0x8B, 0x4A), Color.FromRgb(0xF0, 0xD2, 0xA8), 2160, 2880), ImageWidth = 2160, ImageHeight = 2880, Source = "Discord", Time = now.AddMinutes(-61) },
                 new() { Kind = ClipKind.Text, Text = "0123456789abcdef0123456789abcdef", Source = "Terminal", Time = now.AddHours(-3) },
                 new() { Kind = ClipKind.Image, ImageFile = Pic("c", Color.FromRgb(0x4F, 0x7F, 0x4F), Color.FromRgb(0xB9, 0xDB, 0xB0), 4032, 3024), ImageWidth = 4032, ImageHeight = 3024, Source = "Fotos", Time = now.AddHours(-4) },
                 new() { Kind = ClipKind.Files, Files = new List<string> { @"C:\Users\Public\Rechnung_Oktober.pdf" }, Source = "Explorer", Time = now.AddDays(-1).AddHours(-2) },
-                new() { Kind = ClipKind.Text, Text = "Treffen um 18:30 am Hauptbahnhof, Gleis 4", Source = "WhatsApp", Time = now.AddDays(-1).AddHours(-3) },
+                new() { Kind = ClipKind.Text, Text = L.T("Treffen um 18:30 am Hauptbahnhof, Gleis 4"), Source = "WhatsApp", Time = now.AddDays(-1).AddHours(-3) },
                 new() { Kind = ClipKind.Link, Text = "https://github.com/dotnet/wpf/issues", Source = "Browser", Time = now.AddDays(-2) },
             };
             foreach (var d in demo) H.Clipboard.Items.Add(d);
@@ -6355,7 +6357,7 @@ public partial class IslandWindow : Window
             EndPeek();
             EndHint();
             await Snap("01_pill");
-            ShowHint("copy", "Kopiert", null, check: true);
+            ShowHint("copy", L.T("Kopiert"), null, check: true);
             await Snap("02a_hint_text", 450);
             await Snap("02b_hint_check", 550);
             await Task.Delay(1200);
@@ -6363,7 +6365,7 @@ public partial class IslandWindow : Window
             await Snap("02c_hint_mic", 500);
             await Task.Delay(1800);
             ShowPeek(new PeekInfo { Icon = "bell", GlyphBrush = (Brush)FindResource("Orange"), Title = "Wäsche aufhängen", Text = "Jetzt", TimeoutMs = 0 }
-                .Action("Später", null).Action("Erledigt", null, true));
+                .Action(L.T("Später"), null).Action(L.T("Erledigt"), null, true));
             await Snap("02d_alert");
             EndPeek();
             // Spiele tab: a few test tiles (installed Steam games + programs), nothing saved, removed afterwards
@@ -6395,7 +6397,7 @@ public partial class IslandWindow : Window
 
             // search text must start exactly where the placeholder starts; the "delete all" question (never answered here)
             SelectTab("Clip", false);
-            ClipSearch.Text = "Suchen";
+            ClipSearch.Text = L.T("Suchen");
             await Snap("04f_Clip_search_typed", 400);
             ClipSearch.Text = "";
             ShowClipConfirm(12, 2); // display only – "Löschen" is never pressed in the test
@@ -6439,7 +6441,7 @@ public partial class IslandWindow : Window
                     if (QuickLookWindow.Current is { } ql1 && ql1.Content is FrameworkElement qc1)
                     {
                         SnapQuickLook(ql1, qc1, "04e_quicklook.png");
-                        ql1.EditForTest("Frei", false);
+                        ql1.EditForTest(L.T("Frei"), false);
                         await Task.Delay(400);
                         SnapQuickLook(ql1, qc1, "04f_quicklook_edit.png");
                         ql1.EditForTest("16:9", true);
@@ -6456,7 +6458,7 @@ public partial class IslandWindow : Window
                     }
                 }
             }
-            SelectTab("Timer", false);
+            SelectTab(L.T("Timer"), false);
             H.Timer.SetDuration(90);
             H.Timer.Start();
             await Snap("04c_Timer_running");
@@ -6488,7 +6490,7 @@ public partial class IslandWindow : Window
             Collapse();
             // Steam download next to a Discord call (made up)
             H.Privacy.Demo((discord, true, false, false, 300));
-            H.Steam.Demo("ELDEN RING", 0.62, "12,4 MB/s", "1245620");
+            H.Steam.Demo("ELDEN RING", 0.62, L.T("12,4 MB/s"), "1245620");
             await Snap("08g_pill_steam_ring", 700);
             Expand("Live", true);
             await Snap("08h_live_steam_row");
@@ -6497,19 +6499,19 @@ public partial class IslandWindow : Window
 
             // AI agents: made-up Claude session
             H.Privacy.Demo((discord, true, false, false, 300));
-            H.Agents.Demo("Spotify-Lautstärke einbauen", "Bearbeitet IslandWindow.xaml.cs", 3, 5, 754, AgentState.Running);
+            H.Agents.Demo(L.T("Spotify-Lautstärke einbauen"), "Bearbeitet IslandWindow.xaml.cs", 3, 5, 754, AgentState.Running);
             await Snap("09a_pill_music_mic_agent", 700);
             H.Privacy.EndDemo();
             Expand("Agent", true);
             await Snap("09b_agent_running");
-            H.Agents.Demo("Frage beantworten", "Durchsucht den Code", 0, 0, 42, AgentState.Running);
+            H.Agents.Demo(L.T("Frage beantworten"), L.T("Durchsucht den Code"), 0, 0, 42, AgentState.Running);
             await Snap("09c_agent_loader", 900);
-            H.Agents.Demo("Spotify-Lautstärke einbauen", "Wartet auf dich", 3, 5, 800, AgentState.Waiting);
+            H.Agents.Demo(L.T("Spotify-Lautstärke einbauen"), L.T("Wartet auf dich"), 3, 5, 800, AgentState.Waiting);
             await Snap("09d_agent_waiting");
-            H.Agents.Demo("Spotify-Lautstärke einbauen", "Fertig", 5, 5, 842, AgentState.Done);
+            H.Agents.Demo(L.T("Spotify-Lautstärke einbauen"), L.T("Fertig"), 5, 5, 842, AgentState.Done);
             await Snap("09e_agent_done");
             // two sessions at once → list
-            H.Agents.Demo("Spiele-Tab bauen", "Bearbeitet LauncherService.cs", 2, 4, 312, AgentState.Running, "demo2", "dynamic island");
+            H.Agents.Demo(L.T("Spiele-Tab bauen"), "Bearbeitet LauncherService.cs", 2, 4, 312, AgentState.Running, "demo2", "dynamic island");
             UpdateAgentUi();
             await Snap("09f_agent_two", 500);
             Collapse();
@@ -6519,13 +6521,13 @@ public partial class IslandWindow : Window
             H.Prices.Persist = false;
             var demoAlarms = new[]
             {
-                new PriceAlert { Kind = AlertKind.Shop, Name = "Sony WH-1000XM5 · Amazon", Condition = AlertCondition.Below, Target = 299, Price = 347, Currency = "€", Status = "geprüft 15:05" },
-                new PriceAlert { Kind = AlertKind.Crypto, Name = "Bitcoin", Condition = AlertCondition.Above, Target = 70000, Price = 65292, Change = -1.8, Currency = "€", Status = "geprüft 15:05" },
-                new PriceAlert { Kind = AlertKind.Stock, Name = "Apple Inc. (AAPL)", Condition = AlertCondition.Move, Target = 5, Price = 355.63, Change = 1.8, Currency = "$", Status = "geprüft 15:05" },
-                new PriceAlert { Kind = AlertKind.Steam, Name = "Hollow Knight: Silksong · Steam", Condition = AlertCondition.Sale, Price = 19.5, Currency = "€", Status = "geprüft 15:05" },
+                new PriceAlert { Kind = AlertKind.Shop, Name = L.T("Sony WH-1000XM5 · Amazon"), Condition = AlertCondition.Below, Target = 299, Price = 347, Currency = "€", Status = L.T("geprüft 15:05") },
+                new PriceAlert { Kind = AlertKind.Crypto, Name = "Bitcoin", Condition = AlertCondition.Above, Target = 70000, Price = 65292, Change = -1.8, Currency = "€", Status = L.T("geprüft 15:05") },
+                new PriceAlert { Kind = AlertKind.Stock, Name = "Apple Inc. (AAPL)", Condition = AlertCondition.Move, Target = 5, Price = 355.63, Change = 1.8, Currency = "$", Status = L.T("geprüft 15:05") },
+                new PriceAlert { Kind = AlertKind.Steam, Name = "Hollow Knight: Silksong · Steam", Condition = AlertCondition.Sale, Price = 19.5, Currency = "€", Status = L.T("geprüft 15:05") },
             };
             foreach (var d in demoAlarms) H.Prices.Items.Add(d);
-            var demoSug = new Suggestion { Key = "demo", Title = "Amazon-Produkt erkannt", Text = "Preisalarm für „Sony WH-1000XM5“?", IconKind = "cart" };
+            var demoSug = new Suggestion { Key = "demo", Title = L.T("Amazon-Produkt erkannt"), Text = L.T("Preisalarm für „Sony WH-1000XM5“?"), IconKind = "cart" };
             H.Suggestions.Items.Insert(0, demoSug);
             Expand("Notify", true);
             SegNotif.IsChecked = true;
@@ -6539,8 +6541,8 @@ public partial class IslandWindow : Window
             foreach (var d in demoAlarms) H.Prices.Items.Remove(d);
             H.Suggestions.Items.Remove(demoSug);
             H.Prices.Persist = true;
-            SelectTab("Timer", false);
-            Expand("Timer", true);
+            SelectTab(L.T("Timer"), false);
+            Expand(L.T("Timer"), true);
             await Snap("10d_timer_seconds");
             Collapse();
             S.Fullscreen = fsMode;
@@ -6567,10 +6569,10 @@ public partial class IslandWindow : Window
                     dc.DrawRectangle(Brushes.White, null, new Rect(0, 0, 900, 420));
                     var tf = new Typeface("Segoe UI");
                     void T(string s, double y, double size) => dc.DrawText(new FormattedText(s, System.Globalization.CultureInfo.CurrentCulture, FlowDirection.LeftToRight, tf, size, Brushes.Black, 1.0), new Point(40, y));
-                    T("Einkaufsliste für Samstag", 40, 34);
-                    T("Milch, Brot, Äpfel und Kaffee", 120, 26);
-                    T("Termin beim Zahnarzt um 14:30 Uhr", 180, 26);
-                    T("PeakPill Live Text funktioniert offline.", 240, 26);
+                    T(L.T("Einkaufsliste für Samstag"), 40, 34);
+                    T(L.T("Milch, Brot, Äpfel und Kaffee"), 120, 26);
+                    T(L.T("Termin beim Zahnarzt um 14:30 Uhr"), 180, 26);
+                    T(L.T("PeakPill Live Text funktioniert offline."), 240, 26);
                 }
                 var rtbIn = new System.Windows.Media.Imaging.RenderTargetBitmap(900, 420, 96, 96, PixelFormats.Pbgra32);
                 rtbIn.Render(dv);

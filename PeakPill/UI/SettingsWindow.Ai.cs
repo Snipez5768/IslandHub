@@ -18,6 +18,29 @@ public partial class SettingsWindow
     private static readonly Dictionary<AiProvider, List<string>> AiFetched = new();
     private bool _aiLoading;
 
+    // ---------- language (2026-11-17): English | Deutsch – switching restarts the island ----------
+
+    private bool _langLoading;
+
+    private void LoadLanguage()
+    {
+        _langLoading = true;
+        LangEnglish.IsChecked = S.Language != "de";
+        LangGerman.IsChecked = S.Language == "de";
+        _langLoading = false;
+    }
+
+    private void Lang_Checked(object sender, RoutedEventArgs e)
+    {
+        if (_loading || _langLoading) return;
+        var lang = sender == LangGerman ? "de" : "en";
+        if (lang == S.Language) return;
+        S.Language = lang;
+        App.SaveSettings();
+        LangNote.Text = lang == "de" ? "PeakPill startet neu …" : "PeakPill is restarting …";
+        Dispatcher.BeginInvoke(new Action(App.Restart), System.Windows.Threading.DispatcherPriority.Background);
+    }
+
     private AiProvider AiChosen => AiChatGpt.IsChecked == true ? AiProvider.ChatGpt : AiGemini.IsChecked == true ? AiProvider.Gemini : AiProvider.Claude;
 
     private void LoadAi()
@@ -37,7 +60,7 @@ public partial class SettingsWindow
         OptAiKey.Password = AiService.HasKey(p) ? SecretMask : "";
         AiKeyHint.Text = AiService.KeyHint(p);
         AiKeyLink.NavigateUri = new Uri(AiService.KeyUrl(p));
-        AiKeyStatus.Text = AiService.HasKey(p) ? "Gespeichert. „Prüfen“ testet ihn." : $"Noch kein Schlüssel für {AiService.Name(p)}.";
+        AiKeyStatus.Text = AiService.HasKey(p) ? L.T("Gespeichert. „Prüfen“ testet ihn.") : L.T($"Noch kein Schlüssel für {AiService.Name(p)}.");
         FillAiModels(p);
         _aiLoading = false;
     }
@@ -80,7 +103,7 @@ public partial class SettingsWindow
         AiFetched.Remove(p);
         App.NotifySettingsChanged();
         OptAiKey.Password = pw.Length > 0 ? SecretMask : "";
-        AiKeyStatus.Text = pw.Length > 0 ? "Gespeichert. „Prüfen“ testet ihn." : "Schlüssel entfernt.";
+        AiKeyStatus.Text = pw.Length > 0 ? L.T("Gespeichert. „Prüfen“ testet ihn.") : L.T("Schlüssel entfernt.");
     }
 
     private async void AiCheck_Click(object sender, RoutedEventArgs e)
@@ -88,9 +111,9 @@ public partial class SettingsWindow
         SaveAiKey();
         var p = S.AiProvider;
         var key = AiService.GetKey(p);
-        if (key.Length == 0) { AiKeyStatus.Text = "Trag zuerst einen Schlüssel ein."; return; }
+        if (key.Length == 0) { AiKeyStatus.Text = L.T("Trag zuerst einen Schlüssel ein."); return; }
         AiCheckBtn.IsEnabled = false;
-        AiKeyStatus.Text = "Prüfe …";
+        AiKeyStatus.Text = L.T("Prüfe …");
         try
         {
             using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(20));
@@ -106,11 +129,11 @@ public partial class SettingsWindow
                 cur = models[0];
             }
             FillAiModels(p);
-            AiKeyStatus.Text = models.Count == 0 ? "Schlüssel passt, aber es ist kein Chat-Modell freigeschaltet."
-                : models.Contains(cur) ? $"Schlüssel passt · {models.Count} Modelle verfügbar."
-                : $"Schlüssel passt · „{cur}“ ist nicht dabei, wähl eins aus der Liste.";
+            AiKeyStatus.Text = models.Count == 0 ? L.T("Schlüssel passt, aber es ist kein Chat-Modell freigeschaltet.")
+                : models.Contains(cur) ? L.T($"Schlüssel passt · {models.Count} Modelle verfügbar.")
+                : L.T($"Schlüssel passt · „{cur}“ ist nicht dabei, wähl eins aus der Liste.");
         }
-        catch (OperationCanceledException) { AiKeyStatus.Text = "Keine Antwort vom Dienst. Bist du online?"; }
+        catch (OperationCanceledException) { AiKeyStatus.Text = L.T("Keine Antwort vom Dienst. Bist du online?"); }
         catch (Exception ex) { AiKeyStatus.Text = AiService.Explain(ex); }
         finally { AiCheckBtn.IsEnabled = true; }
     }

@@ -52,7 +52,7 @@ public sealed class QuickLookWindow : Window
         ResizeMode = ResizeMode.NoResize;
         ShowInTaskbar = false;
         Topmost = true;
-        Title = "Vorschau";
+        Title = L.T("Vorschau");
         Background = new SolidColorBrush(Color.FromArgb(0x9E, 0, 0, 0));
         FontFamily = (FontFamily)Application.Current.TryFindResource("TextFont") ?? new FontFamily("Segoe UI Variable Text");
 
@@ -96,13 +96,13 @@ public sealed class QuickLookWindow : Window
 
         // ---- glass bar below the picture
         _viewBar = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Center };
-        _viewBar.Children.Add(Btn("copy", "Kopieren", "Blue", () => { copy?.Invoke(_item); Fade(); }));
+        _viewBar.Children.Add(Btn("copy", L.T("Kopieren"), "Blue", () => { copy?.Invoke(_item); Fade(); }));
         _viewBar.Children.Add(Btn("text.viewfinder", "Text", "Teal", () => { Fade(); liveText?.Invoke(_item); }));
-        _viewBar.Children.Add(Btn("save", "Sichern", "Green", () => { Fade(); save?.Invoke(_item); }));
+        _viewBar.Children.Add(Btn("save", L.T("Sichern"), "Green", () => { Fade(); save?.Invoke(_item); }));
         if (edited != null)
         {
             var pen = Btn("pencil", null, "Yellow", EnterEdit);
-            pen.ToolTip = "Bearbeiten: Format, Drehen, Spiegeln, Größe";
+            pen.ToolTip = L.T("Bearbeiten: Format, Drehen, Spiegeln, Größe");
             _viewBar.Children.Add(pen);
         }
         _viewBar.Children.Add(Btn("xmark", null, "Danger", Fade));
@@ -208,7 +208,7 @@ public sealed class QuickLookWindow : Window
     private bool _editing, _lock = true, _sizeCustom, _updatingSize;
     private Matrix _m = Matrix.Identity;        // rotation / mirroring, exact quarter turns only
     private Rect _crop = new(0, 0, 1, 1);        // normalized to the turned picture
-    private string _aspectKey = "Frei";
+    private string _aspectKey = L.T("Frei");
     private int _outW, _outH;
     private enum Grip { None, Move, L, T, R, B, TL, TR, BL, BR }
     private Grip _grip;
@@ -220,7 +220,7 @@ public sealed class QuickLookWindow : Window
     private int TurnedH => Swapped ? _item.ImageWidth : _item.ImageHeight;
 
     private static readonly (string key, double ratio)[] Aspects =
-        { ("Frei", 0), ("Original", -1), ("1:1", 1), ("4:3", 4.0 / 3), ("16:9", 16.0 / 9), ("9:16", 9.0 / 16) };
+        { (L.T("Frei"), 0), (L.T("Original"), -1), ("1:1", 1), ("4:3", 4.0 / 3), ("16:9", 16.0 / 9), ("9:16", 9.0 / 16) };
 
     private double? AspectRatio => _aspectKey switch
     {
@@ -246,7 +246,7 @@ public sealed class QuickLookWindow : Window
         _editing = true;
         _m = Matrix.Identity;
         _crop = new Rect(0, 0, 1, 1);
-        _aspectKey = "Frei";
+        _aspectKey = L.T("Frei");
         _sizeCustom = false;
         _lock = true;
         _editBar ??= BuildEditBar();
@@ -283,10 +283,10 @@ public sealed class QuickLookWindow : Window
     {
         var bar = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Center };
         Button Tip(Button b, string tip) { b.ToolTip = tip; return b; }
-        bar.Children.Add(Tip(Btn("rotate.left", null, "Blue", () => Turn(false)), "Nach links drehen"));
-        bar.Children.Add(Tip(Btn("rotate.right", null, "Blue", () => Turn(true)), "Nach rechts drehen"));
-        bar.Children.Add(Tip(Btn("flip.h", null, "Purple", () => Mirror(true)), "Horizontal spiegeln"));
-        bar.Children.Add(Tip(Btn("flip.v", null, "Purple", () => Mirror(false)), "Vertikal spiegeln"));
+        bar.Children.Add(Tip(Btn("rotate.left", null, "Blue", () => Turn(false)), L.T("Nach links drehen")));
+        bar.Children.Add(Tip(Btn("rotate.right", null, "Blue", () => Turn(true)), L.T("Nach rechts drehen")));
+        bar.Children.Add(Tip(Btn("flip.h", null, "Purple", () => Mirror(true)), L.T("Horizontal spiegeln")));
+        bar.Children.Add(Tip(Btn("flip.v", null, "Purple", () => Mirror(false)), L.T("Vertikal spiegeln")));
         bar.Children.Add(Sep());
 
         TextBox Box(string tip)
@@ -302,8 +302,8 @@ public sealed class QuickLookWindow : Window
             t.TextChanged += (_, _) => SizeTyped(t);
             return t;
         }
-        _wBox = Box("Breite in Pixeln");
-        _hBox = Box("Höhe in Pixeln");
+        _wBox = Box(L.T("Breite in Pixeln"));
+        _hBox = Box(L.T("Höhe in Pixeln"));
         _lockBtn = Btn("link", null, null, () => { _lock = !_lock; UpdateLock(); if (_lock) SizeTyped(_wBox); });
         _lockBtn.Margin = new Thickness(0);
         bar.Children.Add(_wBox);
@@ -311,8 +311,8 @@ public sealed class QuickLookWindow : Window
         bar.Children.Add(_hBox);
         bar.Children.Add(new TextBlock { Text = "px", Foreground = R("SubText"), FontSize = 12, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(2, 0, 4, 0) });
         bar.Children.Add(Sep());
-        bar.Children.Add(Btn(null, "Abbrechen", null, LeaveEdit));
-        bar.Children.Add(Btn("check", "Fertig", null, FinishEdit, "AccentButton"));
+        bar.Children.Add(Btn(null, L.T("Abbrechen"), null, LeaveEdit));
+        bar.Children.Add(Btn("check", L.T("Fertig"), null, FinishEdit, "AccentButton"));
         return bar;
 
         static Border Sep() => new() { Width = 0.5, Height = 20, Margin = new Thickness(6, 0, 6, 0), Background = new SolidColorBrush(Color.FromArgb(0x55, 0xFF, 0xFF, 0xFF)), VerticalAlignment = VerticalAlignment.Center };
@@ -322,7 +322,7 @@ public sealed class QuickLookWindow : Window
     {
         Ext.SetIcon(_lockBtn, _lock ? "link" : "link.off");
         _lockBtn.Foreground = _lock ? new SolidColorBrush(Color.FromRgb(0xFF, 0xCC, 0x00)) : R("SubText");
-        _lockBtn.ToolTip = _lock ? "Seitenverhältnis beibehalten (an)" : "Seitenverhältnis beibehalten (aus) – Bild kann gestaucht werden";
+        _lockBtn.ToolTip = _lock ? L.T("Seitenverhältnis beibehalten (an)") : L.T("Seitenverhältnis beibehalten (aus) – Bild kann gestaucht werden");
     }
 
     /// <summary>Plain chips like in the mockup: the chosen one is white with dark text.</summary>

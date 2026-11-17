@@ -35,10 +35,13 @@ public sealed class AiMessage : ObservableObject
 public sealed class AiService : ObservableObject
 {
     /// <summary>The same for the whole chat (it is part of what the answers build on).</summary>
-    public const string SystemPrompt =
-        "Du bist der KI-Assistent in PeakPill, einer kleinen Insel oben am Windows-Bildschirm. " +
-        "Antworte in der Sprache der Frage (meist Deutsch), freundlich, klar und eher knapp: das Fenster ist schmal. " +
-        "Kurze Absätze, Markdown sparsam (fett, Listen, Code-Blöcke gehen).";
+    public static string SystemPrompt => L.English
+        ? "You are the AI assistant in PeakPill, a small island at the top of the Windows screen. " +
+          "Answer in the language of the question, friendly, clear and rather brief: the window is narrow. " +
+          "Short paragraphs, Markdown sparingly (bold, lists and code blocks work)."
+        : "Du bist der KI-Assistent in PeakPill, einer kleinen Insel oben am Windows-Bildschirm. " +
+          "Antworte in der Sprache der Frage (meist Deutsch), freundlich, klar und eher knapp: das Fenster ist schmal. " +
+          "Kurze Absätze, Markdown sparsam (fett, Listen, Code-Blöcke gehen).";
 
     private const string FileName = "ai-chat.json";
     private static readonly HttpClient Http = new() { Timeout = TimeSpan.FromMinutes(5) };
@@ -74,9 +77,9 @@ public sealed class AiService : ObservableObject
 
     public static string KeyHint(AiProvider p) => p switch
     {
-        AiProvider.ChatGpt => "beginnt mit sk-",
-        AiProvider.Gemini => "beginnt mit AIza",
-        _ => "beginnt mit sk-ant-",
+        AiProvider.ChatGpt => L.T("beginnt mit sk-"),
+        AiProvider.Gemini => L.T("beginnt mit AIza"),
+        _ => L.T("beginnt mit sk-ant-"),
     };
 
     public static string GetKey(AiProvider p) =>
@@ -101,7 +104,7 @@ public sealed class AiService : ObservableObject
     }
 
     /// <summary>"Claude · Opus 5.5", "ChatGPT · gpt-5".</summary>
-    public static string Label(AiProvider p) => $"{Name(p)} · {PrettyModel(GetModel(p))}";
+    public static string Label(AiProvider p) => L.T($"{Name(p)} · {PrettyModel(GetModel(p))}");
 
     public static string PrettyModel(string id)
     {
@@ -202,7 +205,7 @@ public sealed class AiService : ObservableObject
         var ct = _cts.Token;
         try
         {
-            if (key.Length == 0) throw new AiException($"Noch kein API-Schlüssel für {Name(provider)}. Trag ihn in den Einstellungen unter „KI“ ein.");
+            if (key.Length == 0) throw new AiException(L.T($"Noch kein API-Schlüssel für {Name(provider)}. Trag ihn in den Einstellungen unter „KI“ ein."));
             void Add(string piece) { if (!string.IsNullOrEmpty(piece)) answer.Text += piece; }
             switch (provider)
             {
@@ -210,23 +213,23 @@ public sealed class AiService : ObservableObject
                 case AiProvider.Gemini: await StreamGemini(history, key, model, Add, ct); break;
                 default: await StreamClaude(history, key, model, Add, ct); break;
             }
-            if (answer.Text.Trim().Length == 0) throw new AiException("Keine Antwort bekommen. Versuch es noch einmal.");
+            if (answer.Text.Trim().Length == 0) throw new AiException(L.T("Keine Antwort bekommen. Versuch es noch einmal."));
         }
         catch (OperationCanceledException) when (ct.IsCancellationRequested)
         {
-            if (answer.Text.Trim().Length == 0) { answer.Failed = true; answer.Text = "Abgebrochen."; }
+            if (answer.Text.Trim().Length == 0) { answer.Failed = true; answer.Text = L.T("Abgebrochen."); }
             else answer.Text = answer.Text.TrimEnd() + " …";
         }
         catch (AiException ex) { answer.Failed = true; answer.Text = ex.Message; }
-        catch (AnthropicUnauthorizedException) { answer.Failed = true; answer.Text = "Der Claude-Schlüssel stimmt nicht. Prüf ihn in den Einstellungen unter „KI“."; }
-        catch (AnthropicNotFoundException) { answer.Failed = true; answer.Text = $"Das Modell „{model}“ gibt es nicht (mehr). Wähl in den Einstellungen ein anderes."; }
-        catch (AnthropicRateLimitException) { answer.Failed = true; answer.Text = "Zu viele Anfragen gerade. Warte einen Moment."; }
-        catch (AnthropicOverloadedException) { answer.Failed = true; answer.Text = "Claude ist gerade überlastet. Versuch es gleich noch einmal."; }
+        catch (AnthropicUnauthorizedException) { answer.Failed = true; answer.Text = L.T("Der Claude-Schlüssel stimmt nicht. Prüf ihn in den Einstellungen unter „KI“."); }
+        catch (AnthropicNotFoundException) { answer.Failed = true; answer.Text = L.T($"Das Modell „{model}“ gibt es nicht (mehr). Wähl in den Einstellungen ein anderes."); }
+        catch (AnthropicRateLimitException) { answer.Failed = true; answer.Text = L.T("Zu viele Anfragen gerade. Warte einen Moment."); }
+        catch (AnthropicOverloadedException) { answer.Failed = true; answer.Text = L.T("Claude ist gerade überlastet. Versuch es gleich noch einmal."); }
         catch (AnthropicApiException ex) { answer.Failed = true; answer.Text = "Claude: " + Short(ex.Message); }
-        catch (AnthropicIOException) { answer.Failed = true; answer.Text = "Keine Verbindung. Bist du online?"; }
-        catch (HttpRequestException) { answer.Failed = true; answer.Text = "Keine Verbindung. Bist du online?"; }
-        catch (TaskCanceledException) { answer.Failed = true; answer.Text = "Die Antwort hat zu lange gedauert."; }
-        catch (Exception ex) { answer.Failed = true; answer.Text = "Das hat nicht geklappt: " + Short(ex.Message); }
+        catch (AnthropicIOException) { answer.Failed = true; answer.Text = L.T("Keine Verbindung. Bist du online?"); }
+        catch (HttpRequestException) { answer.Failed = true; answer.Text = L.T("Keine Verbindung. Bist du online?"); }
+        catch (TaskCanceledException) { answer.Failed = true; answer.Text = L.T("Die Antwort hat zu lange gedauert."); }
+        catch (Exception ex) { answer.Failed = true; answer.Text = L.T("Das hat nicht geklappt: ") + Short(ex.Message); }
         finally
         {
             answer.IsStreaming = false;
@@ -286,7 +289,7 @@ public sealed class AiService : ObservableObject
             if (ev.TryPickContentBlockDelta(out var d) && d.Delta.TryPickText(out var t)) add(t.Text);
             else if (ev.TryPickDelta(out var md) && md.Delta.StopReason == BetaStopReason.Refusal) refused = true;
         }
-        if (refused) throw new AiException("Claude hat diese Anfrage abgelehnt. Formulier sie anders oder versuch ein anderes Modell.");
+        if (refused) throw new AiException(L.T("Claude hat diese Anfrage abgelehnt. Formulier sie anders oder versuch ein anderes Modell."));
     }
 
     public static async Task<List<string>> ClaudeModels(string key, CancellationToken ct)
@@ -345,7 +348,7 @@ public sealed class AiService : ObservableObject
         {
             var parts = json["candidates"]?[0]?["content"]?["parts"] as JsonArray;
             if (parts != null) foreach (var part in parts) add(part?["text"]?.GetValue<string>());
-            if (json["promptFeedback"]?["blockReason"] != null) throw new AiException("Gemini hat diese Anfrage abgelehnt.");
+            if (json["promptFeedback"]?["blockReason"] != null) throw new AiException(L.T("Gemini hat diese Anfrage abgelehnt."));
         });
     }
 
@@ -400,9 +403,9 @@ public sealed class AiService : ObservableObject
     private static async Task<string> ErrorText(HttpResponseMessage res, string who, CancellationToken ct)
     {
         int code = (int)res.StatusCode;
-        if (code is 401 or 403) return $"Der {who}-Schlüssel stimmt nicht. Prüf ihn in den Einstellungen unter „KI“.";
-        if (code == 429) return $"{who}: zu viele Anfragen oder kein Guthaben mehr.";
-        if (code == 404) return $"{who}: dieses Modell gibt es nicht. Wähl in den Einstellungen ein anderes.";
+        if (code is 401 or 403) return L.T($"Der {who}-Schlüssel stimmt nicht. Prüf ihn in den Einstellungen unter „KI“.");
+        if (code == 429) return L.T($"{who}: zu viele Anfragen oder kein Guthaben mehr.");
+        if (code == 404) return L.T($"{who}: dieses Modell gibt es nicht. Wähl in den Einstellungen ein anderes.");
         string msg = "";
         try
         {
@@ -413,7 +416,7 @@ public sealed class AiService : ObservableObject
         catch { }
         // Gemini says "API key not valid" with a plain 400
         if (msg.Contains("API key not valid", StringComparison.OrdinalIgnoreCase) || msg.Contains("API_KEY_INVALID"))
-            return $"Der {who}-Schlüssel stimmt nicht. Prüf ihn in den Einstellungen unter „KI“.";
+            return L.T($"Der {who}-Schlüssel stimmt nicht. Prüf ihn in den Einstellungen unter „KI“.");
         return $"{who}: {(msg.Length > 0 ? Short(msg) : "Fehler " + code)}";
     }
 
@@ -421,9 +424,9 @@ public sealed class AiService : ObservableObject
     public static string Explain(Exception ex) => ex switch
     {
         AiException a => a.Message,
-        AnthropicUnauthorizedException => "Der Claude-Schlüssel stimmt nicht.",
+        AnthropicUnauthorizedException => L.T("Der Claude-Schlüssel stimmt nicht."),
         AnthropicApiException a => "Claude: " + Short(a.Message),
-        AnthropicIOException or HttpRequestException => "Keine Verbindung. Bist du online?",
+        AnthropicIOException or HttpRequestException => L.T("Keine Verbindung. Bist du online?"),
         _ => Short(ex.Message),
     };
 }

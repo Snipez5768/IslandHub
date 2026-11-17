@@ -25,7 +25,7 @@ public sealed class ClockModel : ObservableObject
 {
     private string _time, _date, _short;
     private readonly DispatcherTimer _t = new() { Interval = TimeSpan.FromSeconds(1) };
-    private static readonly CultureInfo De = new("de-DE");
+    private static CultureInfo De => L.Culture; // the island's language (2026-11-17)
 
     public string TimeText { get => _time; private set => Set(ref _time, value); }
     public string DateText { get => _date; private set => Set(ref _date, value); }
@@ -84,9 +84,9 @@ public sealed class ClockModel : ObservableObject
         var now = DateTime.Now;
         TimeText = now.ToString(App.Settings.ShowSeconds ? "HH:mm:ss" : "HH:mm");
         ShortTime = now.ToString(App.Settings.ShowSeconds ? "HH:mm:ss" : "HH:mm");
-        DateText = now.ToString("dddd, d. MMMM", De);
+        DateText = now.ToString(L.English ? "dddd, MMMM d" : "dddd, d. MMMM", De);
         WeekdayText = now.ToString("dddd", De).ToUpper(De);
-        DayText = now.ToString("d. MMMM", De);
+        DayText = now.ToString(L.English ? "MMMM d" : "d. MMMM", De);
         var utc = DateTime.UtcNow;
         foreach (var w in WorldClocks)
         {
@@ -94,8 +94,8 @@ public sealed class ClockModel : ObservableObject
             w.Time = t.ToString("HH:mm");
             var diff = t - now;
             int h = (int)Math.Round(diff.TotalHours);
-            string day = t.Date > now.Date ? "Morgen" : t.Date < now.Date ? "Gestern" : "Heute";
-            w.OffsetText = h == 0 ? $"{day} · gleiche Zeit" : $"{day} · {(h > 0 ? "+" : "−")}{Math.Abs(h)} Std";
+            string day = t.Date > now.Date ? L.T("Morgen") : t.Date < now.Date ? L.T("Gestern") : L.T("Heute");
+            w.OffsetText = h == 0 ? L.T($"{day} · gleiche Zeit") : $"{day} · {(h > 0 ? "+" : "−")}{Math.Abs(h)} Std";
         }
     }
 }
@@ -110,7 +110,7 @@ public sealed class WeatherService : ObservableObject
     private static readonly HttpClient Http = new() { Timeout = TimeSpan.FromSeconds(12) };
     private readonly DispatcherTimer _t = new() { Interval = TimeSpan.FromMinutes(20) };
     private bool _has;
-    private string _temp, _desc, _icon, _detail, _place, _status = "Lege in den Einstellungen eine Stadt fest.";
+    private string _temp, _desc, _icon, _detail, _place, _status = L.T("Lege in den Einstellungen eine Stadt fest.");
 
     public bool HasData { get => _has; private set => Set(ref _has, value); }
     public string TempText { get => _temp; private set => Set(ref _temp, value); }
@@ -163,7 +163,7 @@ public sealed class WeatherService : ObservableObject
         if (string.IsNullOrWhiteSpace(s.WeatherCity) || (s.WeatherLat == 0 && s.WeatherLon == 0))
         {
             HasData = false;
-            Status = "Lege in den Einstellungen eine Stadt fest.";
+            Status = L.T("Lege in den Einstellungen eine Stadt fest.");
             return;
         }
         try
@@ -186,10 +186,10 @@ public sealed class WeatherService : ObservableObject
             TempText = $"{temp:0}°";
             Description = desc;
             Icon = icon;
-            Detail = $"↑ {max:0}°  ↓ {min:0}°  ·  gefühlt {feels:0}°  ·  Wind {wind:0} km/h";
+            Detail = L.T($"↑ {max:0}°  ↓ {min:0}°  ·  gefühlt {feels:0}°  ·  Wind {wind:0} km/h");
             Place = s.WeatherPlace;
             City = (s.WeatherPlace ?? "").Split(',')[0];
-            HighLow = $"H: {max:0}°  T: {min:0}°";
+            HighLow = L.T($"H: {max:0}°  T: {min:0}°");
             // the next hours for the "Heute" page (2026-11-16)
             try
             {
@@ -201,7 +201,7 @@ public sealed class WeatherService : ObservableObject
                     var at = DateTime.Parse(times[i].GetString(), CultureInfo.InvariantCulture);
                     bool hd = hourly.GetProperty("is_day")[i].GetInt32() == 1;
                     var (_, hi) = Describe(hourly.GetProperty("weather_code")[i].GetInt32(), hd);
-                    hours.Add(new WeatherHour(i == 0 ? "Jetzt" : at.ToString("HH"), hi, $"{hourly.GetProperty("temperature_2m")[i].GetDouble():0}°"));
+                    hours.Add(new WeatherHour(i == 0 ? L.T("Jetzt") : at.ToString("HH"), hi, $"{hourly.GetProperty("temperature_2m")[i].GetDouble():0}°"));
                 }
                 Hours = hours;
             }
@@ -210,7 +210,7 @@ public sealed class WeatherService : ObservableObject
         }
         catch (Exception ex)
         {
-            Status = "Wetter gerade nicht erreichbar.";
+            Status = L.T("Wetter gerade nicht erreichbar.");
             HasData = false;
             App.Log(ex);
         }
@@ -218,16 +218,16 @@ public sealed class WeatherService : ObservableObject
 
     private static (string, string) Describe(int c, bool day) => c switch
     {
-        0 => ("Klar", day ? "☀" : "☾"),
-        1 or 2 => ("Leicht bewölkt", "⛅"),
-        3 => ("Bewölkt", "☁"),
-        45 or 48 => ("Nebel", "≋"),
-        >= 51 and <= 57 => ("Nieselregen", "☂"),
-        >= 61 and <= 67 => ("Regen", "☂"),
-        >= 71 and <= 77 => ("Schnee", "❄"),
-        >= 80 and <= 82 => ("Regenschauer", "☂"),
-        85 or 86 => ("Schneeschauer", "❄"),
-        >= 95 => ("Gewitter", "⚡"),
+        0 => (L.T("Klar"), day ? "☀" : "☾"),
+        1 or 2 => (L.T("Leicht bewölkt"), "⛅"),
+        3 => (L.T("Bewölkt"), "☁"),
+        45 or 48 => (L.T("Nebel"), "≋"),
+        >= 51 and <= 57 => (L.T("Nieselregen"), "☂"),
+        >= 61 and <= 67 => (L.T("Regen"), "☂"),
+        >= 71 and <= 77 => (L.T("Schnee"), "❄"),
+        >= 80 and <= 82 => (L.T("Regenschauer"), "☂"),
+        85 or 86 => (L.T("Schneeschauer"), "❄"),
+        >= 95 => (L.T("Gewitter"), "⚡"),
         _ => ("—", "☁")
     };
 }
@@ -252,11 +252,11 @@ public sealed class Reminder : ObservableObject
     {
         get
         {
-            var de = new CultureInfo("de-DE");
-            string when = Due.Date == DateTime.Today ? $"Heute {Due:HH:mm}" :
-                          Due.Date == DateTime.Today.AddDays(1) ? $"Morgen {Due:HH:mm}" :
-                          Due.ToString("ddd, dd.MM. HH:mm", de);
-            return IsRepeating ? $"{when} · {Repeat.ToString().ToLower(de)}" : when;
+            var de = L.Culture;
+            string when = Due.Date == DateTime.Today ? L.T($"Heute {Due:HH:mm}") :
+                          Due.Date == DateTime.Today.AddDays(1) ? L.T($"Morgen {Due:HH:mm}") :
+                          Due.ToString(L.English ? "ddd, MMM d HH:mm" : "ddd, dd.MM. HH:mm", de);
+            return IsRepeating ? L.T($"{when} · {Repeat.ToString().ToLower(de)}") : when;
         }
     }
 
@@ -420,7 +420,7 @@ public sealed class ReminderService
     private static string Clean(string s)
     {
         s = Regex.Replace(s, @"\s{2,}", " ").Trim(' ', ',', '.', '-', ':');
-        return s.Length == 0 ? "Erinnerung" : char.ToUpper(s[0]) + s[1..];
+        return s.Length == 0 ? L.T("Erinnerung") : char.ToUpper(s[0]) + s[1..];
     }
 }
 
@@ -485,7 +485,7 @@ public sealed class FocusTimerService : ObservableObject
     public string RemainingText => _remaining.TotalHours >= 1 ? _remaining.ToString(@"h\:mm\:ss") : _remaining.ToString(@"mm\:ss");
     public double ProgressPercent => _duration.TotalSeconds <= 0 ? 0 : 100 * (1 - _remaining.TotalSeconds / _duration.TotalSeconds);
     public double RemainingPercent => 100 - ProgressPercent;
-    public string StartPauseText => _running ? "Pause" : _remaining < _duration ? "Weiter" : "Start";
+    public string StartPauseText => _running ? L.T("Pause") : _remaining < _duration ? L.T("Weiter") : "Start";
     public double DurationMinutes => _duration.TotalMinutes;
     public int DurationSeconds => (int)_duration.TotalSeconds;
     public string ModeText
@@ -493,10 +493,10 @@ public sealed class FocusTimerService : ObservableObject
         get
         {
             var parts = new List<string>();
-            if (_duration.TotalHours >= 1) parts.Add($"{(int)_duration.TotalHours} Std");
-            if (_duration.Minutes > 0) parts.Add($"{_duration.Minutes} Min");
-            if (_duration.Seconds > 0) parts.Add($"{_duration.Seconds} Sek");
-            return "Timer · " + string.Join(" ", parts);
+            if (_duration.TotalHours >= 1) parts.Add(L.T($"{(int)_duration.TotalHours} Std"));
+            if (_duration.Minutes > 0) parts.Add(L.T($"{_duration.Minutes} Min"));
+            if (_duration.Seconds > 0) parts.Add(L.T($"{_duration.Seconds} Sek"));
+            return L.T("Timer · ") + string.Join(" ", parts);
         }
     }
 

@@ -29,15 +29,15 @@ public sealed class IslandNotification : ObservableObject
     public bool IsCall { get; init; }
     public bool HasImage => Icon != null;
 
-    public string Header => string.IsNullOrEmpty(Title) || Title == AppName ? AppName : $"{AppName} · {Title}";
+    public string Header => string.IsNullOrEmpty(Title) || Title == AppName ? AppName : L.T($"{AppName} · {Title}");
     public string Ago
     {
         get
         {
             var d = DateTime.Now - Time;
             if (d.TotalMinutes < 1) return "jetzt";
-            if (d.TotalMinutes < 60) return $"{(int)d.TotalMinutes} Min";
-            if (d.TotalHours < 24) return $"{(int)d.TotalHours} Std";
+            if (d.TotalMinutes < 60) return L.T($"{(int)d.TotalMinutes} Min");
+            if (d.TotalHours < 24) return L.T($"{(int)d.TotalHours} Std");
             return Time.ToString("dd.MM.");
         }
     }
@@ -303,7 +303,7 @@ public sealed class NotificationService : ObservableObject
     private long _ownId = -1;
     public IslandNotification AddOwn(string title, string text, string iconKind, Brush accent, string launch = null)
     {
-        var n = new IslandNotification { Id = _ownId--, AppId = "PeakPill", AppName = "Preisalarm", Title = title, Text = text, Time = DateTime.Now, IconKind = iconKind, Accent = accent, Launch = launch, Unread = true };
+        var n = new IslandNotification { Id = _ownId--, AppId = "PeakPill", AppName = L.T("Preisalarm"), Title = title, Text = text, Time = DateTime.Now, IconKind = iconKind, Accent = accent, Launch = launch, Unread = true };
         Items.Insert(0, n);
         Raise(nameof(Count));
         Raise(nameof(UnreadCount));

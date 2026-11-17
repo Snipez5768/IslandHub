@@ -39,7 +39,7 @@ public sealed class DiscordService : ObservableObject
     private readonly Dictionary<string, TaskCompletionSource<JsonNode>> _pending = new();
     private CancellationTokenSource _cts;
     private bool _connected, _muted, _deafened, _inVoice;
-    private string _status = "Nicht verbunden", _channel;
+    private string _status = L.T("Nicht verbunden"), _channel;
 
     public bool Connected { get => _connected; private set => Set(ref _connected, value); }
     /// <summary>Muted in Discord (self-mute) – not the Windows microphone.</summary>
@@ -72,7 +72,7 @@ public sealed class DiscordService : ObservableObject
         _cts?.Cancel();
         try { _pipe?.Dispose(); } catch { }
         _pipe = null;
-        Ui.Run(() => { Connected = false; Status = "Nicht verbunden"; });
+        Ui.Run(() => { Connected = false; Status = L.T("Nicht verbunden"); });
     }
 
     /// <summary>Keeps a connection: reconnects every 10 s while Discord is closed.</summary>
@@ -89,7 +89,7 @@ public sealed class DiscordService : ObservableObject
             catch (OperationCanceledException) { return; }
             catch (Exception ex)
             {
-                Ui.Run(() => { Connected = false; Status = ex is UnauthorizedAccessException ? ex.Message : "Discord nicht erreichbar"; });
+                Ui.Run(() => { Connected = false; Status = ex is UnauthorizedAccessException ? ex.Message : L.T("Discord nicht erreichbar"); });
                 if (ex is UnauthorizedAccessException) return; // wrong credentials – wait for new ones
             }
             try { _pipe?.Dispose(); } catch { }
@@ -107,7 +107,7 @@ public sealed class DiscordService : ObservableObject
             try { await p.ConnectAsync(400, ct); _pipe = p; }
             catch { p.Dispose(); }
         }
-        if (_pipe == null) throw new IOException("Discord läuft nicht");
+        if (_pipe == null) throw new IOException(L.T("Discord läuft nicht"));
 
         await SendFrame(0, new JsonObject { ["v"] = 1, ["client_id"] = App.Settings.DiscordClientId });
         var reader = Task.Run(() => ReadLoop(ct), ct);
@@ -121,21 +121,21 @@ public sealed class DiscordService : ObservableObject
             if (token?.Refresh is { } rt) access = await Exchange("refresh_token", rt);
             if (access == null || !await Authenticate(access))
             {
-                Ui.Run(() => Status = "Bitte in Discord bestätigen …");
+                Ui.Run(() => Status = L.T("Bitte in Discord bestätigen …"));
                 var res = await Command("AUTHORIZE", new JsonObject { ["client_id"] = App.Settings.DiscordClientId, ["scopes"] = new JsonArray(Scopes.Select(s => (JsonNode)s).ToArray()) }, TimeSpan.FromMinutes(2));
                 var code = res?["data"]?["code"]?.GetValue<string>();
-                if (code == null) throw new UnauthorizedAccessException("Discord hat die Verbindung abgelehnt");
-                access = await Exchange("authorization_code", code) ?? throw new UnauthorizedAccessException("Client-ID oder Secret falsch");
-                if (!await Authenticate(access)) throw new UnauthorizedAccessException("Anmeldung bei Discord fehlgeschlagen");
+                if (code == null) throw new UnauthorizedAccessException(L.T("Discord hat die Verbindung abgelehnt"));
+                access = await Exchange("authorization_code", code) ?? throw new UnauthorizedAccessException(L.T("Client-ID oder Secret falsch"));
+                if (!await Authenticate(access)) throw new UnauthorizedAccessException(L.T("Anmeldung bei Discord fehlgeschlagen"));
             }
         }
 
-        Ui.Run(() => { Connected = true; Status = "Verbunden"; });
+        Ui.Run(() => { Connected = true; Status = L.T("Verbunden"); });
         await Subscribe("VOICE_SETTINGS_UPDATE");
         await Subscribe("VOICE_CHANNEL_SELECT");
         await RefreshVoice();
         await reader; // until the pipe closes
-        Ui.Run(() => { Connected = false; InVoice = false; Status = "Discord geschlossen"; });
+        Ui.Run(() => { Connected = false; InVoice = false; Status = L.T("Discord geschlossen"); });
     }
 
     private async Task<bool> Authenticate(string access)

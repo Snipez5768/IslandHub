@@ -23,12 +23,12 @@ public sealed class SoundService
 
     private static readonly (string Id, string Name, Func<float[]> Make)[] Synth =
     {
-        ("synth:soft", "Sanft", Soft),
-        ("synth:marimba", "Marimba", Marimba),
-        ("synth:bell", "Glocke", Bell),
-        ("synth:beep", "Pieps", Beep),
-        ("synth:digital", "Digitalwecker", Digital),
-        ("synth:pulse", "Puls", Pulse),
+        ("synth:soft", L.T("Sanft"), Soft),
+        ("synth:marimba", L.T("Marimba"), Marimba),
+        ("synth:bell", L.T("Glocke"), Bell),
+        ("synth:beep", L.T("Pieps"), Beep),
+        ("synth:digital", L.T("Digitalwecker"), Digital),
+        ("synth:pulse", L.T("Puls"), Pulse),
     };
 
     public SoundService()
@@ -45,7 +45,7 @@ public sealed class SoundService
     /// <summary>All selectable sounds (own tones first, then Windows sounds, then the custom file if set).</summary>
     public List<SoundOption> Options(string currentCustom = null)
     {
-        var list = new List<SoundOption> { new("none", "Ohne Ton") };
+        var list = new List<SoundOption> { new("none", L.T("Ohne Ton")) };
         list.AddRange(Synth.Select(s => new SoundOption(s.Id, s.Name)));
         try
         {
@@ -57,14 +57,14 @@ public sealed class SoundService
             {
                 var name = Path.GetFileNameWithoutExtension(f);
                 var nice = name.StartsWith("Alarm", StringComparison.OrdinalIgnoreCase)
-                    ? "Windows-Alarm " + int.Parse("0" + new string(name.Where(char.IsDigit).ToArray()))
-                    : "Windows-Klingelton " + int.Parse("0" + new string(name.Where(char.IsDigit).ToArray()));
+                    ? L.T("Windows-Alarm ") + int.Parse("0" + new string(name.Where(char.IsDigit).ToArray()))
+                    : L.T("Windows-Klingelton ") + int.Parse("0" + new string(name.Where(char.IsDigit).ToArray()));
                 list.Add(new SoundOption("file:" + f, nice));
             }
         }
         catch { }
         if (!string.IsNullOrEmpty(currentCustom) && currentCustom.StartsWith("file:") && !list.Any(o => o.Id == currentCustom))
-            list.Add(new SoundOption(currentCustom, "Eigene: " + Path.GetFileNameWithoutExtension(currentCustom[5..])));
+            list.Add(new SoundOption(currentCustom, L.T("Eigene: ") + Path.GetFileNameWithoutExtension(currentCustom[5..])));
         return list;
     }
 

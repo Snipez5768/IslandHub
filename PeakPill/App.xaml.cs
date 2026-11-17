@@ -35,10 +35,15 @@ public partial class App : Application
     protected override void OnStartup(StartupEventArgs e)
     {
         base.OnStartup(e);
-        _mutex = new Mutex(true, @"Local\PeakPill.SingleInstance", out bool isNew);
+        // a restart (language switched) waits until the old island has gone
+        bool restart = e.Args.Contains("--restart");
+        _mutex = new Mutex(false, @"Local\PeakPill.SingleInstance");
+        bool isNew;
+        try { isNew = _mutex.WaitOne(restart ? 10000 : 0); }
+        catch (AbandonedMutexException) { isNew = true; }
         if (!isNew)
         {
-            MessageBox.Show("PeakPill läuft bereits (siehe Infobereich der Taskleiste).", "PeakPill");
+            MessageBox.Show(L.T("PeakPill läuft bereits (siehe Infobereich der Taskleiste)."), "PeakPill");
             Shutdown();
             return;
         }
@@ -51,6 +56,20 @@ public partial class App : Application
 
         Settings = Storage.Load<AppSettings>("settings.json");
         Settings.EnsureDefaults();
+        // the installer leaves the language it was asked for (2026-11-17)
+        try
+        {
+            var chosen = Storage.PathOf("language.txt");
+            if (File.Exists(chosen))
+            {
+                var lang = File.ReadAllText(chosen).Trim().ToLowerInvariant();
+                if (lang is "en" or "de") Settings.Language = lang;
+                File.Delete(chosen);
+            }
+        }
+        catch { }
+        L.Init(Settings.Language);
+        L.HookXaml();
         Settings.Autostart = Autostart.MoveOldEntry(); // the registry is the truth (the installer may have set it)
         if (Settings.Autostart) Autostart.Refresh();
         InstallInfo.Refresh();
@@ -71,10 +90,10 @@ public partial class App : Application
             {
                 Icon = "keyboard",
                 Important = true,
-                Title = "Kürzel belegt",
+                Title = L.T("Kürzel belegt"),
                 Text = string.Join(", ", failed.Select(a => HotkeyInfo.All.First(h => h.Action == a).Label)),
                 TimeoutMs = 6000
-            }.Action("Ändern", () => SettingsWindow.ShowSingle("Keys"), true));
+            }.Action(L.T("Ändern"), () => SettingsWindow.ShowSingle("Keys"), true));
 
         DesktopWidgetWindow.RestoreAll();
 
@@ -308,7 +327,7 @@ public partial class App : Application
         }
 
         // what is up next – read from the queue, NOT the clipboard (reading it would count as a paste since 2026-11-16)
-        static string SafeText() => Hub.Clipboard.QueueCount > 0 ? Hub.Clipboard.Queue[0].Text ?? "" : "(Stapel leer)";
+        static string SafeText() => Hub.Clipboard.QueueCount > 0 ? Hub.Clipboard.Queue[0].Text ?? "" : L.T("(Stapel leer)");
     }
 
     [System.Runtime.InteropServices.DllImport("user32.dll")]
@@ -435,6 +454,19 @@ public partial class App : Application
     {
         if (ex == null) return;
         try { File.AppendAllText(Storage.PathOf("log.txt"), $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] {ex}\n\n"); } catch { }
+    }
+
+    /// <summary>Starts a fresh island (it waits for this one to go) and quits – after switching the language.</summary>
+    public static void Restart()
+    {
+        try
+        {
+            var exe = Environment.ProcessPath;
+            if (exe != null) System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(exe, "--restart") { UseShellExecute = false });
+        }
+        catch { }
+        try { ((App)Current)._mutex?.ReleaseMutex(); } catch { }
+        Quit();
     }
 
     public static void Quit()

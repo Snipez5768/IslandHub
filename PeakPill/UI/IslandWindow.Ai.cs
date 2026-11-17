@@ -232,8 +232,8 @@ public partial class IslandWindow
         p.Children.Add(line);
         var acts = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(20, 4, 0, 0) };
         bool last = H.Ai.Messages.Count > 0 && H.Ai.Messages[^1] == m;
-        if (m.Text.Contains("Einstellungen")) acts.Children.Add(AiLink("Einstellungen öffnen", () => { Collapse(); SettingsWindow.ShowSingle("Ai"); }));
-        else if (last && m.Text != "Abgebrochen.") acts.Children.Add(AiLink("Nochmal", () => _ = H.Ai.RetryAsync()));
+        if (m.Text.Contains("Einstellungen")) acts.Children.Add(AiLink(L.T("Einstellungen öffnen"), () => { Collapse(); SettingsWindow.ShowSingle("Ai"); }));
+        else if (last && m.Text != "Abgebrochen.") acts.Children.Add(AiLink(L.T("Nochmal"), () => _ = H.Ai.RetryAsync()));
         if (acts.Children.Count > 0) p.Children.Add(acts);
         return p;
     }
@@ -404,10 +404,10 @@ public partial class IslandWindow
         var p = S.AiProvider;
         bool key = AiService.HasKey(p), any = H.Ai.Messages.Count > 0;
         AiEmpty.Visibility = any ? Visibility.Collapsed : Visibility.Visible;
-        AiEmptyTitle.Text = key ? $"Frag {AiService.Name(p)} etwas" : "KI-Chat einrichten";
-        AiEmptyText.Text = key ? $"{AiService.Label(p)} · Enter schickt ab" : "Mit deinem eigenen Schlüssel für Claude, ChatGPT oder Gemini";
+        AiEmptyTitle.Text = key ? L.T($"Frag {AiService.Name(p)} etwas") : L.T("KI-Chat einrichten");
+        AiEmptyText.Text = key ? L.T($"{AiService.Label(p)} · Enter schickt ab") : L.T("Mit deinem eigenen Schlüssel für Claude, ChatGPT oder Gemini");
         AiSetupBtn.Visibility = key ? Visibility.Collapsed : Visibility.Visible;
-        AiInput.Tag = $"Frag {AiService.Name(p)} …";
+        AiInput.Tag = L.T($"Frag {AiService.Name(p)} …");
         AiNewBtn.Visibility = any ? Visibility.Visible : Visibility.Collapsed;
         UpdateAiSend();
         UpdateAiHeight();
@@ -419,7 +419,7 @@ public partial class IslandWindow
         bool busy = H.Ai.Busy;
         AiSendIcon.Kind = busy ? "stop" : "arrow.up";
         AiSendIcon.Size = busy ? 11 : 13;
-        AiSendBtn.ToolTip = busy ? "Antwort stoppen (Esc)" : "Senden (Enter)";
+        AiSendBtn.ToolTip = busy ? L.T("Antwort stoppen (Esc)") : L.T("Senden (Enter)");
         AiSendBtn.Opacity = busy || AiInput.Text.Trim().Length > 0 ? 1 : 0.35;
         AiSendBtn.Background = busy ? (Brush)FindResource("SubText") : (Brush)FindResource("Accent");
     }
@@ -514,9 +514,9 @@ public partial class IslandWindow
             Icon = "bubble",
             Key = "ai",
             Source = m.By,
-            Title = $"{name} hat geantwortet",
+            Title = L.T($"{name} hat geantwortet"),
             Text = first,
             TimeoutMs = 7000,
-        }.Action("Lesen", () => Expand("Ai", true), true));
+        }.Action(L.T("Lesen"), () => Expand("Ai", true), true));
     }
 }

@@ -94,13 +94,13 @@ public sealed class LiveFeeds : ObservableObject
             if (_matchState.TryGetValue(id, out var was) && was != state)
             {
                 string score = $"{s1} {g1}:{g2} {s2}";
-                if (state.StartsWith("live") && was == "before") Tell(new("sport", "sport", "#FF30D158", "Anpfiff", score, null));
-                else if (state.StartsWith("live") && was.StartsWith("live")) Tell(new("sport", "sport", "#FF30D158", "Tor!", score, null));
-                else if (state.StartsWith("end") && !was.StartsWith("end")) Tell(new("sport", "sport", "#FF8E8E93", "Abpfiff", score, null));
+                if (state.StartsWith("live") && was == "before") Tell(new("sport", "sport", "#FF30D158", L.T("Anpfiff"), score, null));
+                else if (state.StartsWith("live") && was.StartsWith("live")) Tell(new("sport", "sport", "#FF30D158", L.T("Tor!"), score, null));
+                else if (state.StartsWith("end") && !was.StartsWith("end")) Tell(new("sport", "sport", "#FF8E8E93", L.T("Abpfiff"), score, null));
             }
             _matchState[id] = state;
             if (kick.Date == DateTime.Today || running)
-                today = new MatchLine(s1, s2, finished || running ? $"{g1}:{g2}" : kick.ToString("HH:mm"), finished ? "Ende" : running ? "live" : "heute", running);
+                today = new MatchLine(s1, s2, finished || running ? $"{g1}:{g2}" : kick.ToString("HH:mm"), finished ? L.T("Ende") : running ? "live" : "heute", running);
             live |= running || !finished && kick > DateTime.Now && kick - DateTime.Now < TimeSpan.FromMinutes(15);
         }
         Ui.Run(() => Match = today);
@@ -168,7 +168,7 @@ public sealed class LiveFeeds : ObservableObject
                 {
                     var title = Regex.Match(html, "<meta name=\"title\" content=\"([^\"]*)\"").Groups[1].Value;
                     var name = Regex.Match(html, "\"ownerChannelName\":\"([^\"]*)\"").Groups[1].Value;
-                    Tell(new("youtube", "play.fill", "#FFFF0033", $"{(name.Length > 0 ? name : ch)} ist live", System.Net.WebUtility.HtmlDecode(title), url));
+                    Tell(new("youtube", "play.fill", "#FFFF0033", L.T($"{(name.Length > 0 ? name : ch)} ist live"), System.Net.WebUtility.HtmlDecode(title), url));
                 }
                 if (live) _liveNow.Add(key); else _liveNow.Remove(key);
             }
@@ -208,6 +208,6 @@ public sealed class LiveFeeds : ObservableObject
     public static (string Label, string Number) SplitParcel(string line)
     {
         var i = line.IndexOf(':');
-        return i > 0 ? (line[..i].Trim(), line[(i + 1)..].Trim()) : ("Paket", line.Trim());
+        return i > 0 ? (line[..i].Trim(), line[(i + 1)..].Trim()) : (L.T("Paket"), line.Trim());
     }
 }

@@ -14,13 +14,13 @@ public static class WidgetRegistry
 {
     public static readonly WidgetDef[] All =
     {
-        new("clock",   "Uhr",         "", "W_Clock",   () => App.Hub.Clock),
-        new("world",   "Weltzeit",    "", "W_World",   () => App.Hub.Clock),
-        new("weather", "Wetter",      "", "W_Weather", () => App.Hub.Weather),
-        new("stats",   "PC-Werte",    "", "W_Stats",   () => App.Hub.Stats),
-        new("battery", "Akku",        "", "W_Battery", () => App.Hub.Stats),
-        new("timer",   "Fokus-Timer", "", "W_Timer",   () => App.Hub.Timer),
-        new("todo",    "To-do",       "", "W_Todo",    () => App.Hub.Todos),
+        new("clock",   L.T("Uhr"),         "", "W_Clock",   () => App.Hub.Clock),
+        new("world",   L.T("Weltzeit"),    "", "W_World",   () => App.Hub.Clock),
+        new("weather", L.T("Wetter"),      "", "W_Weather", () => App.Hub.Weather),
+        new("stats",   L.T("PC-Werte"),    "", "W_Stats",   () => App.Hub.Stats),
+        new("battery", L.T("Akku"),        "", "W_Battery", () => App.Hub.Stats),
+        new("timer",   L.T("Fokus-Timer"), "", "W_Timer",   () => App.Hub.Timer),
+        new("todo",    L.T("To-do"),       "", "W_Todo",    () => App.Hub.Todos),
     };
 
     public static WidgetDef Get(string kind) => All.FirstOrDefault(w => w.Kind == kind);
@@ -80,7 +80,7 @@ public static class WidgetRegistry
 
         var pin = new Button
         {
-            ToolTip = desktop ? "Vom Desktop lösen" : "An den Desktop heften",
+            ToolTip = desktop ? L.T("Vom Desktop lösen") : L.T("An den Desktop heften"),
             HorizontalAlignment = HorizontalAlignment.Right,
             VerticalAlignment = VerticalAlignment.Top,
             Margin = new Thickness(0, -8, -8, 0),
@@ -121,7 +121,7 @@ public sealed class DesktopWidgetWindow : Window
         if (Arranging == on) return;
         Arranging = on;
         foreach (var w in Open) w._outline.Visibility = on ? Visibility.Visible : Visibility.Collapsed;
-        if (on) App.Island.ShowModeHint("widgets", "Widgets anordnen", () => SetArranging(false));
+        if (on) App.Island.ShowModeHint("widgets", L.T("Widgets anordnen"), () => SetArranging(false));
         else { App.Island.EndModeHint(); SaveAll(); }
     }
 
@@ -247,12 +247,12 @@ public sealed class DesktopWidgetWindow : Window
         var menu = new ContextMenu();
         var arrange = new MenuItem();
         arrange.Click += (_, _) => SetArranging(!Arranging);
-        var unpin = new MenuItem { Header = "Vom Desktop lösen" };
+        var unpin = new MenuItem { Header = L.T("Vom Desktop lösen") };
         unpin.Click += (_, _) => Unpin();
         menu.Items.Add(arrange);
         // iOS sizes: small, medium (wide), large
-        var sizes = new MenuItem { Header = "Größe" };
-        foreach (var (key, name) in new[] { ("S", "Klein"), ("M", "Mittel"), ("L", "Groß") })
+        var sizes = new MenuItem { Header = L.T("Größe") };
+        foreach (var (key, name) in new[] { ("S", L.T("Klein")), ("M", L.T("Mittel")), ("L", L.T("Groß")) })
         {
             var item = new MenuItem { Header = name, IsCheckable = true, Tag = key };
             item.Click += (_, _) => SetSize(key);
@@ -261,7 +261,7 @@ public sealed class DesktopWidgetWindow : Window
         menu.Items.Add(sizes);
         menu.Opened += (_, _) => { foreach (MenuItem i in sizes.Items) i.IsChecked = (string)i.Tag == Size; };
         menu.Items.Add(unpin);
-        menu.Opened += (_, _) => arrange.Header = Arranging ? "Fertig (Widgets fixieren)" : "Widgets anordnen";
+        menu.Opened += (_, _) => arrange.Header = Arranging ? L.T("Fertig (Widgets fixieren)") : L.T("Widgets anordnen");
         ContextMenu = menu;
         SourceInitialized += (_, _) => Native.MakeToolWindow(new WindowInteropHelper(this).Handle);
         Activated += (_, _) => SendToBack();

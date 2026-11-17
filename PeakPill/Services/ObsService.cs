@@ -22,7 +22,7 @@ public sealed class ObsService : ObservableObject
     private readonly SemaphoreSlim _send = new(1, 1);
     private bool _connected, _recording, _streaming, _busy;
     private DateTime _recStart, _streamStart, _nextTry;
-    private string _scene, _status = "OBS läuft nicht", _recTime = "", _streamTime = "";
+    private string _scene, _status = L.T("OBS läuft nicht"), _recTime = "", _streamTime = "";
 
     public ObservableCollection<string> Scenes { get; } = new();
     public bool Connected { get => _connected; private set => Set(ref _connected, value); }
@@ -47,7 +47,7 @@ public sealed class ObsService : ObservableObject
         if (Connected || _busy || DateTime.Now < _nextTry) return;
         if (Process.GetProcessesByName("obs64").Length == 0 && Process.GetProcessesByName("obs").Length == 0)
         {
-            Status = "OBS läuft nicht";
+            Status = L.T("OBS läuft nicht");
             return;
         }
         _busy = true;
@@ -65,25 +65,25 @@ public sealed class ObsService : ObservableObject
         using (var cts = new CancellationTokenSource(3000))
         {
             try { await _ws.ConnectAsync(new Uri("ws://127.0.0.1:4455"), cts.Token); }
-            catch { throw new Exception("OBS-WebSocket ist aus (OBS → Werkzeuge → WebSocket-Servereinstellungen)"); }
+            catch { throw new Exception(L.T("OBS-WebSocket ist aus (OBS → Werkzeuge → WebSocket-Servereinstellungen)")); }
         }
-        var hello = await Receive() ?? throw new Exception("OBS antwortet nicht");
+        var hello = await Receive() ?? throw new Exception(L.T("OBS antwortet nicht"));
         var d = hello["d"];
         var identify = new JsonObject { ["rpcVersion"] = 1, ["eventSubscriptions"] = 4 | 64 }; // Scenes | Outputs
         if (d?["authentication"] is JsonNode auth)
         {
             var pw = DiscordService.Unprotect(App.Settings.ObsPassword);
-            if (string.IsNullOrEmpty(pw)) throw new Exception("OBS will ein Passwort – trag es in den Einstellungen ein");
+            if (string.IsNullOrEmpty(pw)) throw new Exception(L.T("OBS will ein Passwort – trag es in den Einstellungen ein"));
             string salt = auth["salt"]!.GetValue<string>(), challenge = auth["challenge"]!.GetValue<string>();
             var secret = Convert.ToBase64String(SHA256.HashData(Encoding.UTF8.GetBytes(pw + salt)));
             identify["authentication"] = Convert.ToBase64String(SHA256.HashData(Encoding.UTF8.GetBytes(secret + challenge)));
         }
         await SendRaw(new JsonObject { ["op"] = 1, ["d"] = identify });
         var ok = await Receive();
-        if (ok?["op"]?.GetValue<int>() != 2) throw new Exception("OBS-Passwort falsch");
+        if (ok?["op"]?.GetValue<int>() != 2) throw new Exception(L.T("OBS-Passwort falsch"));
 
         Connected = true;
-        Status = "Verbunden";
+        Status = L.T("Verbunden");
         _ = ReadLoop();
         await RefreshAll();
     }
@@ -148,7 +148,7 @@ public sealed class ObsService : ObservableObject
             }
         }
         catch { }
-        Ui.Run(() => { Close(); Status = "OBS geschlossen"; });
+        Ui.Run(() => { Close(); Status = L.T("OBS geschlossen"); });
     }
 
     private void OnState(JsonNode data, bool record)

@@ -16,7 +16,7 @@ public partial class IslandWindow
         StopCardCountdown();
         PeekProgress.Visibility = Visibility.Collapsed;
         PeekReply.Visibility = Visibility.Visible;
-        PeekReplyBox.Tag = S.ReplyAutoSend ? $"Antwort an {_peek.Title} …" : $"Antwort an {_peek.Title} (du sendest selbst) …";
+        PeekReplyBox.Tag = S.ReplyAutoSend ? L.T($"Antwort an {_peek.Title} …") : L.T($"Antwort an {_peek.Title} (du sendest selbst) …");
         PeekPanel.Measure(new Size(PeekW - 20, double.PositiveInfinity));
         double h = Math.Clamp(PeekPanel.DesiredSize.Height + 2, 54, 170);
         AnimateSize(PeekW, h + NotchExtra, Math.Min(28, (h + 2) / 2), true);

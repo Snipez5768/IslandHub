@@ -29,7 +29,7 @@ public partial class IslandWindow
         bool liked = H.Spotify.Liked;
         Ext.SetIcon(MusicLikeBtn, liked ? "heart.fill" : "heart");
         if (liked) MusicLikeBtn.Foreground = (Brush)FindResource("Danger"); else MusicLikeBtn.ClearValue(ForegroundProperty);
-        MusicLikeBtn.ToolTip = H.Spotify.NeedsReconnect ? "Zum Liken Spotify einmal neu verbinden (Einstellungen)" : liked ? "Aus Lieblingssongs entfernen" : "Zu Lieblingssongs";
+        MusicLikeBtn.ToolTip = H.Spotify.NeedsReconnect ? L.T("Zum Liken Spotify einmal neu verbinden (Einstellungen)") : liked ? L.T("Aus Lieblingssongs entfernen") : L.T("Zu Lieblingssongs");
         if (_lyricsOpen) UpdateLyrics();
     }
 
@@ -37,12 +37,12 @@ public partial class IslandWindow
     {
         if (H.Spotify.NeedsReconnect)
         {
-            ShowPeek(new PeekInfo { Icon = "heart", Title = "Spotify neu verbinden", Text = "Fürs Liken und Hinzufügen braucht PeakPill einmal neue Rechte.", TimeoutMs = 7000 }
-                .Action("Verbinden", () => _ = H.Spotify.SignInAsync(), true));
+            ShowPeek(new PeekInfo { Icon = "heart", Title = L.T("Spotify neu verbinden"), Text = L.T("Fürs Liken und Hinzufügen braucht PeakPill einmal neue Rechte."), TimeoutMs = 7000 }
+                .Action(L.T("Verbinden"), () => _ = H.Spotify.SignInAsync(), true));
             return;
         }
         bool wasLiked = H.Spotify.Liked;
-        if (!await H.Spotify.ToggleLikeAsync()) { MusicLikeBtn.ToolTip = "Spotify hat nicht reagiert"; return; }
+        if (!await H.Spotify.ToggleLikeAsync()) { MusicLikeBtn.ToolTip = L.T("Spotify hat nicht reagiert"); return; }
         UpdateMusicExtras();
         if (!wasLiked && S.Animations != AnimationLevel.Aus) Pop(MusicLikeBtn); // the heart pops when it fills
     }
@@ -69,11 +69,11 @@ public partial class IslandWindow
         _lyrics = new();
         _lyricsIdx = int.MinValue;
         LyricsLines.Children.Clear();
-        LyricsHint.Text = "Songtext wird gesucht …";
+        LyricsHint.Text = L.T("Songtext wird gesucht …");
         var lines = await LyricsService.GetAsync(m.Title, m.Artist, m.Duration);
         if (key != _lyricsFor) return; // the song changed meanwhile
         _lyrics = lines.Where(l => l.Text.Length > 0).ToList(); // pauses: the last line simply stays lit
-        LyricsHint.Text = _lyrics.Count == 0 ? "Kein Songtext gefunden." : _lyrics[0].At == null ? "Songtext (ohne Zeiten)" : "Songtext · LRCLIB";
+        LyricsHint.Text = _lyrics.Count == 0 ? L.T("Kein Songtext gefunden.") : _lyrics[0].At == null ? L.T("Songtext (ohne Zeiten)") : L.T("Songtext · LRCLIB");
         UpdateLyrics();
     }
 
@@ -112,7 +112,7 @@ public partial class IslandWindow
         IslandQueueScroll.Visibility = island ? Visibility.Visible : Visibility.Collapsed;
         IslandQueueNote.Visibility = island ? Visibility.Visible : Visibility.Collapsed;
         SpotifyQueueScroll.Visibility = island ? Visibility.Collapsed : Visibility.Visible;
-        QueueHint.Text = island ? (H.Spotify.IslandQueue.Count == 0 ? "leer" : $"{H.Spotify.IslandQueue.Count} Titel") : QueueHint.Text;
+        QueueHint.Text = island ? (H.Spotify.IslandQueue.Count == 0 ? "leer" : L.T($"{H.Spotify.IslandQueue.Count} Titel")) : QueueHint.Text;
         _islandReorder ??= new AxisReorder(IslandQueueItems, horizontal: false, (from, to) =>
         {
             H.Spotify.IslandQueue.Move(from, to);
@@ -133,12 +133,12 @@ public partial class IslandWindow
         if (e.Key == Key.Escape) { QueueSearch.Text = ""; QueueResults.Visibility = Visibility.Collapsed; e.Handled = true; return; }
         if (e.Key != Key.Enter) return;
         e.Handled = true;
-        if (H.Spotify.NeedsReconnect) { QueueHint.Text = "Spotify einmal neu verbinden"; return; }
-        QueueHint.Text = "sucht …";
+        if (H.Spotify.NeedsReconnect) { QueueHint.Text = L.T("Spotify einmal neu verbinden"); return; }
+        QueueHint.Text = L.T("sucht …");
         var hits = await H.Spotify.SearchAsync(QueueSearch.Text);
         QueueResults.ItemsSource = hits;
         QueueResults.Visibility = hits.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
-        QueueHint.Text = hits.Count == 0 ? "nichts gefunden" : "Titel antippen zum Hinzufügen";
+        QueueHint.Text = hits.Count == 0 ? L.T("nichts gefunden") : L.T("Titel antippen zum Hinzufügen");
     }
 
     private async void QueueResult_Click(object sender, MouseButtonEventArgs e)
@@ -150,11 +150,11 @@ public partial class IslandWindow
         {
             H.Spotify.IslandQueue.Add(song);
             H.Spotify.SaveIslandQueue();
-            QueueHint.Text = $"{H.Spotify.IslandQueue.Count} Titel";
+            QueueHint.Text = L.T($"{H.Spotify.IslandQueue.Count} Titel");
         }
         else
         {
-            QueueHint.Text = await H.Spotify.AddToQueueAsync(song) ? "hinzugefügt" : "Spotify hat nicht reagiert";
+            QueueHint.Text = await H.Spotify.AddToQueueAsync(song) ? L.T("hinzugefügt") : L.T("Spotify hat nicht reagiert");
             await Task.Delay(400);
             await RefreshQueueNow();
         }
@@ -166,7 +166,7 @@ public partial class IslandWindow
         if ((sender as FrameworkElement)?.DataContext is not QueueItem song) return;
         H.Spotify.IslandQueue.Remove(song);
         H.Spotify.SaveIslandQueue();
-        QueueHint.Text = H.Spotify.IslandQueue.Count == 0 ? "leer" : $"{H.Spotify.IslandQueue.Count} Titel";
+        QueueHint.Text = H.Spotify.IslandQueue.Count == 0 ? "leer" : L.T($"{H.Spotify.IslandQueue.Count} Titel");
     }
 
     /// <summary>Every half second: the island queue hands Spotify its next song shortly before the end.</summary>

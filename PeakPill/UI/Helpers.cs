@@ -193,24 +193,24 @@ public sealed class TrayIcon : IDisposable
     public TrayIcon()
     {
         var menu = new WF.ContextMenuStrip();
-        menu.Items.Add("Insel öffnen", null, (_, _) => App.Island.Expand(null, true));
-        menu.Items.Add("Zwischenablage", null, (_, _) => App.Island.Expand("Clip", true));
+        menu.Items.Add(L.T("Insel öffnen"), null, (_, _) => App.Island.Expand(null, true));
+        menu.Items.Add(L.T("Zwischenablage"), null, (_, _) => App.Island.Expand("Clip", true));
         menu.Items.Add("Screenshot", null, (_, _) => App.Island.TakeScreenshot(false));
-        _queueItem = new WF.ToolStripMenuItem("Stapel-Modus", null, (_, _) => App.Hub.Clipboard.QueueMode = !App.Hub.Clipboard.QueueMode);
+        _queueItem = new WF.ToolStripMenuItem(L.T("Stapel-Modus"), null, (_, _) => App.Hub.Clipboard.QueueMode = !App.Hub.Clipboard.QueueMode);
         menu.Items.Add(_queueItem);
-        _hideItem = new WF.ToolStripMenuItem("Insel ausblenden", null, (_, _) => App.Island.ToggleHidden());
+        _hideItem = new WF.ToolStripMenuItem(L.T("Insel ausblenden"), null, (_, _) => App.Island.ToggleHidden());
         menu.Items.Add(_hideItem);
-        menu.Items.Add("Insel verschieben", null, (_, _) => App.Island.EnterMoveMode());
-        var arrange = new WF.ToolStripMenuItem("Widgets anordnen", null, (_, _) => DesktopWidgetWindow.SetArranging(!DesktopWidgetWindow.Arranging));
+        menu.Items.Add(L.T("Insel verschieben"), null, (_, _) => App.Island.EnterMoveMode());
+        var arrange = new WF.ToolStripMenuItem(L.T("Widgets anordnen"), null, (_, _) => DesktopWidgetWindow.SetArranging(!DesktopWidgetWindow.Arranging));
         menu.Items.Add(arrange);
-        menu.Opening += (_, _) => arrange.Text = DesktopWidgetWindow.Arranging ? "Widgets fixieren" : "Widgets anordnen";
+        menu.Opening += (_, _) => arrange.Text = DesktopWidgetWindow.Arranging ? L.T("Widgets fixieren") : L.T("Widgets anordnen");
         menu.Items.Add(new WF.ToolStripSeparator());
-        menu.Items.Add("Einstellungen", null, (_, _) => SettingsWindow.ShowSingle());
-        menu.Items.Add("Beenden", null, (_, _) => App.Quit());
+        menu.Items.Add(L.T("Einstellungen"), null, (_, _) => SettingsWindow.ShowSingle());
+        menu.Items.Add(L.T("Beenden"), null, (_, _) => App.Quit());
         menu.Opening += (_, _) =>
         {
             _queueItem.Checked = App.Hub.Clipboard.QueueMode;
-            _hideItem.Text = App.Island.IsHiddenByUser ? "Insel einblenden" : "Insel ausblenden";
+            _hideItem.Text = App.Island.IsHiddenByUser ? L.T("Insel einblenden") : L.T("Insel ausblenden");
         };
 
         _icon = new WF.NotifyIcon

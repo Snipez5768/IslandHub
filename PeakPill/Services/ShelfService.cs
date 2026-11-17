@@ -21,7 +21,7 @@ public sealed class ShelfItem : ObservableObject
         {
             try
             {
-                if (IsFolder) return "Ordner";
+                if (IsFolder) return L.T("Ordner");
                 var len = new FileInfo(Path).Length;
                 return FormatSize(len);
             }

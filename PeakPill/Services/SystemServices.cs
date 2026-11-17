@@ -65,9 +65,9 @@ public sealed class SystemStats : ObservableObject
             bool hasBat = !ps.BatteryChargeStatus.HasFlag(WF.BatteryChargeStatus.NoSystemBattery) && ps.BatteryLifePercent <= 1.0f;
             int pct = (int)Math.Round(ps.BatteryLifePercent * 100);
             bool charging = ps.PowerLineStatus == WF.PowerLineStatus.Online;
-            string batText = !hasBat ? "Kein Akku" :
-                charging ? (pct >= 100 ? "Voll · Netzbetrieb" : "Wird geladen") :
-                ps.BatteryLifeRemaining > 0 ? $"Noch ca. {TimeSpan.FromSeconds(ps.BatteryLifeRemaining):h\\:mm} Std" : "Akkubetrieb";
+            string batText = !hasBat ? L.T("Kein Akku") :
+                charging ? (pct >= 100 ? L.T("Voll · Netzbetrieb") : L.T("Wird geladen")) :
+                ps.BatteryLifeRemaining > 0 ? $"Noch ca. {TimeSpan.FromSeconds(ps.BatteryLifeRemaining):h\\:mm} Std" : L.T("Akkubetrieb");
 
             Ui.Run(() =>
             {
@@ -320,9 +320,9 @@ public static class PowerMode
 {
     private static readonly (string Name, Guid Id)[] Modes =
     {
-        ("Effizienz", new Guid("961cc777-2547-4f9d-8174-7d86181b8a7a")),
-        ("Ausgeglichen", Guid.Empty),
-        ("Leistung", new Guid("ded574b5-45a0-4f42-8737-46345c09c238")),
+        (L.T("Effizienz"), new Guid("961cc777-2547-4f9d-8174-7d86181b8a7a")),
+        (L.T("Ausgeglichen"), Guid.Empty),
+        (L.T("Leistung"), new Guid("ded574b5-45a0-4f42-8737-46345c09c238")),
     };
 
     public static string Current()
@@ -330,10 +330,10 @@ public static class PowerMode
         try
         {
             if (Native.PowerGetEffectiveOverlayScheme(out var g) == 0)
-                return Modes.FirstOrDefault(m => m.Id == g).Name ?? "Ausgeglichen";
+                return Modes.FirstOrDefault(m => m.Id == g).Name ?? L.T("Ausgeglichen");
         }
         catch { }
-        return "Ausgeglichen";
+        return L.T("Ausgeglichen");
     }
 
     public static string Cycle()

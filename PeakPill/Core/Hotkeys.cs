@@ -74,7 +74,7 @@ public sealed record HotkeyGesture(ModifierKeys Modifiers, Key Key)
     {
         var parts = new List<string>();
         if (Modifiers.HasFlag(ModifierKeys.Windows)) parts.Add("Win");
-        if (Modifiers.HasFlag(ModifierKeys.Control)) parts.Add("Strg");
+        if (Modifiers.HasFlag(ModifierKeys.Control)) parts.Add(L.T("Strg"));
         if (Modifiers.HasFlag(ModifierKeys.Alt)) parts.Add("Alt");
         if (Modifiers.HasFlag(ModifierKeys.Shift)) parts.Add("Shift");
         parts.Add(KeyName(Key));
@@ -86,20 +86,20 @@ public sealed record HotkeyGesture(ModifierKeys Modifiers, Key Key)
 
     public static string KeyName(Key k) => k switch
     {
-        Key.Space => "Leertaste",
+        Key.Space => L.T("Leertaste"),
         Key.Return => "Enter",
-        Key.Back => "Rücktaste",
-        Key.Snapshot => "Druck",
-        Key.Prior => "Bild↑",
-        Key.Next => "Bild↓",
-        Key.Insert => "Einfg",
-        Key.Delete => "Entf",
-        Key.Home => "Pos1",
-        Key.End => "Ende",
+        Key.Back => L.T("Rücktaste"),
+        Key.Snapshot => L.T("Druck"),
+        Key.Prior => L.T("Bild↑"),
+        Key.Next => L.T("Bild↓"),
+        Key.Insert => L.T("Einfg"),
+        Key.Delete => L.T("Entf"),
+        Key.Home => L.T("Pos1"),
+        Key.End => L.T("Ende"),
         Key.Up => "↑", Key.Down => "↓", Key.Left => "←", Key.Right => "→",
         Key.OemPlus => "+", Key.OemMinus => "-", Key.OemComma => ",", Key.OemPeriod => ".",
         >= Key.D0 and <= Key.D9 => ((int)(k - Key.D0)).ToString(),
-        >= Key.NumPad0 and <= Key.NumPad9 => "Num " + (int)(k - Key.NumPad0),
+        >= Key.NumPad0 and <= Key.NumPad9 => L.T("Num ") + (int)(k - Key.NumPad0),
         _ => k.ToString()
     };
 

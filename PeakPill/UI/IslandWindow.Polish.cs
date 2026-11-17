@@ -926,6 +926,45 @@ public partial class IslandWindow
                     Root.IsHitTestVisible = true;
                     break;
                 }
+                case "langshots":
+                {
+                    // every Settings page and every island page, to spot texts that are still German
+                    Root.IsHitTestVisible = false;
+                    var w = new SettingsWindow { ShowActivated = false, WindowStartupLocation = WindowStartupLocation.Manual, Left = -4000, Top = 0 };
+                    w.Show();
+                    foreach (var page in new[] { "General", "Look", "Anim", "Keys", "Clip", "Shot", "Widgets", "Ai", "About" })
+                    {
+                        w.ShowPage(page);
+                        await Task.Delay(700);
+                        var el = (FrameworkElement)w.Content;
+                        var dpi2 = VisualTreeHelper.GetDpi(w);
+                        // the whole page, not just the visible part
+                        var scroll = (System.Windows.Controls.ScrollViewer)w.FindName("PageScroll");
+                        var content = (FrameworkElement)scroll.Content;
+                        content.Measure(new Size(scroll.ActualWidth, double.PositiveInfinity));
+                        double hgt = Math.Max(el.ActualHeight, content.DesiredSize.Height + 40);
+                        var rtb2 = new RenderTargetBitmap((int)(scroll.ActualWidth * dpi2.DpiScaleX), (int)(hgt * dpi2.DpiScaleY), dpi2.PixelsPerInchX, dpi2.PixelsPerInchY, PixelFormats.Pbgra32);
+                        content.Arrange(new Rect(0, 0, scroll.ActualWidth, hgt));
+                        rtb2.Render(content);
+                        var enc2 = new PngBitmapEncoder();
+                        enc2.Frames.Add(BitmapFrame.Create(rtb2));
+                        using (var fs = File.Create(Path.Combine(dir, $"settings_{page}.png"))) enc2.Save(fs);
+                        scroll.InvalidateMeasure();
+                    }
+                    w.Close();
+                    fh = 340;
+                    foreach (var tab in new[] { "Music", "Clip", "Agent", "Ai", "Games", "Notify", "Timer", "Today", "Remind", "Controls" })
+                    {
+                        Expand(tab, false);
+                        _sticky = true;
+                        await Task.Delay(900);
+                        Frame();
+                    }
+                    Save("island_tabs");
+                    Collapse();
+                    Root.IsHitTestVisible = true;
+                    break;
+                }
                 case "aisettings":
                 {
                     var w = new SettingsWindow { ShowActivated = false, WindowStartupLocation = WindowStartupLocation.Manual, Left = -4000, Top = 0 };

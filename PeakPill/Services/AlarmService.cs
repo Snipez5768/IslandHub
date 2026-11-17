@@ -73,10 +73,10 @@ public sealed class AlarmService : ObservableObject
         {
             if (At is not { } at) return "";
             var d = at - DateTime.Now;
-            if (d.TotalMinutes < 1) return "klingelt gleich";
+            if (d.TotalMinutes < 1) return L.T("klingelt gleich");
             int h = (int)d.TotalHours, m = (int)Math.Ceiling(d.TotalMinutes - h * 60);
             if (m == 60) { h++; m = 0; }
-            return h > 0 ? (m > 0 ? $"klingelt in {h} Std {m} Min" : $"klingelt in {h} Std") : $"klingelt in {m} Min";
+            return h > 0 ? (m > 0 ? L.T($"klingelt in {h} Std {m} Min") : L.T($"klingelt in {h} Std")) : L.T($"klingelt in {m} Min");
         }
     }
 }

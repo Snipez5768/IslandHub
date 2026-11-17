@@ -32,12 +32,12 @@ public sealed class CaptureToolbar : Window
 
     private static readonly (CaptureMode Mode, string Icon, string Tip, string Hint)[] Modes =
     {
-        (CaptureMode.Area, "selection", "Bereich", "Bereich aufziehen"),
-        (CaptureMode.Window, "window", "Fenster", "Fenster anklicken"),
-        (CaptureMode.Screen, "display", "Ganzer Bildschirm", "Bildschirm anklicken"),
-        (CaptureMode.Freeform, "lasso", "Freihand", "Form umfahren"),
-        (CaptureMode.Gif, "record", "Aufnahme als GIF", "Bereich für GIF ziehen"),
-        (CaptureMode.Picker, "eyedropper", "Farbpipette", "Farbe anklicken"),
+        (CaptureMode.Area, "selection", L.T("Bereich"), L.T("Bereich aufziehen")),
+        (CaptureMode.Window, "window", L.T("Fenster"), L.T("Fenster anklicken")),
+        (CaptureMode.Screen, "display", L.T("Ganzer Bildschirm"), L.T("Bildschirm anklicken")),
+        (CaptureMode.Freeform, "lasso", L.T("Freihand"), L.T("Form umfahren")),
+        (CaptureMode.Gif, "record", L.T("Aufnahme als GIF"), L.T("Bereich für GIF ziehen")),
+        (CaptureMode.Picker, "eyedropper", L.T("Farbpipette"), L.T("Farbe anklicken")),
     };
 
     public CaptureToolbar(CaptureSession session, WF.Screen screen, SD.Bitmap shot)
@@ -69,7 +69,7 @@ public sealed class CaptureToolbar : Window
         }
         row.Children.Add(Separator());
 
-        _timer = new Button { Margin = new Thickness(2, 0, 2, 0), ToolTip = "Selbstauslöser" };
+        _timer = new Button { Margin = new Thickness(2, 0, 2, 0), ToolTip = L.T("Selbstauslöser") };
         _timer.SetResourceReference(StyleProperty, "ChipButton");
         Ext.SetIcon(_timer, "timer");
         Ext.SetIconSize(_timer, 13);
@@ -81,7 +81,7 @@ public sealed class CaptureToolbar : Window
         UpdateTimerText();
         row.Children.Add(_timer);
 
-        var repeat = new Button { ToolTip = "Letzten Bereich erneut aufnehmen", Width = 32, Height = 32 };
+        var repeat = new Button { ToolTip = L.T("Letzten Bereich erneut aufnehmen"), Width = 32, Height = 32 };
         repeat.SetResourceReference(StyleProperty, "IconButton");
         Ext.SetIcon(repeat, "refresh");
         Ext.SetHover(repeat, (Brush)Application.Current.FindResource("Teal"));
@@ -94,7 +94,7 @@ public sealed class CaptureToolbar : Window
         _hint.Foreground = (Brush)Application.Current.FindResource("SubText");
         row.Children.Add(_hint);
 
-        var close = new Button { ToolTip = "Abbrechen (Esc)", Width = 32, Height = 32 };
+        var close = new Button { ToolTip = L.T("Abbrechen (Esc)"), Width = 32, Height = 32 };
         close.SetResourceReference(StyleProperty, "IconButton");
         Ext.SetIcon(close, "xmark");
         Ext.SetHover(close, (Brush)Application.Current.FindResource("Danger"));
@@ -141,7 +141,7 @@ public sealed class CaptureToolbar : Window
     }
 
     private void UpdateTimerText() =>
-        _timer.Content = _session.DelaySeconds == 0 ? "Aus" : $"{_session.DelaySeconds} s";
+        _timer.Content = _session.DelaySeconds == 0 ? L.T("Aus") : $"{_session.DelaySeconds} s";
 
     private Border Separator() => new()
     {

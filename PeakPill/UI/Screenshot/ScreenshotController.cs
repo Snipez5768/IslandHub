@@ -32,7 +32,7 @@ public static class ScreenshotController
                 case CaptureMode.Picker:
                     var c = result.PickedColor;
                     var hex = $"#{c.R:X2}{c.G:X2}{c.B:X2}";
-                    App.Hub.Clipboard.AddText(hex, "Farbpipette");
+                    App.Hub.Clipboard.AddText(hex, L.T("Farbpipette"));
                     App.Island.ShowHint("eyedropper", hex, Frozen(new SolidColorBrush(Color.FromRgb(c.R, c.G, c.B))), check: true);
                     return;
 
@@ -43,8 +43,8 @@ public static class ScreenshotController
                         var sc = new System.Collections.Specialized.StringCollection { gif };
                         try { Clipboard.SetFileDropList(sc); } catch { }
                         App.Hub.Shelf.Add(new[] { gif });
-                        App.Island.ShowPeek(new PeekInfo { Important = true, Icon = "record", GlyphBrush = Brushes.White, Title = "GIF gesichert", Text = Path.GetFileName(gif), TimeoutMs = 5000 }
-                            .Action("Zeigen", () => System.Diagnostics.Process.Start("explorer.exe", $"/select,\"{gif}\""), true));
+                        App.Island.ShowPeek(new PeekInfo { Important = true, Icon = "record", GlyphBrush = Brushes.White, Title = L.T("GIF gesichert"), Text = Path.GetFileName(gif), TimeoutMs = 5000 }
+                            .Action(L.T("Zeigen"), () => System.Diagnostics.Process.Start("explorer.exe", $"/select,\"{gif}\""), true));
                     }
                     return;
             }
@@ -75,7 +75,7 @@ public static class ScreenshotController
                 try { ScreenshotService.SaveCopy(item.ImageFile, App.Settings.ScreenshotFolder); } catch (Exception ex) { App.Log(ex); }
             }
             if (App.Settings.ScreenshotAsk) PreviewWindow.Show(item, WF.Screen.FromRectangle(result.Region));
-            else App.Island.ShowHint("camera", "Kopiert", null, check: true);
+            else App.Island.ShowHint("camera", L.T("Kopiert"), null, check: true);
         }
         catch (Exception ex) { App.Log(ex); }
         finally

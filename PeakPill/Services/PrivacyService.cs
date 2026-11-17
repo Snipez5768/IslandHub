@@ -56,7 +56,7 @@ public sealed class LiveApp : ObservableObject
     public string Elapsed { get => _elapsed; internal set => Set(ref _elapsed, value); }
 
     /// <summary>"Bildschirm + Mikrofon" – what the app is using right now.</summary>
-    public string Parts => string.Join(" + ", new[] { Screen ? "Bildschirm" : null, Mic ? (SelfMuted ? "stumm" : "Mikrofon") : null, Camera ? "Kamera" : null }.Where(p => p != null));
+    public string Parts => string.Join(" + ", new[] { Screen ? L.T("Bildschirm") : null, Mic ? (SelfMuted ? "stumm" : L.T("Mikrofon")) : null, Camera ? L.T("Kamera") : null }.Where(p => p != null));
 
     /// <summary>Screen sharing is the most important (red), then the microphone (orange), then the camera (green).</summary>
     public Brush Accent => Screen || Mic && SelfMuted ? ScreenBrush : Mic ? MicBrush : CamBrush;

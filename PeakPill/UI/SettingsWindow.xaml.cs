@@ -35,8 +35,10 @@ public partial class SettingsWindow : Window
     public SettingsWindow()
     {
         InitializeComponent();
+        L.TranslateTree(this);
+        Loaded += (_, _) => L.TranslateTree(this);
         Icon = IconFactory.CreateWindowIcon();
-        VersionText.Text = "Version " + (typeof(App).Assembly.GetName().Version?.ToString(3) ?? "0.1.0");
+        VersionText.Text = L.T("Version ") + (typeof(App).Assembly.GetName().Version?.ToString(3) ?? "0.1.0");
         DataDirText.Text = Storage.Dir;
         SourceInitialized += (_, _) =>
         {
@@ -242,8 +244,8 @@ public partial class SettingsWindow : Window
 
     private void UpdateConnectionButtons()
     {
-        DiscordExpand.Content = Services.DiscordService.Configured ? "Details" : "Einrichten";
-        SpotifyExpand.Content = string.IsNullOrEmpty(S.SpotifyClientId) ? "Einrichten" : "Details";
+        DiscordExpand.Content = Services.DiscordService.Configured ? L.T("Details") : L.T("Einrichten");
+        SpotifyExpand.Content = string.IsNullOrEmpty(S.SpotifyClientId) ? L.T("Einrichten") : L.T("Details");
     }
 
     // ---------- animations page ----------
@@ -253,9 +255,9 @@ public partial class SettingsWindow : Window
         var level = sender == AnimOff ? AnimationLevel.Aus : sender == AnimReduced ? AnimationLevel.Reduziert : AnimationLevel.An;
         AnimLevelDesc.Text = level switch
         {
-            AnimationLevel.An => "Alle Momente mit Licht, Ringen und Tropfen.",
-            AnimationLevel.Reduziert => "Ohne Lichtstreifen, Ringe und Tropfen.",
-            _ => "Nur Öffnen, Schließen und Seitenwechsel bewegen sich."
+            AnimationLevel.An => L.T("Alle Momente mit Licht, Ringen und Tropfen."),
+            AnimationLevel.Reduziert => L.T("Ohne Lichtstreifen, Ringe und Tropfen."),
+            _ => L.T("Nur Öffnen, Schließen und Seitenwechsel bewegen sich.")
         };
         if (_loading) return;
         S.Animations = level;
@@ -326,6 +328,7 @@ public partial class SettingsWindow : Window
         OptYouTube.Text = string.Join(", ", S.YouTubeChannels);
         OptDhlKey.Password = string.IsNullOrEmpty(S.DhlKeyProtected) ? "" : SecretMask;
         LoadAi();
+        LoadLanguage();
         OptParcels.Text = string.Join("\n", S.Parcels);
         ShapePill.IsChecked = S.Shape == IslandShape.Pill;
         ShapeNotch.IsChecked = S.Shape == IslandShape.Notch;
@@ -358,8 +361,8 @@ public partial class SettingsWindow : Window
         if (!string.IsNullOrEmpty(S.ObsPassword)) OptObsPassword.Password = "••••••••";
         void Refresh()
         {
-            SpotifyStatus.Text = string.IsNullOrEmpty(S.SpotifyClientId) ? "Nicht eingerichtet" : App.Hub.Spotify.Status;
-            ObsSettingsStatus.Text = App.Hub.Obs.Connected ? "Verbunden" : App.Hub.Obs.Status;
+            SpotifyStatus.Text = string.IsNullOrEmpty(S.SpotifyClientId) ? L.T("Nicht eingerichtet") : App.Hub.Spotify.Status;
+            ObsSettingsStatus.Text = App.Hub.Obs.Connected ? L.T("Verbunden") : App.Hub.Obs.Status;
             UpdateConnectionButtons();
         }
         Refresh();
@@ -375,8 +378,8 @@ public partial class SettingsWindow : Window
     private void UpdateDiscordStatus()
     {
         var d = App.Hub.Discord;
-        DiscordStatus.Text = !Services.DiscordService.Configured ? "Nicht eingerichtet"
-            : d.Connected ? "Verbunden" + (d.InVoice ? (string.IsNullOrEmpty(d.Channel) ? " · im Anruf" : $" · in {d.Channel}") : "") + (d.Muted ? " · stumm" : "")
+        DiscordStatus.Text = !Services.DiscordService.Configured ? L.T("Nicht eingerichtet")
+            : d.Connected ? L.T("Verbunden") + (d.InVoice ? (string.IsNullOrEmpty(d.Channel) ? L.T(" · im Anruf") : L.T($" · in {d.Channel}")) : "") + (d.Muted ? L.T(" · stumm") : "")
             : d.Status;
         DiscordStatus.Foreground = d.Connected ? (Brush)FindResource("Green") : (Brush)FindResource("SubText");
         UpdateConnectionButtons();
@@ -385,25 +388,25 @@ public partial class SettingsWindow : Window
     private void DiscordConnect_Click(object sender, RoutedEventArgs e)
     {
         var id = OptDiscordId.Text.Trim();
-        if (!System.Text.RegularExpressions.Regex.IsMatch(id, @"^\d{15,22}$")) { DiscordStatus.Text = "Die Client-ID besteht nur aus Ziffern"; return; }
+        if (!System.Text.RegularExpressions.Regex.IsMatch(id, @"^\d{15,22}$")) { DiscordStatus.Text = L.T("Die Client-ID besteht nur aus Ziffern"); return; }
         var secret = OptDiscordSecret.Password;
         if (secret != "••••••••")
         {
-            if (string.IsNullOrWhiteSpace(secret)) { DiscordStatus.Text = "Bitte das Client-Secret einfügen"; return; }
+            if (string.IsNullOrWhiteSpace(secret)) { DiscordStatus.Text = L.T("Bitte das Client-Secret einfügen"); return; }
             S.DiscordSecret = Services.DiscordService.Protect(secret.Trim());
         }
         if (id != S.DiscordClientId) Services.DiscordService.ForgetToken();
         S.DiscordClientId = id;
         App.SaveSettings();
         OptDiscordSecret.Password = "••••••••";
-        DiscordStatus.Text = "Verbinde … bestätige gleich das Fenster in Discord";
+        DiscordStatus.Text = L.T("Verbinde … bestätige gleich das Fenster in Discord");
         App.Hub.Discord.Restart();
     }
 
     private async void SpotifyConnect_Click(object sender, RoutedEventArgs e)
     {
         var id = OptSpotifyId.Text.Trim();
-        if (!System.Text.RegularExpressions.Regex.IsMatch(id, "^[0-9a-fA-F]{32}$")) { SpotifyStatus.Text = "Die Client-ID hat 32 Zeichen (0-9, a-f)"; return; }
+        if (!System.Text.RegularExpressions.Regex.IsMatch(id, "^[0-9a-fA-F]{32}$")) { SpotifyStatus.Text = L.T("Die Client-ID hat 32 Zeichen (0-9, a-f)"); return; }
         if (id != S.SpotifyClientId) App.Hub.Spotify.SignOut();
         S.SpotifyClientId = id;
         App.SaveSettings();
@@ -425,7 +428,7 @@ public partial class SettingsWindow : Window
         App.SaveSettings();
         OptObsPassword.Password = string.IsNullOrEmpty(S.ObsPassword) ? "" : "••••••••";
         App.Hub.Obs.Reconnect();
-        ObsSettingsStatus.Text = "OBS: verbinde …";
+        ObsSettingsStatus.Text = L.T("OBS: verbinde …");
     }
 
     private void MicBlue_Click(object sender, RoutedEventArgs e)
@@ -450,7 +453,7 @@ public partial class SettingsWindow : Window
         if (key is Key.LeftCtrl or Key.RightCtrl or Key.LeftAlt or Key.RightAlt or Key.LeftShift or Key.RightShift or Key.LWin or Key.RWin or Key.Escape) return;
         if (mods == ModifierKeys.None && !(key >= Key.F13 && key <= Key.F24))
         {
-            OptDiscordStreamKey.Text = "Mit Strg / Alt / Shift kombinieren";
+            OptDiscordStreamKey.Text = L.T("Mit Strg / Alt / Shift kombinieren");
             return;
         }
         var g = new HotkeyGesture(mods, key);
@@ -560,7 +563,7 @@ public partial class SettingsWindow : Window
     private void ArrangeWidgets_Click(object sender, RoutedEventArgs e)
     {
         DesktopWidgetWindow.SetArranging(!DesktopWidgetWindow.Arranging);
-        ArrangeBtn.Content = DesktopWidgetWindow.Arranging ? "Fertig" : "Anordnen";
+        ArrangeBtn.Content = DesktopWidgetWindow.Arranging ? L.T("Fertig") : L.T("Anordnen");
     }
 
     private void IslandCenter_Click(object sender, RoutedEventArgs e) => App.Island.ResetPosition();
@@ -590,7 +593,7 @@ public partial class SettingsWindow : Window
         bool wasLoading = _loading;
         _loading = true;
         var opts = App.Hub.Sounds.Options(S.TimerSound);
-        opts.Add(new Services.SoundOption(PickId, "Eigene Datei auswählen …"));
+        opts.Add(new Services.SoundOption(PickId, L.T("Eigene Datei auswählen …")));
         OptTimerSound.ItemsSource = opts;
         OptTimerSound.SelectedItem = opts.FirstOrDefault(o => o.Id == S.TimerSound) ?? opts[0];
         _loading = wasLoading;
@@ -603,7 +606,7 @@ public partial class SettingsWindow : Window
         {
             var dlg = new Microsoft.Win32.OpenFileDialog
             {
-                Title = "Ton für den Timer auswählen",
+                Title = L.T("Ton für den Timer auswählen"),
                 Filter = "Audiodateien|*.wav;*.mp3;*.wma;*.m4a;*.aac|Alle Dateien|*.*"
             };
             if (dlg.ShowDialog(this) == true) S.TimerSound = "file:" + dlg.FileName;
@@ -640,10 +643,10 @@ public partial class SettingsWindow : Window
     /// <summary>The built-in order with names and symbols (same as the island).</summary>
     public static readonly (string Key, string Name, string Icon, string Note)[] AllTabs =
     {
-        ("Live", "Live", "dot.radiowaves", "nur wenn etwas läuft"), ("Obs", "OBS", "record", "nur wenn verbunden"),
-        ("Music", "Musik", "music", ""), ("Clip", "Zwischenablage", "clipboard", ""), ("Shelf", "Ablage", "folder", ""),
-        ("Agent", "Agent", "sparkles", ""), ("Ai", "KI", "bubble", "Chat mit deinem API-Schlüssel"), ("Games", "Spiele", "gamecontroller", ""), ("Notify", "Mitteilungen", "bell.badge", ""),
-        ("Timer", "Timer", "timer", ""), ("Today", "Heute", "calendar", "Wetter und Termine"), ("Remind", "Erinnerungen", "checklist", ""), ("Controls", "Steuerung", "sliders", "")
+        ("Live", "Live", "dot.radiowaves", L.T("nur wenn etwas läuft")), ("Obs", "OBS", "record", L.T("nur wenn verbunden")),
+        ("Music", L.T("Musik"), "music", ""), ("Clip", L.T("Zwischenablage"), "clipboard", ""), ("Shelf", L.T("Ablage"), "folder", ""),
+        ("Agent", "Agent", "sparkles", ""), ("Ai", L.T("KI"), "bubble", L.T("Chat mit deinem API-Schlüssel")), ("Games", L.T("Spiele"), "gamecontroller", ""), ("Notify", L.T("Mitteilungen"), "bell.badge", ""),
+        (L.T("Timer"), L.T("Timer"), "timer", ""), ("Today", L.T("Heute"), "calendar", L.T("Wetter und Termine")), ("Remind", L.T("Erinnerungen"), "checklist", ""), ("Controls", L.T("Steuerung"), "sliders", "")
     };
 
     private System.Collections.ObjectModel.ObservableCollection<TabEntry> _tabEntries;
@@ -696,9 +699,9 @@ public partial class SettingsWindow : Window
         // only the styles we agreed on (2026-11-14): Schwarz (A), Tiefe (C) and Glas
         var themes = new (IslandTheme T, string Name)[]
         {
-            (IslandTheme.Schwarz, "Schwarz"),
-            (IslandTheme.Tiefe, "Tiefe"),
-            (IslandTheme.Glas, "Glas"),
+            (IslandTheme.Schwarz, L.T("Schwarz")),
+            (IslandTheme.Tiefe, L.T("Tiefe")),
+            (IslandTheme.Glas, L.T("Glas")),
         };
         foreach (var (t, name) in themes)
         {
@@ -757,13 +760,13 @@ public partial class SettingsWindow : Window
             card.Padding = new Thickness(12, 5, 6, 5);
             var dock = new DockPanel();
 
-            var reset = new Button { Content = "", ToolTip = "Auf Standard zurücksetzen" };
+            var reset = new Button { Content = "", ToolTip = L.T("Auf Standard zurücksetzen") };
             reset.SetResourceReference(StyleProperty, "IconButton");
             reset.Content = null;
             Ext.SetIcon(reset, "refresh");
             Ext.SetHover(reset, (Brush)FindResource("Orange"));
             DockPanel.SetDock(reset, Dock.Right);
-            var clear = new Button { Content = "", ToolTip = "Kürzel entfernen" };
+            var clear = new Button { Content = "", ToolTip = L.T("Kürzel entfernen") };
             clear.SetResourceReference(StyleProperty, "IconButton");
             clear.Content = null;
             Ext.SetIcon(clear, "xmark");
@@ -776,7 +779,7 @@ public partial class SettingsWindow : Window
                 IsReadOnlyCaretVisible = false,
                 Width = 170,
                 Cursor = Cursors.Hand,
-                Tag = "Kürzel aufnehmen",
+                Tag = L.T("Kürzel aufnehmen"),
                 Margin = new Thickness(8, 0, 4, 0),
                 VerticalAlignment = VerticalAlignment.Center
             };
@@ -801,7 +804,7 @@ public partial class SettingsWindow : Window
             box.GotKeyboardFocus += (_, _) =>
             {
                 App.Hub.Hotkeys.UnregisterAll(); // otherwise the existing shortcut fires instead of being recorded
-                box.Text = "Kombination drücken…";
+                box.Text = L.T("Kombination drücken…");
             };
             box.LostKeyboardFocus += (_, _) =>
             {
@@ -844,7 +847,7 @@ public partial class SettingsWindow : Window
         {
             var partial = new List<string>();
             if (mods.HasFlag(ModifierKeys.Windows)) partial.Add("Win");
-            if (mods.HasFlag(ModifierKeys.Control)) partial.Add("Strg");
+            if (mods.HasFlag(ModifierKeys.Control)) partial.Add(L.T("Strg"));
             if (mods.HasFlag(ModifierKeys.Alt)) partial.Add("Alt");
             if (mods.HasFlag(ModifierKeys.Shift)) partial.Add("Shift");
             box.Text = string.Join(" + ", partial) + " + …";
@@ -854,7 +857,7 @@ public partial class SettingsWindow : Window
         bool fKey = key >= Key.F1 && key <= Key.F24;
         if (mods == ModifierKeys.None && !fKey)
         {
-            box.Text = "Bitte mit Win, Strg, Alt oder Shift kombinieren";
+            box.Text = L.T("Bitte mit Win, Strg, Alt oder Shift kombinieren");
             return;
         }
 
@@ -865,8 +868,8 @@ public partial class SettingsWindow : Window
         App.SaveSettings();
 
         var notes = new List<string>();
-        if (moved != null) notes.Add($"Vorher bei „{moved}“ – dort entfernt.");
-        if (g.CollidesWithAltGr()) notes.Add("Achtung: entspricht AltGr + Taste und blockiert das Zeichen beim Tippen.");
+        if (moved != null) notes.Add(L.T($"Vorher bei „{moved}“ – dort entfernt."));
+        if (g.CollidesWithAltGr()) notes.Add(L.T("Achtung: entspricht AltGr + Taste und blockiert das Zeichen beim Tippen."));
         KeysStatus.Text = string.Join(" ", notes);
         FocusSink();
     }
@@ -903,7 +906,7 @@ public partial class SettingsWindow : Window
             box.Text = box.IsKeyboardFocused ? box.Text : HotkeyGesture.Display(S.Hotkeys.GetValueOrDefault(action.ToString()));
             if (failed.Contains(action))
             {
-                status.Text = "Von Windows oder einer anderen App belegt – bitte eine andere Kombination wählen.";
+                status.Text = L.T("Von Windows oder einer anderen App belegt – bitte eine andere Kombination wählen.");
                 status.Foreground = (Brush)FindResource("Danger");
                 status.Visibility = Visibility.Visible;
             }
@@ -915,7 +918,7 @@ public partial class SettingsWindow : Window
     {
         foreach (var def in HotkeyInfo.All) S.Hotkeys[def.Action.ToString()] = def.Default;
         App.SaveSettings();
-        KeysStatus.Text = "Alle Kürzel zurückgesetzt.";
+        KeysStatus.Text = L.T("Alle Kürzel zurückgesetzt.");
         RefreshKeyStatus(App.ApplyHotkeys());
     }
 
@@ -923,7 +926,7 @@ public partial class SettingsWindow : Window
 
     private void BrowseShotFolder_Click(object sender, RoutedEventArgs e)
     {
-        using var dlg = new WF.FolderBrowserDialog { SelectedPath = S.ScreenshotFolder, Description = "Speicherordner für Screenshots", UseDescriptionForTitle = true };
+        using var dlg = new WF.FolderBrowserDialog { SelectedPath = S.ScreenshotFolder, Description = L.T("Speicherordner für Screenshots"), UseDescriptionForTitle = true };
         if (dlg.ShowDialog() != WF.DialogResult.OK) return;
         OptShotFolder.Text = dlg.SelectedPath;
         S.ScreenshotFolder = dlg.SelectedPath;
@@ -946,12 +949,12 @@ public partial class SettingsWindow : Window
 
     private async void SetCity_Click(object sender, RoutedEventArgs e)
     {
-        CityStatus.Text = "Suche…";
+        CityStatus.Text = L.T("Suche…");
         try
         {
             var place = await App.Hub.Weather.SetCityAsync(OptCity.Text);
-            CityStatus.Text = string.IsNullOrWhiteSpace(OptCity.Text) ? "Wetter deaktiviert." :
-                place == null ? "Stadt nicht gefunden." : "Aktuell: " + place;
+            CityStatus.Text = string.IsNullOrWhiteSpace(OptCity.Text) ? L.T("Wetter deaktiviert.") :
+                place == null ? L.T("Stadt nicht gefunden.") : "Aktuell: " + place;
         }
         catch (Exception ex)
         {
@@ -972,7 +975,7 @@ public partial class SettingsWindow : Window
             var combo = new ComboBox
             {
                 ItemsSource = zones,
-                DisplayMemberPath = "Name",
+                DisplayMemberPath = L.T("Name"),
                 SelectedValuePath = "Id",
                 Width = 260,
                 SelectedValue = i < S.WorldClocks.Count ? S.WorldClocks[i] : null
@@ -992,7 +995,7 @@ public partial class SettingsWindow : Window
             var dock = new DockPanel();
             DockPanel.SetDock(combo, Dock.Right);
             dock.Children.Add(combo);
-            dock.Children.Add(new TextBlock { Text = $"Uhr {i + 1}", VerticalAlignment = VerticalAlignment.Center });
+            dock.Children.Add(new TextBlock { Text = L.T($"Uhr {i + 1}"), VerticalAlignment = VerticalAlignment.Center });
             row.Child = dock;
             WorldPanel.Children.Add(row);
         }
@@ -1053,10 +1056,10 @@ public partial class SettingsWindow : Window
 
     private async void CheckUpdate_Click(object sender, RoutedEventArgs e)
     {
-        UpdateStatus.Text = "Frage GitHub …";
+        UpdateStatus.Text = L.T("Frage GitHub …");
         var rel = await App.Hub.Updates.CheckAsync(quiet: true);
-        if (rel == null) { UpdateStatus.Text = $"Du hast die neueste Version ({Services.UpdateService.Current.ToString(3)})."; return; }
-        UpdateStatus.Text = $"Version {rel.Version.ToString(3)} ist da – die Insel bietet sie zum Installieren an.";
+        if (rel == null) { UpdateStatus.Text = L.T($"Du hast die neueste Version ({Services.UpdateService.Current.ToString(3)})."); return; }
+        UpdateStatus.Text = L.T($"Version {rel.Version.ToString(3)} ist da – die Insel bietet sie zum Installieren an.");
         App.Hub.Updates.Announce(rel);
     }
 

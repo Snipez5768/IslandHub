@@ -140,7 +140,7 @@ public sealed class HintPic : Border
             case "confirm":
             {
                 var p = Pill(46, 12, 6);
-                p.Child = Pv.Row(2, Pv.Icon("check", 8, Pv.Res("Green")), new TextBlock { Text = "Kopiert", FontSize = 7, Foreground = white });
+                p.Child = Pv.Row(2, Pv.Icon("check", 8, Pv.Res("Green")), new TextBlock { Text = L.T("Kopiert"), FontSize = 7, Foreground = white });
                 c = p;
                 break;
             }
@@ -156,7 +156,8 @@ public sealed class HintPic : Border
                 break;
             }
             case "autosave": c = Pv.Icon("save", 16, Pv.Sub); break;
-            case "aichat": c = Pv.Icon("bubble", 17, Pv.B("#FF5E5CE6")); break;
+            case "lang": c = Pv.Icon("globe", 16, Pv.B("#FF0A84FF")); break;
+            case "aichat":c = Pv.Icon("bubble", 17, Pv.B("#FF5E5CE6")); break;
             case "aikey": c = Pv.Icon("lock", 15, Pv.Sub); break;
             case "aimodel": c = Pv.Icon("cpu", 16, Pv.Sub); break;
             case "glow":
@@ -252,7 +253,7 @@ public sealed class HintPic : Border
                 if (Kind == "fs.bar")
                 {
                     var bar = new Border { Width = 62, Height = 9, CornerRadius = new CornerRadius(0, 0, 4, 4), Background = Brushes.Black, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Top };
-                    bar.Child = Pv.Row(4, Pv.Box(10, 2, Pv.Res("Green"), 1), Pv.Box(10, 2, Pv.Res("Orange"), 1), Pv.Box(10, 2, Pv.B("#FF64D2FF"), 1));
+                    bar.Child = Pv.Row(4, Pv.Box(10, 2, Pv.Res("Green"), 1), Pv.Box(10, 2, Pv.Res(L.T("Orange")), 1), Pv.Box(10, 2, Pv.B("#FF64D2FF"), 1));
                     c = bar;
                 }
                 else if (Kind == "fs.hide")
@@ -293,14 +294,14 @@ public sealed class IslandPreview : Border
 
     public static readonly (string Key, string Icon, string Name)[] Tabs =
     {
-        ("music", "music", "Musik"), ("clip", "clipboard", "Zwischenablage"), ("live", "dot.radiowaves", "Live"), ("agent", "sparkles", "Agent"),
-        ("games", "gamecontroller", "Spiele"), ("notify", "bell.badge", "Mitteilungen"), ("timer", "timer", "Timer")
+        ("music", "music", L.T("Musik")), ("clip", "clipboard", L.T("Zwischenablage")), ("live", "dot.radiowaves", "Live"), ("agent", "sparkles", "Agent"),
+        ("games", "gamecontroller", L.T("Spiele")), ("notify", "bell.badge", L.T("Mitteilungen")), ("timer", "timer", L.T("Timer"))
     };
 
     public static readonly (string Key, string Name)[] Views =
     {
-        ("closed", "Geschlossen"), ("banner", "Mitteilung kommt"), ("music", "Musik"), ("clip", "Zwischenablage"), ("live", "Live"),
-        ("agent", "Agent"), ("games", "Spiele"), ("notify", "Mitteilungen"), ("timer", "Timer")
+        ("closed", L.T("Geschlossen")), ("banner", L.T("Mitteilung kommt")), ("music", L.T("Musik")), ("clip", L.T("Zwischenablage")), ("live", "Live"),
+        ("agent", "Agent"), ("games", L.T("Spiele")), ("notify", L.T("Mitteilungen")), ("timer", L.T("Timer"))
     };
 
     public IslandPreview()
@@ -420,9 +421,9 @@ public sealed class IslandPreview : Border
         ((TextBlock)avatar.Child).HorizontalAlignment = HorizontalAlignment.Center;
         ((TextBlock)avatar.Child).VerticalAlignment = VerticalAlignment.Center;
         var text = new StackPanel { Margin = new Thickness(10, 0, 0, 0), VerticalAlignment = VerticalAlignment.Center };
-        text.Children.Add(Pv.T("WhatsApp · jetzt", 11, Pv.Sub));
+        text.Children.Add(Pv.T(L.T("WhatsApp · jetzt"), 11, Pv.Sub));
         text.Children.Add(Pv.T("Anna", 13, null, true));
-        text.Children.Add(Pv.T("Kommst du heute noch vorbei?", 12, Pv.B("#FFC7C7CC")));
+        text.Children.Add(Pv.T(L.T("Kommst du heute noch vorbei?"), 12, Pv.B("#FFC7C7CC")));
         var s = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(14, 0, 14, 0), VerticalAlignment = VerticalAlignment.Center };
         s.Children.Add(avatar);
         s.Children.Add(text);
@@ -514,7 +515,7 @@ public sealed class IslandPreview : Border
         g.Children.Add(Pv.Box(62, 62, CoverBrush(), 10).At(0, 0, HorizontalAlignment.Left, VerticalAlignment.Center));
         var info = new StackPanel { Margin = new Thickness(12, 0, 0, 0), VerticalAlignment = VerticalAlignment.Center };
         Grid.SetColumn(info, 1);
-        info.Children.Add(Pv.T("Nachtlicht", 13, null, true));
+        info.Children.Add(Pv.T(L.T("Nachtlicht"), 13, null, true));
         info.Children.Add(Pv.T("Lena Ost · Spotify", 11, Pv.Sub));
         var track = new Grid { Height = 3, Margin = new Thickness(0, 8, 0, 7) };
         track.Children.Add(new Border { CornerRadius = new CornerRadius(1.5), Background = Pv.Tile });
@@ -534,10 +535,10 @@ public sealed class IslandPreview : Border
         foreach (var c in new[] { "#FF4A6FA5", "#FF8A5A3C", "#FF5A7A4A", "#FF6A3A6A", "#FF3A4A5A" })
             strip.Children.Add(new Border { Width = 50, Height = 34, CornerRadius = new CornerRadius(6), Background = Pv.B(c), Margin = new Thickness(0, 0, 6, 0) });
         s.Children.Add(strip);
-        var day = Pv.T("Heute", 11, Pv.Sub);
+        var day = Pv.T(L.T("Heute"), 11, Pv.Sub);
         day.Margin = new Thickness(0, 8, 0, 2);
         s.Children.Add(day);
-        foreach (var (a, b, sel) in new[] { ("Treffen um 18 Uhr am Bahnhof", "Text · eben", true), ("Bericht_final.pdf", "Datei · 10:42", false) })
+        foreach (var (a, b, sel) in new[] { (L.T("Treffen um 18 Uhr am Bahnhof"), L.T("Text · eben"), true), (L.T("Bericht_final.pdf"), L.T("Datei · 10:42"), false) })
         {
             var r = new DockPanel { Margin = new Thickness(0, 4, 0, 4) };
             var mark = new Border { Width = 3, Height = 26, Margin = new Thickness(0, 0, 8, 0) };
@@ -568,8 +569,8 @@ public sealed class IslandPreview : Border
         DockPanel.SetDock(ic, Dock.Left);
         d.Children.Add(ic);
         var t = new StackPanel { Margin = new Thickness(12, 0, 0, 0), VerticalAlignment = VerticalAlignment.Center };
-        t.Children.Add(Pv.T("Discord · Sprachkanal", 11, Pv.Sub));
-        t.Children.Add(Pv.T("Im Anruf", 13, null, true));
+        t.Children.Add(Pv.T(L.T("Discord · Sprachkanal"), 11, Pv.Sub));
+        t.Children.Add(Pv.T(L.T("Im Anruf"), 13, null, true));
         t.Children.Add(Pv.T("12:04", 11, Pv.Res("Green")));
         d.Children.Add(t);
         return d;
@@ -578,16 +579,16 @@ public sealed class IslandPreview : Border
     private static UIElement Agent()
     {
         var d = new DockPanel { VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 8, 0, 0) };
-        var open = new Border { CornerRadius = new CornerRadius(12), Background = Pv.B("#FF48484A"), Padding = new Thickness(12, 4, 12, 4), VerticalAlignment = VerticalAlignment.Center, Child = Pv.T("Öffnen", 12) };
+        var open = new Border { CornerRadius = new CornerRadius(12), Background = Pv.B("#FF48484A"), Padding = new Thickness(12, 4, 12, 4), VerticalAlignment = VerticalAlignment.Center, Child = Pv.T(L.T("Öffnen"), 12) };
         DockPanel.SetDock(open, Dock.Right);
         d.Children.Add(open);
-        var ring = Pv.Stack(new Ring { Width = 46, Height = 46, Value = 60, Thickness = 3, Stroke = Pv.Res("Orange") }, Pv.Icon("asterisk", 18, Pv.Res("Orange")));
+        var ring = Pv.Stack(new Ring { Width = 46, Height = 46, Value = 60, Thickness = 3, Stroke = Pv.Res(L.T("Orange")) }, Pv.Icon("asterisk", 18, Pv.Res(L.T("Orange"))));
         DockPanel.SetDock(ring, Dock.Left);
         d.Children.Add(ring);
         var t = new StackPanel { Margin = new Thickness(12, 0, 0, 0), VerticalAlignment = VerticalAlignment.Center };
         t.Children.Add(Pv.T("Claude Code · dynamic island", 11, Pv.Sub));
-        t.Children.Add(Pv.T("Baut die Einstellungen", 13, null, true));
-        t.Children.Add(Pv.T("Schritt 3 von 5", 11, Pv.Sub));
+        t.Children.Add(Pv.T(L.T("Baut die Einstellungen"), 13, null, true));
+        t.Children.Add(Pv.T(L.T("Schritt 3 von 5"), 11, Pv.Sub));
         d.Children.Add(t);
         return d;
     }
@@ -613,13 +614,13 @@ public sealed class IslandPreview : Border
     {
         var s = new StackPanel();
         var f = new DockPanel { Margin = new Thickness(0, 0, 0, 4) };
-        var right = Pv.T("Alle gelesen", 11, Pv.Sub);
+        var right = Pv.T(L.T("Alle gelesen"), 11, Pv.Sub);
         DockPanel.SetDock(right, Dock.Right);
         f.Children.Add(right);
-        f.Children.Add(Pv.Row(12, Pv.T("Alle", 11), Pv.T("Ungelesen", 11, Pv.Sub)));
+        f.Children.Add(Pv.Row(12, Pv.T(L.T("Alle"), 11), Pv.T(L.T("Ungelesen"), 11, Pv.Sub)));
         ((FrameworkElement)f.Children[1]).HorizontalAlignment = HorizontalAlignment.Left;
         s.Children.Add(f);
-        foreach (var (a, b, c, unread) in new[] { ("WhatsApp · Anna", "Kommst du heute noch vorbei?", "#FF30D158", true), ("Steam", "Download fertig · 12,4 GB", "#FF3A6EA5", false) })
+        foreach (var (a, b, c, unread) in new[] { ("WhatsApp · Anna", L.T("Kommst du heute noch vorbei?"), "#FF30D158", true), ("Steam", L.T("Download fertig · 12,4 GB"), "#FF3A6EA5", false) })
         {
             var r = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 5, 0, 5) };
             r.Children.Add(new Ellipse { Width = 6, Height = 6, Fill = unread ? Pv.Res("Blue") : Brushes.Transparent, VerticalAlignment = VerticalAlignment.Center });
@@ -638,7 +639,7 @@ public sealed class IslandPreview : Border
         var d = new DockPanel { Margin = new Thickness(0, 4, 0, 0) };
         var right = new StackPanel { VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(14, 0, 0, 0) };
         right.Children.Add(new Border { CornerRadius = new CornerRadius(15), Background = Pv.Res("Green"), Padding = new Thickness(22, 6, 22, 6), Child = Pv.T("Start", 13, Pv.B("#FF04342C"), true) });
-        var quick = Pv.T("5 · 10 · 25 Min", 11, Pv.Sub);
+        var quick = Pv.T(L.T("5 · 10 · 25 Min"), 11, Pv.Sub);
         quick.HorizontalAlignment = HorizontalAlignment.Center;
         quick.Margin = new Thickness(0, 6, 0, 0);
         right.Children.Add(quick);
@@ -675,18 +676,18 @@ public static class AnimGallery
     /// <summary>always = runs at every level, an = only with "An", small = An + Reduziert (Fx: light / rings only with An).</summary>
     private static readonly Def[] All =
     {
-        new("spring", "Öffnen und schließen", "Feder mit leichtem Nachschwingen", "always", false, true, Spring),
-        new("page", "Seite wechseln", "Inhalt wird weich und wieder scharf", "always", false, false, Page),
-        new("birth", "Blase tropft heraus", "Erst klein in der Insel, dann als Tropfen", "an", false, false, Birth),
-        new("lift", "Ziehen", "Kachel hebt sich und sinkt zurück", "small", false, false, Lift),
-        new("bell", "Mitteilung", "Glocke schwingt, dann kommt der Banner", "small", false, true, Bell),
-        new("copy", "Kopiert", "Insel gibt kurz nach, Haken gleitet rein", "small", false, true, Copy),
-        new("song", "Neuer Song", "Altes Cover gleitet raus, neues rein", "small", false, true, Song),
-        new("mute", "Mikro stumm", "Dunkelrot, Blase zuckt kurz", "small", false, true, Mute),
-        new("shot", "Bildschirmfoto", "Insel zeigt das Bild und nimmt es auf", "small", false, true, Shot),
-        new("dl", "Download fertig", "Licht schießt in den Ring", "small", true, true, s => Done(s, "download", Pv.Res("Blue"), 80, Colors.White)),
-        new("claude", "Claude fertig", "Grünes Licht, Ring schließt sich", "small", true, true, s => Done(s, "asterisk", Pv.Res("Orange"), 60, Color.FromRgb(0x30, 0xD1, 0x58))),
-        new("timer", "Timer abgelaufen", "Zwei Ringe und ein Wackeln", "small", true, true, Timer),
+        new("spring", L.T("Öffnen und schließen"), L.T("Feder mit leichtem Nachschwingen"), "always", false, true, Spring),
+        new("page", L.T("Seite wechseln"), L.T("Inhalt wird weich und wieder scharf"), "always", false, false, Page),
+        new("birth", L.T("Blase tropft heraus"), L.T("Erst klein in der Insel, dann als Tropfen"), "an", false, false, Birth),
+        new("lift", L.T("Ziehen"), L.T("Kachel hebt sich und sinkt zurück"), "small", false, false, Lift),
+        new("bell", L.T("Mitteilung"), L.T("Glocke schwingt, dann kommt der Banner"), "small", false, true, Bell),
+        new("copy", L.T("Kopiert"), L.T("Insel gibt kurz nach, Haken gleitet rein"), "small", false, true, Copy),
+        new("song", L.T("Neuer Song"), L.T("Altes Cover gleitet raus, neues rein"), "small", false, true, Song),
+        new("mute", L.T("Mikro stumm"), L.T("Mikro-Symbol ploppt und schüttelt den Kopf"), "small", false, true, Mute),
+        new("shot", L.T("Bildschirmfoto"), L.T("Insel zeigt das Bild und nimmt es auf"), "small", false, true, Shot),
+        new("dl", L.T("Download fertig"), L.T("Licht schießt in den Ring"), "small", true, true, s => Done(s, "download", Pv.Res("Blue"), 80, Colors.White)),
+        new("claude", L.T("Claude fertig"), L.T("Grünes Licht, Ring schließt sich"), "small", true, true, s => Done(s, "asterisk", Pv.Res(L.T("Orange")), 60, Color.FromRgb(0x30, 0xD1, 0x58))),
+        new("timer", L.T("Timer abgelaufen"), L.T("Zwei Ringe und ein Wackeln"), "small", true, true, Timer),
     };
 
     private static AppSettings S => App.Settings;
@@ -697,10 +698,10 @@ public static class AnimGallery
     private static string NoteOf(Def d)
     {
         if (S.Animations == AnimationLevel.An) return "";
-        if (d.Level == "always") return "Läuft immer";
-        if (S.Animations == AnimationLevel.Aus) return "Aus: passiert ohne Bewegung";
-        if (d.Level == "an") return "Blase erscheint direkt, ohne Tropfen";
-        return d.Fx ? "Reduziert: ohne Licht und Ringe" : "Auch bei Reduziert";
+        if (d.Level == "always") return L.T("Läuft immer");
+        if (S.Animations == AnimationLevel.Aus) return L.T("Aus: passiert ohne Bewegung");
+        if (d.Level == "an") return L.T("Blase erscheint direkt, ohne Tropfen");
+        return d.Fx ? L.T("Reduziert: ohne Licht und Ringe") : L.T("Auch bei Reduziert");
     }
 
     public static void Build(Panel moves, Panel moments)
@@ -726,7 +727,7 @@ public static class AnimGallery
             body.Children.Add(note);
             if (d.Demo)
             {
-                var link = new TextBlock { Text = "Auf der Insel ansehen", FontSize = 11.5, Margin = new Thickness(0, 5, 0, 0), Cursor = Cursors.Hand, HorizontalAlignment = HorizontalAlignment.Left };
+                var link = new TextBlock { Text = L.T("Auf der Insel ansehen"), FontSize = 11.5, Margin = new Thickness(0, 5, 0, 0), Cursor = Cursors.Hand, HorizontalAlignment = HorizontalAlignment.Left };
                 link.SetResourceReference(TextBlock.ForegroundProperty, "Accent");
                 var key = d.Key;
                 link.MouseLeftButtonUp += (_, e) => { e.Handled = true; App.Island?.DemoMoment(key); };
@@ -748,7 +749,7 @@ public static class AnimGallery
         {
             card.Opacity = Disabled(d) ? 0.5 : 1;
             note.Text = NoteOf(d);
-            note.Foreground = Disabled(d) ? Pv.Res("Orange") : Pv.Sub;
+            note.Foreground = Disabled(d) ? Pv.Res(L.T("Orange")) : Pv.Sub;
             note.Visibility = note.Text.Length > 0 ? Visibility.Visible : Visibility.Collapsed;
             stage.Reset(false, false);
             d.Build(stage);
@@ -904,7 +905,7 @@ public static class AnimGallery
         var content = new StackPanel { Orientation = Orientation.Horizontal, Opacity = 0 }.At(14, 12);
         content.Children.Add(Pv.Box(40, 40, Pv.CoverA, 8));
         var t = new StackPanel { Margin = new Thickness(8, 0, 0, 0), VerticalAlignment = VerticalAlignment.Center, Width = 140 };
-        t.Children.Add(Pv.T("Nachtlicht", 11, null, true));
+        t.Children.Add(Pv.T(L.T("Nachtlicht"), 11, null, true));
         t.Children.Add(Pv.T("Lena Ost", 11, Pv.Sub));
         t.Children.Add(new Border { Height = 3, CornerRadius = new CornerRadius(1.5), Background = Pv.Tile, Margin = new Thickness(0, 5, 0, 0), Child = new Border { Width = 56, HorizontalAlignment = HorizontalAlignment.Left, Background = Brushes.White, CornerRadius = new CornerRadius(1.5) } });
         content.Children.Add(t);
@@ -923,7 +924,7 @@ public static class AnimGallery
         var c1 = new StackPanel { Orientation = Orientation.Horizontal, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(14, 0, 0, 0), RenderTransformOrigin = new Point(0.5, 0.5), RenderTransform = new ScaleTransform() };
         c1.Children.Add(Pv.Box(38, 38, Pv.CoverA, 8));
         var t = new StackPanel { Margin = new Thickness(8, 0, 0, 0), VerticalAlignment = VerticalAlignment.Center };
-        t.Children.Add(Pv.T("Nachtlicht", 11, null, true));
+        t.Children.Add(Pv.T(L.T("Nachtlicht"), 11, null, true));
         t.Children.Add(Pv.T("Lena Ost", 11, Pv.Sub));
         c1.Children.Add(t);
         var c2 = new DockPanel { Margin = new Thickness(16, 0, 16, 0), Opacity = 0, RenderTransformOrigin = new Point(0.5, 0.5), RenderTransform = new ScaleTransform(0.9, 0.9) };
@@ -957,12 +958,12 @@ public static class AnimGallery
         // "Mitte halten": the whole group slides left so it stays centred
         var p = Pill(s);
         p.LeftX = -48;
-        var star = Pv.Icon("asterisk", 13, Pv.Res("Orange"));
+        var star = Pv.Icon("asterisk", 13, Pv.Res(L.T("Orange")));
         var inside = new Border { Child = star, Opacity = 0, RenderTransformOrigin = new Point(0.5, 0.5), RenderTransform = new ScaleTransform(0.3, 0.3) }.At(91, 4);
         p.Inner.Children.Add(inside);
         var neck = new Border { Width = 0, Height = 12, CornerRadius = new CornerRadius(6), Background = Brushes.Black };
         s.Add(neck, 44, 13);
-        var drop = Bubble(s, 51, Pv.Icon("asterisk", 13, Pv.Res("Orange")));
+        var drop = Bubble(s, 51, Pv.Icon("asterisk", 13, Pv.Res(L.T("Orange"))));
         drop.Opacity = 0;
         Canvas.SetLeft(drop, 40);
         var sc = (ScaleTransform)drop.RenderTransform;
@@ -1023,9 +1024,9 @@ public static class AnimGallery
         ((TextBlock)avatar.Child).HorizontalAlignment = HorizontalAlignment.Center;
         ((TextBlock)avatar.Child).VerticalAlignment = VerticalAlignment.Center;
         var words = new StackPanel { Margin = new Thickness(8, 0, 0, 0), VerticalAlignment = VerticalAlignment.Center, Width = 150 };
-        words.Children.Add(Pv.T("WhatsApp · jetzt", 10.5, Pv.Sub));
+        words.Children.Add(Pv.T(L.T("WhatsApp · jetzt"), 10.5, Pv.Sub));
         words.Children.Add(Pv.T("Anna", 11, null, true));
-        words.Children.Add(Pv.T("Kommst du heute vorbei?", 11, Pv.B("#FFC7C7CC")));
+        words.Children.Add(Pv.T(L.T("Kommst du heute vorbei?"), 11, Pv.B("#FFC7C7CC")));
         var banner = new StackPanel { Orientation = Orientation.Horizontal, Opacity = 0 }.At(10, 9);
         banner.Children.Add(avatar);
         banner.Children.Add(words);
@@ -1050,7 +1051,7 @@ public static class AnimGallery
         s.A(sc, ScaleTransform.ScaleYProperty, K((1, 0, null), (0.84, 120, InOut), (1.04, 260, InOut), (1, 420, Over)));
         Fade(s, p.Inner.Children[1], (1, 0), (0, 140));
         var shift = new TranslateTransform(12, 0);
-        var word = Pv.Row(3, Pv.Icon("check", 11, Pv.Res("Green")), Pv.T("Kopiert", 11));
+        var word = Pv.Row(3, Pv.Icon("check", 11, Pv.Res("Green")), Pv.T(L.T("Kopiert"), 11));
         word.HorizontalAlignment = HorizontalAlignment.Left;
         word.Margin = new Thickness(30, 0, 0, 0);
         word.Opacity = 0;
@@ -1074,7 +1075,7 @@ public static class AnimGallery
         p.Inner.Children.Add(nw);
         var tint = new Border { Background = Pv.B("#FF30D1A0"), Opacity = 0 };
         p.Inner.Children.Insert(0, tint);
-        var title = Pv.T("Neuer Titel", 10.5).At(24, 3.5);
+        var title = Pv.T(L.T("Neuer Titel"), 10.5).At(24, 3.5);
         title.Opacity = 0;
         p.Inner.Children.Add(title);
         s.A(oldShift, TranslateTransform.XProperty, K((0, 0, null), (-22, 340, new CubicEase { EasingMode = EasingMode.EaseIn })));
@@ -1174,7 +1175,7 @@ public static class AnimGallery
     private static void Timer(Stage s)
     {
         var p = Pill(s, 0, false);
-        var zero = Pv.T("0:00", 11, Pv.Res("Orange"), true);
+        var zero = Pv.T("0:00", 11, Pv.Res(L.T("Orange")), true);
         zero.HorizontalAlignment = HorizontalAlignment.Right;
         zero.VerticalAlignment = VerticalAlignment.Center;
         zero.Margin = new Thickness(0, 0, 9, 0);
@@ -1185,7 +1186,7 @@ public static class AnimGallery
             for (int i = 0; i < 2; i++)
             {
                 var sc = new ScaleTransform();
-                var r = new Border { Width = 100, Height = 26, CornerRadius = new CornerRadius(13), BorderBrush = Pv.Res("Orange"), BorderThickness = new Thickness(2), Opacity = 0, RenderTransformOrigin = new Point(0.5, 0.5), RenderTransform = sc };
+                var r = new Border { Width = 100, Height = 26, CornerRadius = new CornerRadius(13), BorderBrush = Pv.Res(L.T("Orange")), BorderThickness = new Thickness(2), Opacity = 0, RenderTransformOrigin = new Point(0.5, 0.5), RenderTransform = sc };
                 s.Add(r, -50, 6);
                 s.A(r, UIElement.OpacityProperty, D(0.9, 0, 750, i * 230));
                 s.A(sc, ScaleTransform.ScaleXProperty, D(1, 1.3, 750, i * 230, Out));

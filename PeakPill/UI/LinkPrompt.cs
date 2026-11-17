@@ -34,21 +34,21 @@ public sealed class LinkPrompt : Window
             t.Margin = new Thickness(0, 4, 0, 0);
         }
         _url.Tag = "example.com";
-        _name.Tag = "Name (optional)";
+        _name.Tag = L.T("Name (optional)");
         _url.Text = prefill ?? "";
         _url.TextChanged += (_, _) => _error.Visibility = Visibility.Collapsed;
 
-        var add = new Button { Content = "Hinzufügen", IsDefault = true, Margin = new Thickness(8, 0, 0, 0) };
+        var add = new Button { Content = L.T("Hinzufügen"), IsDefault = true, Margin = new Thickness(8, 0, 0, 0) };
         add.SetResourceReference(StyleProperty, "MacAccentButton");
         add.Click += (_, _) => Accept();
-        var cancel = new Button { Content = "Abbrechen", IsCancel = true, Padding = new Thickness(12, 3, 12, 3) };
+        var cancel = new Button { Content = L.T("Abbrechen"), IsCancel = true, Padding = new Thickness(12, 3, 12, 3) };
         cancel.SetResourceReference(StyleProperty, "MacButton");
         cancel.Click += (_, _) => { DialogResult = false; };
         var buttons = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right, Margin = new Thickness(0, 14, 0, 0) };
         buttons.Children.Add(cancel);
         buttons.Children.Add(add);
 
-        var title = new TextBlock { Text = "Link hinzufügen", FontSize = 14, FontWeight = FontWeights.SemiBold, Foreground = Brushes.White, Margin = new Thickness(2, 0, 0, 8) };
+        var title = new TextBlock { Text = L.T("Link hinzufügen"), FontSize = 14, FontWeight = FontWeights.SemiBold, Foreground = Brushes.White, Margin = new Thickness(2, 0, 0, 8) };
         var body = new StackPanel();
         body.Children.Add(title);
         body.Children.Add(_url);
@@ -80,7 +80,7 @@ public sealed class LinkPrompt : Window
         Url = LauncherService.ParseLink(_url.Text);
         if (Url == null)
         {
-            _error.Text = "Das ist keine Web-Adresse (z. B. example.com).";
+            _error.Text = L.T("Das ist keine Web-Adresse (z. B. example.com).");
             _error.Visibility = Visibility.Visible;
             return;
         }

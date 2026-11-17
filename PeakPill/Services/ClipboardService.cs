@@ -49,9 +49,9 @@ public sealed class ClipItem : ObservableObject
     [JsonIgnore]
     public string Preview => Kind switch
     {
-        ClipKind.Image => IsScreenshot ? "Screenshot" : "Bild",
+        ClipKind.Image => IsScreenshot ? "Screenshot" : L.T("Bild"),
         ClipKind.Files => Files == null ? "" :
-            (Files.Count == 1 ? Path.GetFileName(Files[0]) : $"{Files.Count} Dateien: " + string.Join(", ", Files.Take(4).Select(Path.GetFileName))),
+            (Files.Count == 1 ? Path.GetFileName(Files[0]) : L.T($"{Files.Count} Dateien: ") + string.Join(", ", Files.Take(4).Select(Path.GetFileName))),
         _ => Shorten(Text)
     };
 
@@ -62,7 +62,7 @@ public sealed class ClipItem : ObservableObject
         {
             var parts = new List<string> { Relative(Time) };
             if (Kind == ClipKind.Image && ImageWidth > 0) parts.Add($"{ImageWidth}×{ImageHeight}");
-            if (Kind is ClipKind.Text && Text != null) parts.Add($"{Text.Length} Zeichen");
+            if (Kind is ClipKind.Text && Text != null) parts.Add(L.T($"{Text.Length} Zeichen"));
             if (!string.IsNullOrEmpty(Source)) parts.Add(Source);
             return string.Join(" · ", parts);
         }
@@ -118,7 +118,7 @@ public sealed class ClipItem : ObservableObject
             {
                 case ClipKind.Link: parts.Add(Domain(Text)); break;
                 case ClipKind.Image when ImageWidth > 0: parts.Add($"{ImageWidth} × {ImageHeight}"); break;
-                case ClipKind.Files: parts.Add(Files is { Count: > 1 } ? $"{Files.Count} Dateien" : "Datei"); break;
+                case ClipKind.Files: parts.Add(Files is { Count: > 1 } ? L.T($"{Files.Count} Dateien") : L.T("Datei")); break;
                 case ClipKind.Text when IsCode: parts.Add("Code"); break;
             }
             if (!string.IsNullOrEmpty(Source)) parts.Add(Source);
@@ -134,8 +134,8 @@ public sealed class ClipItem : ObservableObject
         {
             var d = DateTime.Now - Time;
             if (d.TotalSeconds < 45) return "jetzt";
-            if (d.TotalMinutes < 60) return $"{(int)d.TotalMinutes} Min";
-            if (Time.Date == DateTime.Today) return $"{(int)d.TotalHours} Std";
+            if (d.TotalMinutes < 60) return L.T($"{(int)d.TotalMinutes} Min");
+            if (Time.Date == DateTime.Today) return L.T($"{(int)d.TotalHours} Std");
             if (Time.Date == DateTime.Today.AddDays(-1)) return "gestern";
             return Time.ToString("dd.MM.");
         }
@@ -144,11 +144,11 @@ public sealed class ClipItem : ObservableObject
     /// <summary>Section in the list: Angeheftet · Heute · Gestern · Diese Woche · Älter.</summary>
     [JsonIgnore]
     public string DayGroup =>
-        Pinned ? "Angeheftet"
-        : Time.Date == DateTime.Today ? "Heute"
-        : Time.Date == DateTime.Today.AddDays(-1) ? "Gestern"
-        : Time.Date > DateTime.Today.AddDays(-7) ? "Diese Woche"
-        : "Älter";
+        Pinned ? L.T("Angeheftet")
+        : Time.Date == DateTime.Today ? L.T("Heute")
+        : Time.Date == DateTime.Today.AddDays(-1) ? L.T("Gestern")
+        : Time.Date > DateTime.Today.AddDays(-7) ? L.T("Diese Woche")
+        : L.T("Älter");
 
     private static readonly Brush TextTint = Frozen(0xAE, 0xAE, 0xB2), LinkTint = Frozen(0x64, 0xD2, 0xFF),
                                   CodeTint = Frozen(0xBF, 0x5A, 0xF2), FileTint = Frozen(0xFF, 0x9F, 0x0A);
@@ -241,10 +241,10 @@ public sealed class ClipItem : ObservableObject
     public static string Relative(DateTime t)
     {
         var d = DateTime.Now - t;
-        if (d.TotalSeconds < 45) return "gerade eben";
-        if (d.TotalMinutes < 60) return $"vor {(int)d.TotalMinutes} Min";
-        if (d.TotalHours < 24 && t.Date == DateTime.Today) return $"heute {t:HH:mm}";
-        if (t.Date == DateTime.Today.AddDays(-1)) return $"gestern {t:HH:mm}";
+        if (d.TotalSeconds < 45) return L.T("gerade eben");
+        if (d.TotalMinutes < 60) return L.T($"vor {(int)d.TotalMinutes} Min");
+        if (d.TotalHours < 24 && t.Date == DateTime.Today) return L.T($"heute {t:HH:mm}");
+        if (t.Date == DateTime.Today.AddDays(-1)) return L.T($"gestern {t:HH:mm}");
         return t.ToString("dd.MM. HH:mm");
     }
 }
@@ -547,9 +547,9 @@ public sealed class ClipboardService : ObservableObject
             SetQueueHead();
             var next = Queue[0].Title ?? "";
             if (next.Length > 24) next = next[..23].TrimEnd() + "…";
-            Notice?.Invoke($"Eingefügt · als Nächstes: {next}");
+            Notice?.Invoke(L.T($"Eingefügt · als Nächstes: {next}"));
         }
-        else Notice?.Invoke("Eingefügt · Stapel leer");
+        else Notice?.Invoke(L.T("Eingefügt · Stapel leer"));
     }
 
     // ---------- queue: the next text is only PROMISED to Windows (delayed rendering, 2026-11-16) ----------
@@ -737,7 +737,7 @@ public sealed class ClipboardService : ObservableObject
         SetQueueHead();
         var next = Queue[0].Title ?? "";
         if (next.Length > 24) next = next[..23].TrimEnd() + "…";
-        Notice?.Invoke($"{Queue.Count} im Stapel · als Erstes: {next}");
+        Notice?.Invoke(L.T($"{Queue.Count} im Stapel · als Erstes: {next}"));
     }
 
     public void Remove(ClipItem item)

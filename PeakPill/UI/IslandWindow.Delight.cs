@@ -156,7 +156,7 @@ public partial class IslandWindow
         {
             _hungUpUntil = DateTime.Now.AddSeconds(6);
             UpdatePill(true);
-            ShowHint("phone.down", "Anruf beendet", danger, key: "live");
+            ShowHint("phone.down", L.T("Anruf beendet"), danger, key: "live");
             return;
         }
 
@@ -188,7 +188,7 @@ public partial class IslandWindow
         icon.Opacity = 0;
         _hungUpUntil = DateTime.Now.AddSeconds(6);
         UpdatePill(true);
-        ShowHint("phone.down", "Anruf beendet", danger, key: "live");
+        ShowHint("phone.down", L.T("Anruf beendet"), danger, key: "live");
         HintIcon.BeginAnimation(OpacityProperty, null);
         HintIcon.Opacity = 0;
         HintText.Opacity = 0;

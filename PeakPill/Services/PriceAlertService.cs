@@ -49,15 +49,15 @@ public sealed class PriceAlert : ObservableObject
         AlertKind.EpicFree => string.IsNullOrEmpty(LastSeen) ? "–" : LastSeen,
         _ => Price is { } p ? Fmt(p, Currency) : "–"
     };
-    [JsonIgnore] public string ChangeText => Kind is AlertKind.EpicFree or AlertKind.TwitchLive ? "" : Change is { } c ? (c >= 0 ? "▲ " : "▼ ") + Math.Abs(c).ToString("0.0", CultureInfo.GetCultureInfo("de-DE")) + " %" : "";
+    [JsonIgnore] public string ChangeText => Kind is AlertKind.EpicFree or AlertKind.TwitchLive ? "" : Change is { } c ? (c >= 0 ? "▲ " : "▼ ") + Math.Abs(c).ToString("0.0", L.Culture) + " %" : "";
     [JsonIgnore] public bool ChangeUp => Change >= 0;
     [JsonIgnore] public string RuleText => Condition switch
     {
-        AlertCondition.Below => $"Ziel unter {Fmt(Target ?? 0, Currency)}",
-        AlertCondition.Above => $"Alarm über {Fmt(Target ?? 0, Currency)}",
-        AlertCondition.Move => $"Alarm bei ±{Target ?? 5:0.#} % an einem Tag",
-        AlertCondition.Sale => Kind == AlertKind.Shop ? "Alarm bei jedem Preisfall" : "Alarm bei jedem Sale",
-        AlertCondition.Live => Kind == AlertKind.EpicFree ? "Alarm bei neuen Gratis-Spielen" : "Alarm, wenn live",
+        AlertCondition.Below => L.T($"Ziel unter {Fmt(Target ?? 0, Currency)}"),
+        AlertCondition.Above => L.T($"Alarm über {Fmt(Target ?? 0, Currency)}"),
+        AlertCondition.Move => L.T($"Alarm bei ±{Target ?? 5:0.#} % an einem Tag"),
+        AlertCondition.Sale => Kind == AlertKind.Shop ? L.T("Alarm bei jedem Preisfall") : L.T("Alarm bei jedem Sale"),
+        AlertCondition.Live => Kind == AlertKind.EpicFree ? L.T("Alarm bei neuen Gratis-Spielen") : L.T("Alarm, wenn live"),
         _ => ""
     };
     /// <summary>0…1 – how close the price is to the target (for the little bar).</summary>
@@ -89,7 +89,7 @@ public sealed class PriceAlert : ObservableObject
 
     public static string Fmt(double v, string cur)
     {
-        var de = CultureInfo.GetCultureInfo("de-DE");
+        var de = L.Culture;
         string num = v >= 1000 ? v.ToString("#,##0", de) : v >= 1 ? v.ToString("#,##0.00", de) : v.ToString("0.0000", de);
         return cur is "$" or "USD" ? num + " $" : num + " " + (cur == "EUR" ? "€" : cur);
     }
@@ -174,14 +174,14 @@ public sealed class PriceAlertService : ObservableObject
             }
             a.Error = false;
             a.LastChecked = DateTime.Now;
-            a.Status = "geprüft " + DateTime.Now.ToString("HH:mm");
+            a.Status = L.T("geprüft ") + DateTime.Now.ToString("HH:mm");
             Evaluate(a);
         }
         catch (Exception ex)
         {
             a.Error = true;
             a.LastChecked = DateTime.Now;
-            a.Status = "konnte nicht geprüft werden";
+            a.Status = L.T("konnte nicht geprüft werden");
             App.Log(new Exception($"Preisalarm {a.Name}: {ex.Message}"));
         }
     }
@@ -194,19 +194,19 @@ public sealed class PriceAlertService : ObservableObject
         switch (a.Condition)
         {
             case AlertCondition.Below when p is { } v && a.Target is { } t:
-                hit = v <= t; msg = $"jetzt {a.PriceText}"; break;
+                hit = v <= t; msg = L.T($"jetzt {a.PriceText}"); break;
             case AlertCondition.Above when p is { } v && a.Target is { } t:
-                hit = v >= t; msg = $"jetzt {a.PriceText}"; break;
+                hit = v >= t; msg = L.T($"jetzt {a.PriceText}"); break;
             case AlertCondition.Move when a.Change is { } c:
-                hit = Math.Abs(c) >= (a.Target ?? 5); msg = $"{a.ChangeText} heute · {a.PriceText}"; break;
+                hit = Math.Abs(c) >= (a.Target ?? 5); msg = L.T($"{a.ChangeText} heute · {a.PriceText}"); break;
             case AlertCondition.Sale when a.Kind == AlertKind.Shop && p is { } v && a.StartPrice is { } sp:
-                hit = v < sp - 0.009; msg = $"jetzt {a.PriceText} (vorher {PriceAlert.Fmt(sp, a.Currency)})"; break;
+                hit = v < sp - 0.009; msg = L.T($"jetzt {a.PriceText} (vorher {PriceAlert.Fmt(sp, a.Currency)})"); break;
             case AlertCondition.Sale:
                 hit = a.Change is < 0; msg = $"im Sale: {a.PriceText} ({a.ChangeText.Replace("▼ ", "−")})"; break;
             case AlertCondition.Live when a.Kind == AlertKind.EpicFree:
-                hit = a.Change == 1; msg = $"Neu gratis: {a.LastSeen}"; break;
+                hit = a.Change == 1; msg = L.T($"Neu gratis: {a.LastSeen}"); break;
             case AlertCondition.Live:
-                hit = p == 1; msg = "ist jetzt live"; break;
+                hit = p == 1; msg = L.T("ist jetzt live"); break;
         }
         if (hit && !a.Triggered) { a.Triggered = true; Fired?.Invoke(a, msg); }
         else if (!hit && a.Triggered) a.Triggered = false; // re-arm once the condition is false again
@@ -221,11 +221,11 @@ public sealed class PriceAlertService : ObservableObject
     public async Task<(PriceAlert Alert, string Error)> AddAsync(string input, string rule)
     {
         input = (input ?? "").Trim();
-        if (input.Length == 0) return (null, "Gib einen Link, ein Kürzel oder einen Spielnamen ein");
+        if (input.Length == 0) return (null, L.T("Gib einen Link, ein Kürzel oder einen Spielnamen ein"));
         PriceAlert a;
         try { a = await Resolve(input); }
         catch (Exception ex) { App.Log(ex); a = null; }
-        if (a == null) return (null, "Nicht gefunden – prüfe die Eingabe");
+        if (a == null) return (null, L.T("Nicht gefunden – prüfe die Eingabe"));
         ApplyRule(a, rule);
         await Check(a);
         if (a.Kind == AlertKind.Shop && a.Price is { } p0) a.StartPrice = p0;
@@ -384,7 +384,7 @@ public sealed class PriceAlertService : ObservableObject
             try { json = await Http.GetStringAsync($"https://{host}/freeGamesPromotions?locale=de&country=DE&allowCountries=DE"); break; }
             catch (HttpRequestException) { }
         }
-        if (json == null) throw new Exception("Epic-Server nicht erreichbar");
+        if (json == null) throw new Exception(L.T("Epic-Server nicht erreichbar"));
         using var doc = JsonDocument.Parse(json);
         var names = new List<string>();
         foreach (var g in doc.RootElement.GetProperty("data").GetProperty("Catalog").GetProperty("searchStore").GetProperty("elements").EnumerateArray())
@@ -419,7 +419,7 @@ public sealed class PriceAlertService : ObservableObject
     {
         var html = await Http.GetStringAsync(a.Url ?? a.Query);
         if (html.Contains("captcha", StringComparison.OrdinalIgnoreCase) && !html.Contains("\"price\"", StringComparison.Ordinal) && !html.Contains("a-price", StringComparison.Ordinal))
-            throw new Exception("Shop zeigt eine Captcha-Seite");
+            throw new Exception(L.T("Shop zeigt eine Captcha-Seite"));
 
         var pt = Regex.Match(html, @"id=""productTitle""[^>]*>\s*([^<]{3,300}?)\s*</span>");
         var title = pt.Success ? pt.Groups[1].Value
@@ -432,7 +432,7 @@ public sealed class PriceAlertService : ObservableObject
             shop = char.ToUpper(shop[0]) + shop[1..];
             title = Regex.Replace(title, @"\s*[:|\-–]\s*(Amazon\.de|Amazon).*$", "", RegexOptions.IgnoreCase);
             if (title.Length > 48) title = title[..46].TrimEnd() + "…";
-            a.Name = $"{title} · {shop}";
+            a.Name = L.T($"{title} · {shop}");
         }
 
         double? price = null;
@@ -451,7 +451,7 @@ public sealed class PriceAlertService : ObservableObject
             var ld = Regex.Match(html, @"""price""\s*:\s*""?([0-9]+[.,]?[0-9]*)""?");
             if (ld.Success) price = ParsePrice(ld.Groups[1].Value);
         }
-        if (price == null) throw new Exception("Kein Preis auf der Seite gefunden");
+        if (price == null) throw new Exception(L.T("Kein Preis auf der Seite gefunden"));
         a.Currency = "€";
         a.Price = price;
     }

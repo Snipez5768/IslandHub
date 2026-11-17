@@ -91,7 +91,7 @@ public sealed class SuggestionService : ObservableObject
         if (host.StartsWith("amazon.") && asin.Success)
         {
             var link = $"https://www.{host}/dp/{asin.Groups[1].Value}";
-            return new Suggestion { Key = "amazon:" + asin.Groups[1].Value, Title = "Amazon-Produkt erkannt", Text = $"Preisalarm für „{Short(title)}“?", Input = link, IconKind = "cart" };
+            return new Suggestion { Key = "amazon:" + asin.Groups[1].Value, Title = L.T("Amazon-Produkt erkannt"), Text = L.T($"Preisalarm für „{Short(title)}“?"), Input = link, IconKind = "cart" };
         }
         var app = Regex.Match(path, @"^/app/(\d+)");
         if (host == "store.steampowered.com" && app.Success)
@@ -100,14 +100,14 @@ public sealed class SuggestionService : ObservableObject
         {
             var ch = path.Trim('/').Split('/')[0].ToLowerInvariant();
             if (ch.Length > 2 && !new[] { "directory", "videos", "settings", "subscriptions", "inventory", "drops", "wallet", "search", "downloads", "jobs", "p", "turbo" }.Contains(ch))
-                return new Suggestion { Key = "twitch:" + ch, Title = $"Twitch: {ch}", Text = "Bescheid sagen, wenn der Kanal live geht?", Input = "twitch:" + ch, IconKind = "dot.radiowaves" };
+                return new Suggestion { Key = "twitch:" + ch, Title = $"Twitch: {ch}", Text = L.T("Bescheid sagen, wenn der Kanal live geht?"), Input = "twitch:" + ch, IconKind = "dot.radiowaves" };
         }
         var coin = Regex.Match(path, @"/(?:coins|munze|currencies)/([a-z0-9\-]+)");
         if ((host.EndsWith("coingecko.com") || host.EndsWith("coinmarketcap.com")) && coin.Success)
-            return new Suggestion { Key = "crypto:" + coin.Groups[1].Value, Title = "Kryptowährung erkannt", Text = $"Kursalarm für {Short(coin.Groups[1].Value)} (±5 % am Tag)?", Input = "krypto:" + coin.Groups[1].Value, Rule = "5%", IconKind = "bitcoin" };
+            return new Suggestion { Key = "crypto:" + coin.Groups[1].Value, Title = L.T("Kryptowährung erkannt"), Text = L.T($"Kursalarm für {Short(coin.Groups[1].Value)} (±5 % am Tag)?"), Input = "krypto:" + coin.Groups[1].Value, Rule = "5%", IconKind = "bitcoin" };
         var quote = Regex.Match(path, @"/quote/([A-Za-z0-9.\-]+)");
         if (host.EndsWith("finance.yahoo.com") && quote.Success)
-            return new Suggestion { Key = "stock:" + quote.Groups[1].Value.ToUpperInvariant(), Title = "Aktie erkannt", Text = $"Kursalarm für {quote.Groups[1].Value.ToUpperInvariant()} (±5 % am Tag)?", Input = "aktie:" + quote.Groups[1].Value, Rule = "5%", IconKind = "chart" };
+            return new Suggestion { Key = "stock:" + quote.Groups[1].Value.ToUpperInvariant(), Title = L.T("Aktie erkannt"), Text = L.T($"Kursalarm für {quote.Groups[1].Value.ToUpperInvariant()} (±5 % am Tag)?"), Input = "aktie:" + quote.Groups[1].Value, Rule = "5%", IconKind = "chart" };
         return null;
     }
 

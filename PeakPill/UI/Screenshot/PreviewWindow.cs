@@ -62,17 +62,17 @@ public sealed class PreviewWindow : Window
             Width = tw, Height = th, CornerRadius = new CornerRadius(12),
             Background = new ImageBrush(full) { Stretch = Stretch.UniformToFill },
             Cursor = Cursors.Hand,
-            ToolTip = "Klicken zum Bearbeiten · in eine App ziehen"
+            ToolTip = L.T("Klicken zum Bearbeiten · in eine App ziehen")
         };
         var rim = new Border { CornerRadius = new CornerRadius(12), BorderThickness = new Thickness(0.8), IsHitTestVisible = false };
         rim.SetResourceReference(Border.BorderBrushProperty, "GlassRim");
 
         _actions = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Bottom, Margin = new Thickness(0, 0, 0, 8), Opacity = 0 };
-        _actions.Children.Add(Act("text.viewfinder", "Text erkennen", "Teal", () => { Dismiss(true); EditorWindow.Open(_item, true); }));
-        _actions.Children.Add(Act("pencil", "Bearbeiten", "Yellow", () => { Dismiss(true); EditorWindow.Open(_item, false); }));
-        _actions.Children.Add(Act("save", "Auf dem PC sichern", "Green", () => { App.Island.SaveImageItem(_item); Dismiss(true); }));
-        _actions.Children.Add(Act("pin", "Oben anheften", "Orange", () => { PinWindow.Show(LoadImage(_item.ImageFile)); Dismiss(true); }));
-        _actions.Children.Add(Act("trash", "Löschen", "Danger", () => { App.Hub.Clipboard.Remove(_item); Dismiss(true); }));
+        _actions.Children.Add(Act("text.viewfinder", L.T("Text erkennen"), "Teal", () => { Dismiss(true); EditorWindow.Open(_item, true); }));
+        _actions.Children.Add(Act("pencil", L.T("Bearbeiten"), "Yellow", () => { Dismiss(true); EditorWindow.Open(_item, false); }));
+        _actions.Children.Add(Act("save", L.T("Auf dem PC sichern"), "Green", () => { App.Island.SaveImageItem(_item); Dismiss(true); }));
+        _actions.Children.Add(Act("pin", L.T("Oben anheften"), L.T("Orange"), () => { PinWindow.Show(LoadImage(_item.ImageFile)); Dismiss(true); }));
+        _actions.Children.Add(Act("trash", L.T("Löschen"), "Danger", () => { App.Hub.Clipboard.Remove(_item); Dismiss(true); }));
 
         var grid = new Grid();
         grid.Children.Add(img);
@@ -82,7 +82,7 @@ public sealed class PreviewWindow : Window
         var qr = ScreenshotService.DecodeQr(full);
         if (qr != null)
         {
-            var chip = new Button { Content = Uri.IsWellFormedUriString(qr, UriKind.Absolute) ? "QR öffnen" : "QR kopieren", HorizontalAlignment = HorizontalAlignment.Left, VerticalAlignment = VerticalAlignment.Top, Margin = new Thickness(8), ToolTip = qr };
+            var chip = new Button { Content = Uri.IsWellFormedUriString(qr, UriKind.Absolute) ? L.T("QR öffnen") : L.T("QR kopieren"), HorizontalAlignment = HorizontalAlignment.Left, VerticalAlignment = VerticalAlignment.Top, Margin = new Thickness(8), ToolTip = qr };
             chip.SetResourceReference(StyleProperty, "AccentButton");
             Ext.SetIcon(chip, "qr");
             Ext.SetIconSize(chip, 12);
@@ -91,7 +91,7 @@ public sealed class PreviewWindow : Window
             chip.Click += (_, _) =>
             {
                 if (Uri.IsWellFormedUriString(qr, UriKind.Absolute)) { try { Process.Start(new ProcessStartInfo(qr) { UseShellExecute = true }); } catch { } }
-                else App.Hub.Clipboard.AddText(qr, "QR-Code");
+                else App.Hub.Clipboard.AddText(qr, L.T("QR-Code"));
                 Dismiss(true);
             };
             grid.Children.Add(chip);
@@ -212,7 +212,7 @@ public sealed class PinWindow : Window
         var picture = new Border
         {
             Width = img.PixelWidth * k, Height = img.PixelHeight * k, CornerRadius = new CornerRadius(10),
-            Background = new ImageBrush(img), LayoutTransform = _zoom, ToolTip = "Ziehen · Mausrad = Zoom · Doppelklick = schließen"
+            Background = new ImageBrush(img), LayoutTransform = _zoom, ToolTip = L.T("Ziehen · Mausrad = Zoom · Doppelklick = schließen")
         };
         var close = new Button { HorizontalAlignment = HorizontalAlignment.Right, VerticalAlignment = VerticalAlignment.Top, Margin = new Thickness(6), Opacity = 0 };
         close.SetResourceReference(StyleProperty, "GlassIcon");

@@ -111,7 +111,7 @@ public sealed class MediaService : ObservableObject
             var p = await s.TryGetMediaPropertiesAsync();
             if (s != _session || p == null) return;
             bool changed = p.Title != Title || p.Artist != Artist;
-            Title = string.IsNullOrWhiteSpace(p.Title) ? "Unbekannter Titel" : p.Title;
+            Title = string.IsNullOrWhiteSpace(p.Title) ? L.T("Unbekannter Titel") : p.Title;
             Artist = string.IsNullOrWhiteSpace(p.Artist) ? p.AlbumArtist : p.Artist;
             HasMedia = true;
 

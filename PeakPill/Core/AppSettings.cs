@@ -26,23 +26,23 @@ public static class HotkeyInfo
     // Defaults avoid Ctrl+Alt+Q/E/M/2/3/7-0 because Ctrl+Alt = AltGr on German keyboards (@ € µ ² ³ { [ ] }).
     public static readonly HotkeyDef[] All =
     {
-        new(HotkeyAction.ToggleIsland,  "Insel öffnen / schließen",        "Ctrl+Alt+I"),
-        new(HotkeyAction.Clipboard,     "Zwischenablage öffnen",           "Ctrl+Alt+V"),
-        new(HotkeyAction.Screenshot,    "Screenshot (Bereich)",            "Ctrl+Alt+S"),
-        new(HotkeyAction.ScreenshotOcr, "Screenshot → Text erkennen",      "Ctrl+Alt+T"),
-        new(HotkeyAction.Shelf,         "Dateiablage öffnen",              "Ctrl+Alt+F"),
-        new(HotkeyAction.Music,         "Musik öffnen",                    "Ctrl+Alt+P"),
-        new(HotkeyAction.Widgets,       "Timer öffnen",                    "Ctrl+Alt+W"),
-        new(HotkeyAction.Reminders,     "Neue Erinnerung",                 "Ctrl+Alt+R"),
-        new(HotkeyAction.Controls,      "Schnellsteuerung öffnen",         "Ctrl+Alt+C"),
-        new(HotkeyAction.MicMute,       "Mikrofon stumm / an",             "Ctrl+Alt+K"),
-        new(HotkeyAction.QueueMode,     "Stapel-Modus an / aus",           "Ctrl+Alt+X"),
-        new(HotkeyAction.PlayPause,     "Wiedergabe / Pause",              ""),
-        new(HotkeyAction.NextTrack,     "Nächster Titel",                  ""),
-        new(HotkeyAction.PrevTrack,     "Vorheriger Titel",                ""),
-        new(HotkeyAction.FocusTimer,    "Timer starten / pausieren",       ""),
-        new(HotkeyAction.Settings,      "Einstellungen öffnen",            "Ctrl+Alt+O"),
-        new(HotkeyAction.AiChat,        "KI-Chat öffnen",                  ""),
+        new(HotkeyAction.ToggleIsland,  L.T("Insel öffnen / schließen"),        "Ctrl+Alt+I"),
+        new(HotkeyAction.Clipboard,     L.T("Zwischenablage öffnen"),           "Ctrl+Alt+V"),
+        new(HotkeyAction.Screenshot,    L.T("Screenshot (Bereich)"),            "Ctrl+Alt+S"),
+        new(HotkeyAction.ScreenshotOcr, L.T("Screenshot → Text erkennen"),      "Ctrl+Alt+T"),
+        new(HotkeyAction.Shelf,         L.T("Dateiablage öffnen"),              "Ctrl+Alt+F"),
+        new(HotkeyAction.Music,         L.T("Musik öffnen"),                    "Ctrl+Alt+P"),
+        new(HotkeyAction.Widgets,       L.T("Timer öffnen"),                    "Ctrl+Alt+W"),
+        new(HotkeyAction.Reminders,     L.T("Neue Erinnerung"),                 "Ctrl+Alt+R"),
+        new(HotkeyAction.Controls,      L.T("Schnellsteuerung öffnen"),         "Ctrl+Alt+C"),
+        new(HotkeyAction.MicMute,       L.T("Mikrofon stumm / an"),             "Ctrl+Alt+K"),
+        new(HotkeyAction.QueueMode,     L.T("Stapel-Modus an / aus"),           "Ctrl+Alt+X"),
+        new(HotkeyAction.PlayPause,     L.T("Wiedergabe / Pause"),              ""),
+        new(HotkeyAction.NextTrack,     L.T("Nächster Titel"),                  ""),
+        new(HotkeyAction.PrevTrack,     L.T("Vorheriger Titel"),                ""),
+        new(HotkeyAction.FocusTimer,    L.T("Timer starten / pausieren"),       ""),
+        new(HotkeyAction.Settings,      L.T("Einstellungen öffnen"),            "Ctrl+Alt+O"),
+        new(HotkeyAction.AiChat,        L.T("KI-Chat öffnen"),                  ""),
     };
 }
 
@@ -109,6 +109,8 @@ public sealed class AppSettings
     public List<string> Parcels { get; set; } = new();
     /// <summary>KI page (2026-11-17): which service answers, the user's own API keys (encrypted, per service) and the
     /// chosen model per service.</summary>
+    /// <summary>"en" (default) or "de" – asked by the installer, switchable in Settings › Allgemein (2026-11-17).</summary>
+    public string Language { get; set; } = "en";
     public AiProvider AiProvider { get; set; } = AiProvider.Claude;
     public Dictionary<string, string> AiKeysProtected { get; set; } = new();
     public Dictionary<string, string> AiModels { get; set; } = new();

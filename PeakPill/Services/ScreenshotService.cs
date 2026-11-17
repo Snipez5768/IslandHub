@@ -468,7 +468,7 @@ public static class OcrService
 
         var engine = OcrEngine.TryCreateFromUserProfileLanguages()
                      ?? OcrEngine.TryCreateFromLanguage(new Windows.Globalization.Language("en-US"));
-        if (engine == null) throw new InvalidOperationException("Keine OCR-Sprache installiert (Windows-Einstellungen → Sprache).");
+        if (engine == null) throw new InvalidOperationException(L.T("Keine OCR-Sprache installiert (Windows-Einstellungen → Sprache)."));
 
         var result = await engine.RecognizeAsync(bmp);
         var list = new List<OcrWord>();

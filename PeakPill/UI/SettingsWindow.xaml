@@ -143,6 +143,24 @@
                 <!-- ======== GENERAL ======== -->
                 <StackPanel x:Name="PageGeneral" Visibility="Collapsed">
                     <TextBlock Text="Allgemein" Style="{StaticResource PageTitle}" />
+                    <!-- language (2026-11-17): English by default; switching restarts the island -->
+                    <Border Style="{StaticResource SettingCard}">
+                        <Border Style="{StaticResource LastRow}">
+                            <DockPanel>
+                                <Border DockPanel.Dock="Right" Style="{StaticResource SegBox}" VerticalAlignment="Center">
+                                    <StackPanel Orientation="Horizontal">
+                                        <RadioButton x:Name="LangEnglish" Style="{StaticResource Seg}" GroupName="Lang" Content="English" Checked="Lang_Checked" />
+                                        <RadioButton x:Name="LangGerman" Style="{StaticResource Seg}" GroupName="Lang" Content="Deutsch" Checked="Lang_Checked" />
+                                    </StackPanel>
+                                </Border>
+                                <ui:HintPic Kind="lang" />
+                                <StackPanel Margin="0,0,12,0" VerticalAlignment="Center">
+                                    <TextBlock Text="Sprache · Language" />
+                                    <TextBlock x:Name="LangNote" Style="{StaticResource Desc}" Text="PeakPill startet dafür kurz neu." />
+                                </StackPanel>
+                            </DockPanel>
+                        </Border>
+                    </Border>
                     <TextBlock Text="Insel öffnen" Style="{StaticResource GroupHeader}" />
                     <Border Style="{StaticResource SettingCard}">
                         <StackPanel>

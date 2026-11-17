@@ -64,9 +64,9 @@ public partial class IslandWindow
             CornerRadius = new CornerRadius(6),
             Background = pic != null ? new ImageBrush(pic) { Stretch = Stretch.UniformToFill } : (Brush)FindResource("Card"),
         };
-        var name = new TextBlock { Text = $"Bildschirm {number}", FontSize = 11, FontWeight = FontWeights.SemiBold, Margin = new Thickness(2, 5, 0, 0) };
+        var name = new TextBlock { Text = L.T($"Bildschirm {number}"), FontSize = 11, FontWeight = FontWeights.SemiBold, Margin = new Thickness(2, 5, 0, 0) };
         var primary = System.Windows.Forms.Screen.PrimaryScreen?.Bounds ?? s.Bounds;
-        var where = s.Primary ? "Hauptbildschirm" : s.Bounds.X < primary.X ? "links" : s.Bounds.X > primary.X ? "rechts" : s.Bounds.Y < primary.Y ? "oben" : "unten";
+        var where = s.Primary ? L.T("Hauptbildschirm") : s.Bounds.X < primary.X ? L.T("links") : s.Bounds.X > primary.X ? L.T("rechts") : s.Bounds.Y < primary.Y ? L.T("oben") : L.T("unten");
         var note = new TextBlock { Text = where, FontSize = 9.5, Margin = new Thickness(2, 0, 0, 0) };
         note.SetResourceReference(TextBlock.ForegroundProperty, "SubText");
         var tile = new Border
@@ -79,7 +79,7 @@ public partial class IslandWindow
             BorderThickness = new Thickness(1.5),
             BorderBrush = Brushes.Transparent,
             Cursor = Cursors.Hand,
-            ToolTip = $"Bildschirm {number} in Discord streamen",
+            ToolTip = L.T($"Bildschirm {number} in Discord streamen"),
             Child = new StackPanel { Children = { img, name, note } },
             RenderTransformOrigin = new Point(0.5, 0.5),
         };
@@ -167,10 +167,10 @@ public partial class IslandWindow
                     Icon = "display",
                     Key = "live",
                     GlyphBrush = (Brush)FindResource("Blue"),
-                    Title = "Du streamst schon",
-                    Text = "Discord überträgt bereits. Erst beenden, dann einen anderen Bildschirm wählen.",
+                    Title = L.T("Du streamst schon"),
+                    Text = L.T("Discord überträgt bereits. Erst beenden, dann einen anderen Bildschirm wählen."),
                     TimeoutMs = 7000,
-                }.Action("Beenden", () => _ = StopSharing(app), true));
+                }.Action(L.T("Beenden"), () => _ = StopSharing(app), true));
                 return;
         }
         // no share button (Discord minimised to the tray, other layout …): the user's keybind, into Discord
@@ -188,8 +188,8 @@ public partial class IslandWindow
             Icon = "display",
             Key = "live",
             GlyphBrush = (Brush)FindResource("Blue"),
-            Title = "Discord ist vorn",
-            Text = "Klick unten links auf das Bildschirm-Symbol, um zu streamen.",
+            Title = L.T("Discord ist vorn"),
+            Text = L.T("Klick unten links auf das Bildschirm-Symbol, um zu streamen."),
             TimeoutMs = 7000,
         });
     }

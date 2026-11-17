@@ -240,7 +240,7 @@ public sealed class BrowserDownloadService : ObservableObject, IDownload
         Progress = HasTotal ? Math.Clamp((double)p.Size / p.Total, 0, 1) : 0;
         Percent = HasTotal ? $"{Progress * 100:0} %" : Bytes(p.Size);
         Stalled = p.IsStalled;
-        Where = !string.IsNullOrEmpty(p.App) ? $"in {p.App}" : "im Browser";
+        Where = !string.IsNullOrEmpty(p.App) ? L.T($"in {p.App}") : L.T("im Browser");
         Speed = p.Rate > 0 && !Stalled ? Bytes((long)p.Rate) + "/s" : "";
         Eta = Stalled ? "hängt" : HasTotal && p.Rate > 1000 ? FormatEta((p.Total - p.Size) / p.Rate) : HasTotal ? "" : "geladen";
         Downloading = true;
@@ -267,9 +267,9 @@ public sealed class BrowserDownloadService : ObservableObject, IDownload
     {
         if (double.IsNaN(seconds) || double.IsInfinity(seconds) || seconds <= 0) return "";
         var t = TimeSpan.FromSeconds(seconds);
-        if (t.TotalMinutes < 1) return $"noch {Math.Max(1, (int)t.TotalSeconds)} s";
-        if (t.TotalHours < 1) return $"noch {Math.Ceiling(t.TotalMinutes):0} Min";
-        return $"noch {(int)t.TotalHours} Std {t.Minutes} Min";
+        if (t.TotalMinutes < 1) return L.T($"noch {Math.Max(1, (int)t.TotalSeconds)} s");
+        if (t.TotalHours < 1) return L.T($"noch {Math.Ceiling(t.TotalMinutes):0} Min");
+        return L.T($"noch {(int)t.TotalHours} Std {t.Minutes} Min");
     }
 
     // ---------- full size from Chrome / Edge / Brave's download history ----------
@@ -357,7 +357,7 @@ public sealed class BrowserDownloadService : ObservableObject, IDownload
     public void Demo(string name, double progress, string speed)
     {
         _t.Stop();
-        Name = name; HasTotal = true; Progress = progress; Percent = $"{progress * 100:0} %"; Speed = speed; Eta = "noch 1 Min"; Where = "in Chrome"; Downloading = true;
+        Name = name; HasTotal = true; Progress = progress; Percent = $"{progress * 100:0} %"; Speed = speed; Eta = L.T("noch 1 Min"); Where = "in Chrome"; Downloading = true;
     }
     public void EndDemo() => Downloading = false;
 #endif

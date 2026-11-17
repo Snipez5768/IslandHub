@@ -55,10 +55,10 @@ public sealed class SteamService : ObservableObject, IDownload
     {
         if (double.IsNaN(seconds) || double.IsInfinity(seconds) || seconds <= 0) return "";
         var t = TimeSpan.FromSeconds(seconds);
-        if (t.TotalMinutes < 1) return "noch < 1 Min";
-        if (t.TotalHours < 1) return $"noch {Math.Ceiling(t.TotalMinutes):0} Min";
+        if (t.TotalMinutes < 1) return L.T("noch < 1 Min");
+        if (t.TotalHours < 1) return L.T($"noch {Math.Ceiling(t.TotalMinutes):0} Min");
         int h = (int)t.TotalHours, m = t.Minutes;
-        return m == 0 ? $"noch {h} Std" : $"noch {h} Std {m} Min";
+        return m == 0 ? L.T($"noch {h} Std") : L.T($"noch {h} Std {m} Min");
     }
     private System.Windows.Media.ImageSource _icon;
     /// <summary>The game's icon from Steam's library cache (null → a generic symbol is shown).</summary>
@@ -68,7 +68,7 @@ public sealed class SteamService : ObservableObject, IDownload
     // ---------- 2026-11-16: where, stalled, hide, open ----------
 
     private string _dismissedApp;
-    public string Where => "in Steam";
+    public string Where => L.T("in Steam");
     /// <summary>Steam reports a rate of 0 for a while (paused, no connection, disk full).</summary>
     public bool Stalled => Downloading && _bytesPerSec <= 0 && DateTime.Now - _estAt > TimeSpan.FromMinutes(3);
     public void Dismiss() { _dismissedApp = AppId; Downloading = false; }
@@ -259,7 +259,7 @@ public sealed class SteamService : ObservableObject, IDownload
     private string GameName(string appId)
     {
         var f = Manifest(appId);
-        return f != null && Parse(f).TryGetValue("name", out var n) ? n : "Steam-Download";
+        return f != null && Parse(f).TryGetValue("name", out var n) ? n : L.T("Steam-Download");
     }
 
     private bool IsInstalled(string appId)

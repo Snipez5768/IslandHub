@@ -61,7 +61,7 @@ public sealed class EditorWindow : Window
     private EditorWindow(ClipItem item)
     {
         _item = item;
-        Title = "Bildschirmfoto";
+        Title = L.T("Bildschirmfoto");
         Icon = IconFactory.CreateWindowIcon();
         Background = new SolidColorBrush(Color.FromRgb(0x1E, 0x1E, 0x1E));
         Foreground = Brushes.White;
@@ -82,15 +82,15 @@ public sealed class EditorWindow : Window
         var tools = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(5) };
         foreach (var (t, icon, tip, hover) in new[]
         {
-            (Tool.Select, "cursor", "Auswählen", "Blue"),
-            (Tool.Pen, "pencil", "Stift", "Yellow"),
-            (Tool.Marker, "highlighter", "Textmarker", "Yellow"),
-            (Tool.Arrow, "arrow", "Pfeil", "Orange"),
-            (Tool.Rect, "rect", "Rechteck", "Orange"),
-            (Tool.Ellipse, "ellipse", "Ellipse", "Orange"),
+            (Tool.Select, "cursor", L.T("Auswählen"), "Blue"),
+            (Tool.Pen, "pencil", L.T("Stift"), "Yellow"),
+            (Tool.Marker, "highlighter", L.T("Textmarker"), "Yellow"),
+            (Tool.Arrow, "arrow", L.T("Pfeil"), L.T("Orange")),
+            (Tool.Rect, "rect", L.T("Rechteck"), L.T("Orange")),
+            (Tool.Ellipse, "ellipse", L.T("Ellipse"), L.T("Orange")),
             (Tool.Text, "text", "Text", "Blue"),
-            (Tool.Pixelate, "pixelate", "Verpixeln", "Purple"),
-            (Tool.Crop, "crop", "Zuschneiden", "Green"),
+            (Tool.Pixelate, "pixelate", L.T("Verpixeln"), "Purple"),
+            (Tool.Crop, "crop", L.T("Zuschneiden"), "Green"),
         })
         {
             var rb = new RadioButton { GroupName = "EditTool", ToolTip = tip, IsChecked = t == Tool.Select };
@@ -110,12 +110,12 @@ public sealed class EditorWindow : Window
         foreach (var (s, d) in new[] { (1.0, 5.0), (2.0, 8.0), (3.5, 11.0) })
             tools.Children.Add(SizeDot(s, d));
         tools.Children.Add(Sep());
-        tools.Children.Add(IconBtn("undo", "Rückgängig (Strg+Z)", "Blue", Undo));
-        tools.Children.Add(IconBtn("redo", "Wiederholen (Strg+Y)", "Blue", Redo));
+        tools.Children.Add(IconBtn("undo", L.T("Rückgängig (Strg+Z)"), "Blue", Undo));
+        tools.Children.Add(IconBtn("redo", L.T("Wiederholen (Strg+Y)"), "Blue", Redo));
         tools.Children.Add(Sep());
-        _liveBtn = IconBtn("text.viewfinder", "Text erkennen (Live Text)", "Teal", async () => await SetLiveText(_live.Visibility != Visibility.Visible));
+        _liveBtn = IconBtn("text.viewfinder", L.T("Text erkennen (Live Text)"), "Teal", async () => await SetLiveText(_live.Visibility != Visibility.Visible));
         tools.Children.Add(_liveBtn);
-        _qrBtn = IconBtn("qr", "QR-Code", "Green", OpenQr);
+        _qrBtn = IconBtn("qr", L.T("QR-Code"), "Green", OpenQr);
         _qrBtn.Visibility = Visibility.Collapsed;
         tools.Children.Add(_qrBtn);
 
@@ -129,13 +129,13 @@ public sealed class EditorWindow : Window
         var right = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right };
         right.Children.Add(_copyText);
         right.Children.Add(Gap());
-        right.Children.Add(GlassIconBtn("copy", "Bild in die Zwischenablage", "Blue", () => { Commit(); Flash("Bild kopiert"); }));
-        right.Children.Add(GlassIconBtn("save", "Auf dem PC sichern", "Green", SaveToFolder));
-        right.Children.Add(GlassIconBtn("download", "Sichern unter …", "Green", SaveAs));
-        right.Children.Add(GlassIconBtn("pin", "Oben anheften", "Orange", () => PinWindow.Show(RenderComposite())));
-        right.Children.Add(GlassIconBtn("trash", "Löschen", "Danger", Delete));
+        right.Children.Add(GlassIconBtn("copy", L.T("Bild in die Zwischenablage"), "Blue", () => { Commit(); Flash(L.T("Bild kopiert")); }));
+        right.Children.Add(GlassIconBtn("save", L.T("Auf dem PC sichern"), "Green", SaveToFolder));
+        right.Children.Add(GlassIconBtn("download", L.T("Sichern unter …"), "Green", SaveAs));
+        right.Children.Add(GlassIconBtn("pin", L.T("Oben anheften"), L.T("Orange"), () => PinWindow.Show(RenderComposite())));
+        right.Children.Add(GlassIconBtn("trash", L.T("Löschen"), "Danger", Delete));
         right.Children.Add(Gap());
-        right.Children.Add(Pill("check", "Fertig", true, () => Close()));
+        right.Children.Add(Pill("check", L.T("Fertig"), true, () => Close()));
 
         var bottom = new DockPanel { Margin = new Thickness(16, 6, 12, 12) };
         DockPanel.SetDock(right, Dock.Right);
@@ -505,7 +505,7 @@ public sealed class EditorWindow : Window
         _liveBtn.Foreground = (Brush)FindResource("Teal");
         if (_words == null)
         {
-            _status.Text = "Text wird erkannt …";
+            _status.Text = L.T("Text wird erkannt …");
             try
             {
                 var tmp = IOPath.Combine(IOPath.GetTempPath(), $"peakpill_ocr_{Guid.NewGuid():N}.png");
@@ -523,14 +523,14 @@ public sealed class EditorWindow : Window
         }
         if (_words.Count == 0)
         {
-            _status.Text = "Kein Text gefunden";
+            _status.Text = L.T("Kein Text gefunden");
             return;
         }
         _live.Visibility = Visibility.Visible;
         _live.Opacity = 0;
         _live.BeginAnimation(OpacityProperty, new DoubleAnimation(1, TimeSpan.FromMilliseconds(260)));
-        _status.Text = "Text markieren und kopieren · Strg+C";
-        _copyText.Content = "Alles kopieren";
+        _status.Text = L.T("Text markieren und kopieren · Strg+C");
+        _copyText.Content = L.T("Alles kopieren");
         _copyText.Visibility = Visibility.Visible;
     }
 
@@ -608,8 +608,8 @@ public sealed class EditorWindow : Window
         for (int i = 0; i < _wordBoxes.Count; i++)
             _wordBoxes[i].Background = a >= 0 && i >= a && i <= b ? on : off;
         bool any = a >= 0;
-        _copyText.Content = any ? "Text kopieren" : "Alles kopieren";
-        _status.Text = any ? $"{b - a + 1} Wörter markiert · Strg+C" : "Text markieren und kopieren · Strg+C";
+        _copyText.Content = any ? "Text kopieren" : L.T("Alles kopieren");
+        _status.Text = any ? L.T($"{b - a + 1} Wörter markiert · Strg+C") : L.T("Text markieren und kopieren · Strg+C");
     }
 
     private void CopySelectedText()
@@ -619,8 +619,8 @@ public sealed class EditorWindow : Window
         var words = a < 0 ? _words : _words.Skip(a).Take(b - a + 1);
         var text = OcrService.JoinWords(words);
         if (string.IsNullOrWhiteSpace(text)) return;
-        App.Hub.Clipboard.AddText(text, "Texterkennung");
-        Flash("Text kopiert");
+        App.Hub.Clipboard.AddText(text, L.T("Texterkennung"));
+        Flash(L.T("Text kopiert"));
     }
 
     private async Task DetectQrAsync()
@@ -629,7 +629,7 @@ public sealed class EditorWindow : Window
         _qr = await Task.Run(() => ScreenshotService.DecodeQr(src));
         if (_qr == null) return;
         _qrBtn.Visibility = Visibility.Visible;
-        _qrBtn.ToolTip = "QR-Code: " + _qr;
+        _qrBtn.ToolTip = L.T("QR-Code: ") + _qr;
     }
 
     private void OpenQr()
@@ -641,8 +641,8 @@ public sealed class EditorWindow : Window
         }
         else
         {
-            App.Hub.Clipboard.AddText(_qr, "QR-Code");
-            Flash("QR-Inhalt kopiert");
+            App.Hub.Clipboard.AddText(_qr, L.T("QR-Code"));
+            Flash(L.T("QR-Inhalt kopiert"));
         }
     }
 
@@ -656,7 +656,7 @@ public sealed class EditorWindow : Window
         {
             Commit();
             var dest = ScreenshotService.SaveCopy(_item.ImageFile, App.Settings.ScreenshotFolder);
-            Flash("Gesichert in " + IOPath.GetFileName(IOPath.GetDirectoryName(dest)));
+            Flash(L.T("Gesichert in ") + IOPath.GetFileName(IOPath.GetDirectoryName(dest)));
         }
         catch (Exception ex) { App.Log(ex); _status.Text = ex.Message; }
     }
@@ -671,7 +671,7 @@ public sealed class EditorWindow : Window
         };
         if (dlg.ShowDialog(this) != true) return;
         ScreenshotService.SavePng(RenderComposite(), dlg.FileName);
-        Flash("Gesichert");
+        Flash(L.T("Gesichert"));
     }
 
     private void Delete()
@@ -705,7 +705,7 @@ public sealed class EditorWindow : Window
         else if (ctrl && e.Key == Key.C)
         {
             if (_live.Visibility == Visibility.Visible) CopySelectedText();
-            else { Commit(); Flash("Bild kopiert"); }
+            else { Commit(); Flash(L.T("Bild kopiert")); }
             e.Handled = true;
         }
         else if (ctrl && e.Key == Key.S) { SaveToFolder(); e.Handled = true; }
@@ -818,7 +818,7 @@ public sealed class EditorWindow : Window
         g.Children.Add(dot);
         var rb = new RadioButton
         {
-            GroupName = "InkSize", Content = g, Cursor = Cursors.Hand, Focusable = false, ToolTip = "Strichstärke",
+            GroupName = "InkSize", Content = g, Cursor = Cursors.Hand, Focusable = false, ToolTip = L.T("Strichstärke"),
             Template = (ControlTemplate)System.Windows.Markup.XamlReader.Parse(
                 "<ControlTemplate xmlns='http://schemas.microsoft.com/winfx/2006/xaml/presentation' TargetType='RadioButton'><ContentPresenter/></ControlTemplate>")
         };

@@ -146,7 +146,7 @@ public sealed class DeviceMoments : IMMNotificationClient, IDisposable
         name = (name ?? "").Trim();
         foreach (var junk in new[] { " Stereo", " Hands-Free AG Audio", " Hands-Free", " (Stereo)" })
             if (name.EndsWith(junk, StringComparison.OrdinalIgnoreCase)) name = name[..^junk.Length].Trim();
-        return name.Length == 0 ? "Kopfhörer" : name;
+        return name.Length == 0 ? L.T("Kopfhörer") : name;
     }
 
     /// <summary>Battery of a Bluetooth device by name (DEVPKEY_Bluetooth_Battery) – null when Windows does not know it.</summary>

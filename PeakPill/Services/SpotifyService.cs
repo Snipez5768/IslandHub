@@ -36,7 +36,7 @@ public sealed class SpotifyService : ObservableObject
     private const string Scopes = "user-read-playback-state user-read-currently-playing user-modify-playback-state user-library-read user-library-modify";
     private static readonly HttpClient Http = new() { Timeout = TimeSpan.FromSeconds(15) };
 
-    private string _access, _refresh, _status = "Nicht verbunden";
+    private string _access, _refresh, _status = L.T("Nicht verbunden");
     private DateTime _expires;
     private bool _connected, _busy;
 
@@ -53,7 +53,7 @@ public sealed class SpotifyService : ObservableObject
         {
             (_access, _refresh, _expires) = t.Value;
             Connected = true;
-            Status = "Verbunden";
+            Status = L.T("Verbunden");
         }
     }
 
@@ -61,7 +61,7 @@ public sealed class SpotifyService : ObservableObject
 
     public async Task<bool> SignInAsync()
     {
-        if (!Configured) { Status = "Client-ID fehlt"; return false; }
+        if (!Configured) { Status = L.T("Client-ID fehlt"); return false; }
         var verifier = B64Url(RandomNumberGenerator.GetBytes(48));
         var challenge = B64Url(SHA256.HashData(Encoding.ASCII.GetBytes(verifier)));
         var state = B64Url(RandomNumberGenerator.GetBytes(12));
@@ -71,13 +71,13 @@ public sealed class SpotifyService : ObservableObject
 
         var listener = new TcpListener(IPAddress.Loopback, Port);
         try { listener.Start(); }
-        catch { Status = $"Port {Port} ist belegt"; return false; }
+        catch { Status = L.T($"Port {Port} ist belegt"); return false; }
         try
         {
-            Status = "Bitte im Browser bei Spotify erlauben …";
+            Status = L.T("Bitte im Browser bei Spotify erlauben …");
             Process.Start(new ProcessStartInfo(url) { UseShellExecute = true });
             var accept = listener.AcceptTcpClientAsync();
-            if (await Task.WhenAny(accept, Task.Delay(TimeSpan.FromMinutes(3))) != accept) { Status = "Abgebrochen (keine Antwort)"; return false; }
+            if (await Task.WhenAny(accept, Task.Delay(TimeSpan.FromMinutes(3))) != accept) { Status = L.T("Abgebrochen (keine Antwort)"); return false; }
             using var client = accept.Result;
             var stream = client.GetStream();
             var buf = new byte[8192];
@@ -91,16 +91,16 @@ public sealed class SpotifyService : ObservableObject
             var body = Encoding.UTF8.GetBytes(html);
             await stream.WriteAsync(Encoding.ASCII.GetBytes($"HTTP/1.1 200 OK\r\nContent-Type: text/html; charset=utf-8\r\nContent-Length: {body.Length}\r\nConnection: close\r\n\r\n"));
             await stream.WriteAsync(body);
-            if (!ok) { Status = "Spotify hat nicht erlaubt"; return false; }
+            if (!ok) { Status = L.T("Spotify hat nicht erlaubt"); return false; }
 
             var tok = await Token(new Dictionary<string, string>
             {
                 ["grant_type"] = "authorization_code", ["code"] = qs["code"], ["redirect_uri"] = RedirectUri,
                 ["client_id"] = App.Settings.SpotifyClientId, ["code_verifier"] = verifier
             });
-            if (!tok) { Status = "Anmeldung fehlgeschlagen – stimmt die Client-ID / Redirect-URI?"; return false; }
+            if (!tok) { Status = L.T("Anmeldung fehlgeschlagen – stimmt die Client-ID / Redirect-URI?"); return false; }
             Connected = true;
-            Status = "Verbunden";
+            Status = L.T("Verbunden");
             await RefreshQueueAsync();
             return true;
         }
@@ -128,7 +128,7 @@ public sealed class SpotifyService : ObservableObject
         if (_access != null && DateTime.Now < _expires) return true;
         if (_refresh == null) return false;
         bool ok = await Token(new Dictionary<string, string> { ["grant_type"] = "refresh_token", ["refresh_token"] = _refresh, ["client_id"] = App.Settings.SpotifyClientId });
-        if (!ok) { Connected = false; Status = "Bitte neu verbinden"; }
+        if (!ok) { Connected = false; Status = L.T("Bitte neu verbinden"); }
         return ok;
     }
 
@@ -318,7 +318,7 @@ public sealed class SpotifyService : ObservableObject
     {
         _access = _refresh = null;
         Connected = false;
-        Status = "Nicht verbunden";
+        Status = L.T("Nicht verbunden");
         Queue.Clear();
         try { File.Delete(Storage.PathOf("spotify_token.bin")); } catch { }
     }
