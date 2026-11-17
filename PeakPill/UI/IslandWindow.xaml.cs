@@ -219,7 +219,10 @@ public partial class IslandWindow : Window
         _hoverTimer.Tick += (_, _) =>
         {
             _hoverTimer.Stop();
-            if (IsCursorOverIsland(0) && (_state == State.Collapsed || _state == State.Hint && !_hintHasActions)) Expand(null, false);
+            bool closed = _state == State.Collapsed || _state == State.Hint && !_hintHasActions;
+            // over a bubble beside the island: open the page that bubble belongs to (user wish 2026-11-17)
+            if (_hoverBubble != null) { var b = _hoverBubble; _hoverBubble = null; if (closed && b.IsMouseOver) Expand(BubbleTab(b), false); return; }
+            if (IsCursorOverIsland(0) && closed) Expand(null, false);
         };
         _watchTimer.Tick += (_, _) => WatchCursor();
         _peekTimer.Tick += (_, _) =>
@@ -236,7 +239,7 @@ public partial class IslandWindow : Window
             if (_state == State.Expanded) Collapse();
         }));
 
-        Island.MouseEnter += (_, _) => { StartHover(); OpenTicker(); StopCardCountdown(); };
+        Island.MouseEnter += (_, _) => { _hoverBubble = null; StartHover(); OpenTicker(); StopCardCountdown(); };
         Island.MouseLeave += (_, _) => { _hoverTimer.Stop(); StartCardCountdown(); };
         Island.MouseLeftButtonUp += (_, e) =>
         {
@@ -252,9 +255,11 @@ public partial class IslandWindow : Window
             }
             if (_state == State.Collapsed) { Expand(null, true); e.Handled = true; }
         };
-        Bubble.MouseEnter += (_, _) => StartHover();
+        Bubble.MouseEnter += (_, _) => StartBubbleHover(Bubble);
+        Bubble.MouseLeave += (_, _) => { if (_hoverBubble == Bubble) _hoverBubble = null; };
         Bubble.MouseLeftButtonUp += (_, _) => BubbleClicked(Bubble);
-        Bubble2.MouseEnter += (_, _) => StartHover();
+        Bubble2.MouseEnter += (_, _) => StartBubbleHover(Bubble2);
+        Bubble2.MouseLeave += (_, _) => { if (_hoverBubble == Bubble2) _hoverBubble = null; };
         Bubble2.MouseLeftButtonUp += (_, _) => BubbleClicked(Bubble2);
         // the bubble rings turn only when StyleRing asks for it; the agent spinner only while it is on screen
         Calm.Loop(AgentSpinner, AgentSpin, RotateTransform.AngleProperty, new DoubleAnimation(0, 360, TimeSpan.FromSeconds(1)) { RepeatBehavior = RepeatBehavior.Forever });
@@ -2022,7 +2027,39 @@ public partial class IslandWindow : Window
     private void BubbleClicked(Border bubble)
     {
         if (bubble.Tag is Act.Live && DiscordMuteTarget() is { } app) { MuteLiveApp(app); return; }
-        Expand(null, true);
+        _hoverBubble = null;
+        Expand(BubbleTab(bubble), true);
+    }
+
+    private Border _hoverBubble;
+
+    private void StartBubbleHover(Border bubble)
+    {
+        _hoverBubble = bubble;
+        StartHover();
+    }
+
+    /// <summary>
+    /// The page a bubble beside the island belongs to (user wish 2026-11-17: hovering or clicking a bubble opens
+    /// its own page – Claude → Agent, a call or app → Live). A new kind of bubble gets its page here; null = the
+    /// usual choice of page. A page that is switched off or not there right now falls back to that as well.
+    /// </summary>
+    private string BubbleTab(Border bubble)
+    {
+        string tab = bubble.Tag switch
+        {
+            Act.Live or Act.Steam => "Live",
+            Act.MicMuted => H.Privacy.InUse ? "Live" : "Controls",
+            Act.Agent => "Agent",
+            Act.Obs => "Obs",
+            Act.Timer or Act.Alarm => "Timer",
+            Act.Music => "Music",
+            Act.Queue => "Clip",
+            _ => null, // GIF recording: no page of its own
+        };
+        if (tab == null || IsTabHidden(tab)) return null;
+        if (_tabBtns != null && _tabBtns.TryGetValue(tab, out var rb) && rb.Visibility != Visibility.Visible) return null;
+        return tab;
     }
 
     /// <summary>The bubble's ring is Claude's turning spinner or a still progress ring (Steam).</summary>
@@ -3184,7 +3221,7 @@ public partial class IslandWindow : Window
             // Discord's own "stop streaming" button first; the keybind only with Discord in front (it ignores it otherwise)
             Collapse();
             ShowHint("stop", "Stream wird beendet …", (Brush)FindResource("Danger"), key: "live");
-            if (await H.Privacy.StopSharingAsync(app)) { LiveLog("stop: button"); ShowHint("check", "Stream beendet", (Brush)FindResource("Green"), key: "live"); return; }
+            if (await H.Privacy.StopSharingAsync(app) || await H.Privacy.StopDiscordStreamAsync(app)) { LiveLog("stop: button"); ShowHint("check", "Stream beendet", (Brush)FindResource("Green"), key: "live"); return; }
             if (DiscordStreamKey(out var g))
             {
                 H.Privacy.Open(app);

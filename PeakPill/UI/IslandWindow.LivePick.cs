@@ -159,6 +159,19 @@ public partial class IslandWindow
             case PrivacyService.GoLiveResult.PickerOpen:
                 StreamPicked();
                 return;
+            case PrivacyService.GoLiveResult.AlreadyLive:
+                // Discord streams already (the island had not noticed): offer to end it instead
+                if (before != IntPtr.Zero) PrivacyService.Focus(before);
+                ShowPeek(new PeekInfo
+                {
+                    Icon = "display",
+                    Key = "live",
+                    GlyphBrush = (Brush)FindResource("Blue"),
+                    Title = "Du streamst schon",
+                    Text = "Discord überträgt bereits. Erst beenden, dann einen anderen Bildschirm wählen.",
+                    TimeoutMs = 7000,
+                }.Action("Beenden", () => _ = StopSharing(app), true));
+                return;
         }
         // no share button (Discord minimised to the tray, other layout …): the user's keybind, into Discord
         if (DiscordStreamKey(out var g))

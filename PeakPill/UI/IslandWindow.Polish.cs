@@ -856,6 +856,28 @@ public partial class IslandWindow
                     Root.IsHitTestVisible = true;
                     break;
                 }
+                case "bubblehover":
+                {
+                    // a bubble beside the island opens its own page (the real mouse is not used: the hover end is called directly)
+                    Root.IsHitTestVisible = false;
+                    var discord = System.Diagnostics.Process.GetProcessesByName("Discord").Select(p => { try { return p.MainModule?.FileName; } catch { return null; } }).FirstOrDefault(f => f != null)
+                                  ?? @"C:\Windows\System32\notepad.exe";
+                    H.Privacy.Demo((discord, true, false, false, 3));
+                    await Task.Delay(1500);
+                    fh = 170;
+                    var lines = new List<string>();
+                    foreach (var b in new[] { Bubble, Bubble2 }) lines.Add($"{b.Name}: visible={b.Visibility} tag={b.Tag} → {BubbleTab(b) ?? "(usual)"}");
+                    File.WriteAllLines(Path.Combine(dir, "bubbles.txt"), lines);
+                    Frame();
+                    var live = new[] { Bubble, Bubble2 }.FirstOrDefault(b => b.Visibility == Visibility.Visible && b.Tag is Act.Live);
+                    if (live != null) { Expand(BubbleTab(live), false); _sticky = true; }
+                    await Film(7, 90);
+                    Save("1_hover_live");
+                    Collapse();
+                    H.Privacy.EndDemo();
+                    Root.IsHitTestVisible = true;
+                    break;
+                }
                 case "livepick":
                 {
                     // the screen choice in the island – only shown, no tile is clicked (that would drive the real Discord)

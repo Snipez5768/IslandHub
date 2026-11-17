@@ -576,7 +576,8 @@ public sealed class PrivacyService : ObservableObject
 
     private static readonly Regex StopNames = new(
         @"stop sharing|stop share|stop presenting|stop streaming|stop stream|end stream|stop screen ?share|" +
-        @"freigabe beenden|freigabe stoppen|teilen beenden|teilen stoppen|stream beenden|übertragung beenden|" +
+        // Discord (German, 2026-11-17): "Streaming beenden"
+        @"freigabe beenden|freigabe stoppen|teilen beenden|teilen stoppen|stream\w* beenden|stream\w* stoppen|übertragung beenden|" +
         @"präsentation beenden|präsentieren beenden|bildschirmübertragung beenden|bildschirmfreigabe beenden",
         RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
@@ -605,7 +606,12 @@ public sealed class PrivacyService : ObservableObject
 
     // ---------- Go Live with a chosen screen (user wish 2026-11-17: choose the screen in the island) ----------
 
-    public enum GoLiveResult { Live, PickerOpen, NoButton }
+    public enum GoLiveResult { Live, PickerOpen, NoButton, AlreadyLive }
+
+    private static bool IsButton(AutomationElement e)
+    {
+        try { return e.Current.ControlType == ControlType.Button; } catch { return false; }
+    }
 
     // Discord's picker (seen 2026-11-17, German client): tabs "Anwendungen" | "Gesamter Bildschirm" | "Geräte",
     // screen tiles are buttons "Bildschirm 1", "Bildschirm 2" (same order as Windows' screens, 1 = main screen),
@@ -619,9 +625,23 @@ public sealed class PrivacyService : ObservableObject
     /// "Bildschirm 1") and presses "Live gehen". Everything goes through UI Automation; <paramref name="log"/> gets
     /// what was found (names of the picker's controls, nothing of the call).
     /// </summary>
-    public Task<GoLiveResult> GoLiveAsync(LiveApp app, int screen, Action<string> log) => Task.Run(async () =>
+    public Task<GoLiveResult> GoLiveAsync(LiveApp app, int screen, Action<string> log) => Task.Run(() =>
     {
-        if (!await PressAsync(app, ShareNames)) return GoLiveResult.NoButton;
+        // Discord builds its button list for Windows only after it is shown – just restored it may take a while
+        // (user report 2026-11-17: twice "no button" right after bringing Discord up)
+        AutomationElement share = null;
+        for (int i = 0; i < 25 && share == null; i++)
+        {
+            share = FindShareButton(app);
+            if (share == null) Thread.Sleep(200);
+        }
+        if (share == null)
+        {
+            var stop = All(app).FirstOrDefault(e => StopNames.IsMatch(SafeName(e)) && IsButton(e));
+            log($"golive: no share button{(stop != null ? $" – '{SafeName(stop)}' is there, a stream already runs" : "")} · {Dump(app)}");
+            return stop != null ? GoLiveResult.AlreadyLive : GoLiveResult.NoButton;
+        }
+        log($"golive: share '{SafeName(share)}' {Activate(share)}");
 
         // the picker takes a moment to open – it starts on "Anwendungen", the screens are on "Gesamter Bildschirm"
         // (tiles are only looked for after the tab: on "Anwendungen" a window could be called "Display 1 …")
@@ -647,6 +667,54 @@ public sealed class PrivacyService : ObservableObject
         }
         return GoLiveResult.Live;
     });
+
+    /// <summary>
+    /// Discord's share button. In the call view it is a button named "Bildschirm übertragen"; in the small panel
+    /// bottom left (seen 2026-11-17) the icon buttons have NO name – each is followed by a group holding its label
+    /// text ("Kamera nicht verfügbar", "Bildschirm übertragen", "Aktivität starten"). Then the button right before
+    /// the label's group is the one.
+    /// </summary>
+    private AutomationElement FindShareButton(LiveApp app) => FindLabelled(app, ShareNames);
+
+    /// <summary>Ends Discord's stream: its "stop" button (named or by label), else the share toggle while it is on.</summary>
+    public Task<bool> StopDiscordStreamAsync(LiveApp app) => Task.Run(() =>
+    {
+        var b = FindLabelled(app, StopNames);
+        if (b == null)
+        {
+            var share = FindShareButton(app);
+            try { if (share != null && share.TryGetCurrentPattern(TogglePattern.Pattern, out var t) && ((TogglePattern)t).Current.ToggleState == ToggleState.On) b = share; }
+            catch { }
+        }
+        if (b == null) return false;
+        Activate(b);
+        return true;
+    });
+
+    private AutomationElement FindLabelled(LiveApp app, Regex names)
+    {
+        AutomationElement byLabel = null;
+        foreach (var e in All(app))
+        {
+            var n = SafeName(e);
+            if (!names.IsMatch(n)) continue;
+            if (IsButton(e)) return e;
+            if (byLabel != null) continue;
+            try
+            {
+                var walker = TreeWalker.RawViewWalker;
+                var holder = walker.GetParent(e);
+                for (var prev = holder == null ? null : walker.GetPreviousSibling(holder); prev != null; prev = walker.GetPreviousSibling(prev))
+                {
+                    if (!IsButton(prev)) continue;
+                    if (SafeName(prev).Length == 0) byLabel = prev; // a named button is someone else's
+                    break;
+                }
+            }
+            catch { }
+        }
+        return byLabel;
+    }
 
     private AutomationElement FindTile(LiveApp app, int screen) =>
         All(app).FirstOrDefault(e => AnyScreenTile.Match(SafeName(e)) is { Success: true } m && m.Groups[2].Value == screen.ToString());
@@ -697,8 +765,8 @@ public sealed class PrivacyService : ObservableObject
             if (n.Length == 0 || n.Length > 60) continue;
             string t;
             try { t = e.Current.ControlType.ProgrammaticName.Replace("ControlType.", ""); } catch { continue; }
-            // only what can belong to the picker – no server, channel or chat names
-            if (!PickerWords.IsMatch(n)) continue;
+            // only what can belong to the picker – no server, channel or chat names (no numbers: chat polls showed up)
+            if (!PickerWords.IsMatch(n) || n.Length > 40) continue;
             parts.Add($"{t}:{n}");
             if (parts.Count >= 60) break;
         }
@@ -706,7 +774,7 @@ public sealed class PrivacyService : ObservableObject
     }
 
     private static readonly Regex PickerWords = new(
-        @"(?i)^(bildschirm|screen|display|monitor|anwendung|application|fenster|window|live|stream|übertrag|qualität|quality|auflösung|resolution|bildrate|frame ?rate|fps|abbrechen|cancel|schließen|close|ton|audio|\d)",
+        @"(?i)^(bildschirm|screen|display|monitor|anwendung|application|fenster|window|live|stream|übertrag|qualität|quality|auflösung|resolution|bildrate|frame ?rate|fps|abbrechen|cancel|schließen|close|ton|audio|gesamter|geräte|kamera)",
         RegexOptions.Compiled);
 
     private static readonly Regex NearShare = new(@"(?i)bildschirm|screen|teil|share|stream|live|übertrag|kamera|camera|aktivit", RegexOptions.Compiled);
