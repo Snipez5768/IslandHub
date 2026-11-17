@@ -30,7 +30,7 @@ public partial class IslandWindow
     {
         if (SendMe == null || H?.LocalSend == null) return;
         var ls = H.LocalSend;
-        SendMe.Text = ls.ServerUp ? L.T($"Sichtbar als „{LocalSendService.Alias}“") : L.T("Nur senden – Empfangen ist aus");
+        UpdateSendHint();
         SendEmpty.Visibility = ls.Devices.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
         bool status = ls.Moving || !string.IsNullOrEmpty(ls.Status);
         SendStatusRow.Visibility = status ? Visibility.Visible : Visibility.Collapsed;
@@ -58,9 +58,165 @@ public partial class IslandWindow
     {
         if ((sender as FrameworkElement)?.Tag is not LocalSendDevice d) return;
         e.Handled = true;
+        // something chosen above (a copy, a text, files): that goes; otherwise pick files now
+        if (SendStaged(d)) return;
         var dlg = new Microsoft.Win32.OpenFileDialog { Multiselect = true, Title = L.T($"An {d.Alias} senden") };
         _sticky = true;
         if (dlg.ShowDialog(this) == true) _ = H.LocalSend.SendAsync(d, dlg.FileNames);
+    }
+
+    // ---------- what to send: from the clipboard, a text of your own, files (user wish 2026-11-17) ----------
+
+    private string _sendSrc, _sendSrcBefore;
+    private ClipItem _sendClip;
+    private readonly List<string> _sendFiles = new();
+
+    private void SendSrc_Checked(object sender, RoutedEventArgs e)
+    {
+        _sendSrcBefore = _sendSrc;
+        _sendSrc = sender == SendSrcClip ? "clip" : sender == SendSrcText ? "text" : "files";
+        ShowSendPick();
+        if (_sendSrc == "files") PickSendFiles();
+        if (_sendSrc == "text") Dispatcher.BeginInvoke(new Action(() => SendText.Focus()), System.Windows.Threading.DispatcherPriority.Input);
+    }
+
+    /// <summary>A second click on the chosen source closes it again.</summary>
+    private void SendSrc_Click(object sender, RoutedEventArgs e)
+    {
+        var src = sender == SendSrcClip ? "clip" : sender == SendSrcText ? "text" : "files";
+        if (_sendSrcBefore == src && _sendSrc == src)
+        {
+            ((RadioButton)sender).IsChecked = false;
+            _sendSrc = null;
+            ShowSendPick();
+        }
+        _sendSrcBefore = _sendSrc;
+    }
+
+    private void PickSendFiles()
+    {
+        var dlg = new Microsoft.Win32.OpenFileDialog { Multiselect = true };
+        _sticky = true;
+        if (dlg.ShowDialog(this) == true) { _sendFiles.Clear(); _sendFiles.AddRange(dlg.FileNames); }
+        ShowSendPick();
+    }
+
+    private void SendText_TextChanged(object sender, TextChangedEventArgs e)
+    {
+        UpdateSendHint();
+        UpdateSendUi();
+    }
+
+    private void ShowSendPick()
+    {
+        SendPick.Visibility = _sendSrc == null ? Visibility.Collapsed : Visibility.Visible;
+        SendClipScroll.Visibility = _sendSrc is "clip" or "files" ? Visibility.Visible : Visibility.Collapsed;
+        SendTextBox.Visibility = _sendSrc == "text" ? Visibility.Visible : Visibility.Collapsed;
+        SendClipList.Children.Clear();
+        if (_sendSrc == "clip")
+            foreach (var item in H.Clipboard.Items.Take(10)) SendClipList.Children.Add(SendCard(item));
+        else if (_sendSrc == "files")
+            foreach (var f in _sendFiles) SendClipList.Children.Add(FileChip(f));
+        UpdateSendHint();
+        UpdateSendUi();
+    }
+
+    /// <summary>A recent copy as a small card – a picture shows itself, a text its first lines. Click = chosen.</summary>
+    private FrameworkElement SendCard(ClipItem item)
+    {
+        FrameworkElement inner;
+        if (item.IsImage && item.ImageFile != null && File.Exists(item.ImageFile))
+            inner = new Border { CornerRadius = new CornerRadius(7), Background = new ImageBrush(ShellIcon.Get(item.ImageFile)) { Stretch = Stretch.UniformToFill } };
+        else
+        {
+            var t = new TextBlock { Text = item.Preview, FontSize = 10, TextWrapping = TextWrapping.Wrap, TextTrimming = TextTrimming.CharacterEllipsis, Margin = new Thickness(7, 5, 7, 5), Foreground = Brushes.White };
+            if (item.Kind == ClipKind.Files) t.Text = string.Join("\n", item.Files?.Select(Path.GetFileName) ?? Enumerable.Empty<string>());
+            inner = t;
+        }
+        var card = new Border
+        {
+            Width = 84, Height = 54, Margin = new Thickness(0, 0, 6, 0), CornerRadius = new CornerRadius(9),
+            Background = new SolidColorBrush(Color.FromArgb(0x1A, 0xFF, 0xFF, 0xFF)), BorderThickness = new Thickness(2),
+            BorderBrush = item == _sendClip ? (Brush)FindResource("Accent") : Brushes.Transparent,
+            Cursor = Cursors.Hand, Child = inner, ToolTip = item.Kind == ClipKind.Image ? null : item.Preview,
+        };
+        card.MouseLeftButtonUp += (_, e) =>
+        {
+            e.Handled = true;
+            _sendClip = _sendClip == item ? null : item;
+            foreach (Border b in SendClipList.Children.OfType<Border>()) b.BorderBrush = Brushes.Transparent;
+            if (_sendClip != null) card.BorderBrush = (Brush)FindResource("Accent");
+            if (_sendClip != null && S.Animations != AnimationLevel.Aus) Pop(card);
+            UpdateSendHint();
+        };
+        return card;
+    }
+
+    private static FrameworkElement FileChip(string path) => new Border
+    {
+        Margin = new Thickness(0, 0, 6, 0), Padding = new Thickness(9, 4, 9, 4), CornerRadius = new CornerRadius(9), Height = 26,
+        Background = new SolidColorBrush(Color.FromArgb(0x1A, 0xFF, 0xFF, 0xFF)),
+        Child = new TextBlock { Text = Path.GetFileName(path), FontSize = 10.5, Foreground = Brushes.White, VerticalAlignment = VerticalAlignment.Center, MaxWidth = 150, TextTrimming = TextTrimming.CharacterEllipsis },
+    };
+
+    /// <summary>The line on top says what a tap on a device would send.</summary>
+    private void UpdateSendHint()
+    {
+        if (SendMe == null) return;
+        string what = _sendSrc switch
+        {
+            "clip" when _sendClip != null => _sendClip.IsImage ? L.T("das Bild") : _sendClip.Kind == ClipKind.Files ? L.T("die Dateien") : Quote(_sendClip.Preview),
+            "text" when SendText.Text.Trim().Length > 0 => Quote(SendText.Text.Trim()),
+            "files" when _sendFiles.Count > 0 => _sendFiles.Count == 1 ? Path.GetFileName(_sendFiles[0]) : L.T($"{_sendFiles.Count} Dateien"),
+            _ => null,
+        };
+        SendMe.Text = what != null ? L.T($"Gerät antippen – sendet {what}")
+            : _sendSrc == "clip" ? L.T("Wähl eine Kopie, dann ein Gerät")
+            : H.LocalSend.ServerUp ? L.T($"Sichtbar als „{LocalSendService.Alias}“") : L.T("Nur senden – Empfangen ist aus");
+        SendMe.Foreground = what != null ? (Brush)FindResource("Accent") : (Brush)FindResource("SubText");
+
+        static string Quote(string s)
+        {
+            s = (s ?? "").Replace('\n', ' ');
+            if (s.Length > 24) s = s[..24] + "…";
+            return L.English ? "“" + s + "”" : "„" + s + "“";
+        }
+    }
+
+    /// <summary>Sends what is chosen above to <paramref name="d"/>; false = nothing chosen.</summary>
+    private bool SendStaged(LocalSendDevice d)
+    {
+        switch (_sendSrc)
+        {
+            case "clip" when _sendClip != null:
+                var item = _sendClip;
+                if (item.IsImage && item.ImageFile != null) _ = H.LocalSend.SendAsync(d, new[] { item.ImageFile });
+                else if (item.Kind == ClipKind.Files && item.Files is { Count: > 0 }) _ = H.LocalSend.SendAsync(d, item.Files);
+                else _ = H.LocalSend.SendTextAsync(d, item.Text ?? "");
+                return true;
+            case "text" when SendText.Text.Trim().Length > 0:
+                var text = SendText.Text.Trim();
+                _ = SendTextThenClear(d, text);
+                return true;
+            case "files" when _sendFiles.Count > 0:
+                _ = H.LocalSend.SendAsync(d, _sendFiles.ToList());
+                return true;
+        }
+        return false;
+    }
+
+    private async Task SendTextThenClear(LocalSendDevice d, string text)
+    {
+        if (await H.LocalSend.SendTextAsync(d, text) && SendText.Text.Trim() == text) SendText.Clear();
+    }
+
+    /// <summary>As tall as what is open (devices, the copies, the text field).</summary>
+    private double SendHeight()
+    {
+        if (TabSend == null) return ExpH;
+        const double Chrome = 7 + 24 + 6 + 10;
+        TabSend.Measure(new Size(ExpW - 24, double.PositiveInfinity));
+        return Math.Clamp(Math.Ceiling(Chrome + TabSend.DesiredSize.Height + 4), ExpH, 330);
     }
 
     private void SendDevice_DragEnter(object sender, DragEventArgs e)

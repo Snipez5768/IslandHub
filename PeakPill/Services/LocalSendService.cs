@@ -2,6 +2,8 @@ using System.Collections.ObjectModel;
 using System.Net;
 using System.Net.Http;
 using System.Net.Sockets;
+using System.Security.Cryptography;
+using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
@@ -73,7 +75,7 @@ public sealed class LocalSendService : ObservableObject
         SslProtocols = System.Security.Authentication.SslProtocols.Tls12 | System.Security.Authentication.SslProtocols.Tls13,
     };
     private static readonly HttpClient Http = new(Trusting()) { Timeout = TimeSpan.FromSeconds(8) };
-    private static readonly HttpClient Upload = new(Trusting()) { Timeout = Timeout.InfiniteTimeSpan };
+
 
     // ---------- start / stop ----------
 
@@ -81,7 +83,8 @@ public sealed class LocalSendService : ObservableObject
     {
         if (_running) return;
         _running = true;
-        _fingerprint = App.Settings.LocalSendId;
+        // our identity: the certificate's hash (what LocalSend sees over HTTPS), else a random id
+        _fingerprint = CertFingerprint() ?? App.Settings.LocalSendId;
         if (string.IsNullOrEmpty(_fingerprint)) { _fingerprint = Guid.NewGuid().ToString("N"); App.Settings.LocalSendId = _fingerprint; App.SaveSettings(); }
         _cts = new CancellationTokenSource();
         StartServer();
@@ -189,7 +192,7 @@ public sealed class LocalSendService : ObservableObject
     {
         try
         {
-            var res = await Http.PostAsync(Url(d, "register"), new StringContent(Info(true).ToJsonString(), Encoding.UTF8, "application/json"));
+            var res = await Clients.Modern.PostAsync(Url(d, "register"), new StringContent(Info(true).ToJsonString(), Encoding.UTF8, "application/json"), new CancellationTokenSource(TimeSpan.FromSeconds(6)).Token);
             if (res.IsSuccessStatusCode) return;
         }
         catch { }
@@ -231,40 +234,67 @@ public sealed class LocalSendService : ObservableObject
 
     // ---------- sending ----------
 
-    public async Task<bool> SendAsync(LocalSendDevice d, IReadOnlyList<string> paths)
+    /// <summary>One thing to send: a file, a picture or a text.</summary>
+    private sealed record Outgoing(string Name, long Size, string Mime, Func<Stream> Open, string Preview = null);
+
+    public Task<bool> SendAsync(LocalSendDevice d, IReadOnlyList<string> paths)
     {
-        var files = paths.Where(File.Exists).ToList();
-        if (files.Count == 0 || Moving) return false;
+        var items = paths.Where(File.Exists).Select(p =>
+        {
+            var fi = new FileInfo(p);
+            return new Outgoing(fi.Name, fi.Length, Mime(fi.Extension), () => File.OpenRead(p));
+        }).ToList();
+        return SendItemsAsync(d, items, items.Count == 1 ? L.T($"An {d.Alias} gesendet") : L.T($"{items.Count} Dateien an {d.Alias} gesendet"));
+    }
+
+    /// <summary>
+    /// A text as LocalSend sends it: a .txt whose words also travel as "preview" – the phone shows it as a message
+    /// (and usually answers 204: nothing more to upload).
+    /// </summary>
+    public Task<bool> SendTextAsync(LocalSendDevice d, string text)
+    {
+        var bytes = Encoding.UTF8.GetBytes(text);
+        var item = new Outgoing($"{Guid.NewGuid():N}.txt", bytes.Length, "text/plain", () => new MemoryStream(bytes), text);
+        return SendItemsAsync(d, new List<Outgoing> { item }, L.T($"Text an {d.Alias} gesendet"));
+    }
+
+    private async Task<bool> SendItemsAsync(LocalSendDevice d, List<Outgoing> items, string doneText)
+    {
+        if (items.Count == 0 || Moving) return false;
         Progress = 0;
         Status = L.T($"Warte auf {d.Alias} …");
-        Log($"send {files.Count} file(s) to '{d.Alias}' at {d.Protocol}://{d.Ip}:{d.Port}, last seen {(DateTime.Now - d.LastSeen).TotalSeconds:0} s ago");
+        Log($"send {items.Count} item(s) to '{d.Alias}' at {d.Protocol}://{d.Ip}:{d.Port}, last seen {(DateTime.Now - d.LastSeen).TotalSeconds:0} s ago");
         try
         {
             // not heard of for a while: ask once more who is there (an Android phone only listens while LocalSend is open)
             if (DateTime.Now - d.LastSeen > TimeSpan.FromSeconds(45)) { await Announce(); await Task.Delay(1500); }
             var map = new JsonObject();
-            var ids = new Dictionary<string, string>();
-            foreach (var f in files)
+            var ids = new Dictionary<string, Outgoing>();
+            foreach (var it in items)
             {
                 var id = Guid.NewGuid().ToString("N");
-                ids[id] = f;
-                var fi = new FileInfo(f);
-                map[id] = new JsonObject
-                {
-                    ["id"] = id,
-                    ["fileName"] = fi.Name,
-                    ["size"] = fi.Length,
-                    ["fileType"] = Mime(fi.Extension),
-                    ["metadata"] = new JsonObject { ["modified"] = fi.LastWriteTimeUtc.ToString("yyyy-MM-ddTHH:mm:ssZ") },
-                };
+                ids[id] = it;
+                var o = new JsonObject { ["id"] = id, ["fileName"] = it.Name, ["size"] = it.Size, ["fileType"] = it.Mime };
+                if (it.Preview != null) o["preview"] = it.Preview;
+                map[id] = o;
             }
-            var body = new JsonObject { ["info"] = Info(true), ["files"] = map };
-            // the other side asks its user first – give them time
-            using var prepCts = new CancellationTokenSource(TimeSpan.FromMinutes(2));
-            var res = await Upload.PostAsync(Url(d, "prepare-upload"), new StringContent(body.ToJsonString(), Encoding.UTF8, "application/json"), prepCts.Token);
+            var body = new JsonObject { ["info"] = Info(true), ["files"] = map }.ToJsonString();
+
+            // the other side asks its user first – give them time. Some phones break off TLS 1.3 with Windows:
+            // then once more with TLS 1.2 (user report 2026-11-17: "Format der empfangenen Nachricht … fehlerhaft")
+            var client = Clients.Modern;
+            HttpResponseMessage res;
+            try { res = await Prepare(client, d, body); }
+            catch (HttpRequestException ex) when (IsTls(ex))
+            {
+                Log($"TLS with {d.Ip} failed ({Root(ex).Message}) – trying TLS 1.2");
+                client = Clients.Tls12;
+                res = await Prepare(client, d, body);
+            }
+            Log($"prepare-upload → {(int)res.StatusCode}");
             switch ((int)res.StatusCode)
             {
-                case 204: Done(L.T("Schon da")); return true;
+                case 204: Done(doneText); return true;
                 case 401: Fail(L.T("Dieses Gerät verlangt eine PIN – schalte sie in LocalSend aus.")); return false;
                 case 403: Fail(L.T($"{d.Alias} hat abgelehnt")); return false;
                 case 409: Fail(L.T($"{d.Alias} empfängt gerade etwas anderes")); return false;
@@ -276,36 +306,101 @@ public sealed class LocalSendService : ObservableObject
             var tokens = json?["files"] as JsonObject;
             if (session == null || tokens == null) { Fail(L.T("Unerwartete Antwort")); return false; }
 
-            long total = files.Sum(f => new FileInfo(f).Length), sent = 0;
+            long total = items.Sum(i => i.Size), sent = 0;
             Status = L.T($"Sende an {d.Alias} …");
-            foreach (var (id, path) in ids)
+            foreach (var (id, it) in ids)
             {
                 var token = tokens[id]?.GetValue<string>();
                 if (token == null) continue; // the receiver did not want this one
-                await using var fs = File.OpenRead(path);
-                var content = new ProgressContent(fs, n => { sent += n; Ui.Run(() => Progress = total > 0 ? (double)sent / total : 1); });
-                var up = await Upload.PostAsync($"{Url(d, "upload")}?sessionId={Uri.EscapeDataString(session)}&fileId={id}&token={Uri.EscapeDataString(token)}", content);
+                await using var stream = it.Open();
+                var content = new ProgressContent(stream, n => { sent += n; Ui.Run(() => Progress = total > 0 ? (double)sent / total : 1); });
+                var up = await client.PostAsync($"{Url(d, "upload")}?sessionId={Uri.EscapeDataString(session)}&fileId={id}&token={Uri.EscapeDataString(token)}", content);
+                Log($"upload {it.Name} → {(int)up.StatusCode}");
                 if (!up.IsSuccessStatusCode) { Fail(L.T($"Übertragung an {d.Alias} abgebrochen")); return false; }
             }
-            Done(files.Count == 1 ? L.T($"An {d.Alias} gesendet") : L.T($"{files.Count} Dateien an {d.Alias} gesendet"));
+            Done(doneText);
             return true;
         }
         catch (TaskCanceledException) { Log($"send to {d.Ip}:{d.Port} ({d.Protocol}): timeout"); Fail(L.T($"{d.Alias} hat nicht geantwortet")); return false; }
         catch (Exception ex)
         {
             // say why (user report 2026-11-17: "nicht erreichbar" alone did not help)
-            var root = ex;
-            while (root.InnerException != null) root = root.InnerException;
+            var root = Root(ex);
             Log($"send to {d.Ip}:{d.Port} ({d.Protocol}): {ex.GetType().Name}: {ex.Message} | {root.GetType().Name}: {root.Message}");
             string why = root switch
             {
                 SocketException { SocketErrorCode: SocketError.ConnectionRefused } => L.T("LocalSend auf dem Gerät ist zu – öffne die App und lass sie im Vordergrund"),
                 SocketException { SocketErrorCode: SocketError.TimedOut or SocketError.HostUnreachable or SocketError.NetworkUnreachable } => L.T("Gerät nicht im selben Netzwerk erreichbar"),
-                System.Security.Authentication.AuthenticationException => L.T("Verschlüsselung mit dem Gerät klappte nicht"),
+                _ when IsTls(ex) => L.T("Verschlüsselung mit dem Gerät klappte nicht"),
                 _ => root.Message,
             };
             Fail($"{d.Alias}: {why}");
             return false;
+        }
+    }
+
+    private static async Task<HttpResponseMessage> Prepare(HttpClient client, LocalSendDevice d, string body)
+    {
+        using var cts = new CancellationTokenSource(TimeSpan.FromMinutes(2));
+        return await client.PostAsync(Url(d, "prepare-upload"), new StringContent(body, Encoding.UTF8, "application/json"), cts.Token);
+    }
+
+    private static Exception Root(Exception ex) { while (ex.InnerException != null) ex = ex.InnerException; return ex; }
+
+    private static bool IsTls(Exception ex)
+    {
+        for (var e = ex; e != null; e = e.InnerException)
+            if (e is System.Security.Authentication.AuthenticationException or System.ComponentModel.Win32Exception) return true;
+        return false;
+    }
+
+    // ---------- our certificate (LocalSend identifies a sender over HTTPS by its client certificate) ----------
+
+    private static X509Certificate2 _cert;
+
+    /// <summary>Made once (RSA 2048, self-signed like LocalSend's own), kept encrypted for this Windows user.</summary>
+    private static X509Certificate2 Cert()
+    {
+        if (_cert != null) return _cert;
+        var file = Storage.PathOf("localsend-cert.bin");
+        byte[] pfx = null;
+        try { if (File.Exists(file)) pfx = ProtectedData.Unprotect(File.ReadAllBytes(file), null, DataProtectionScope.CurrentUser); } catch { pfx = null; }
+        if (pfx == null)
+        {
+            using var rsa = RSA.Create(2048);
+            var req = new CertificateRequest("CN=PeakPill", rsa, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1);
+            using var made = req.CreateSelfSigned(DateTimeOffset.UtcNow.AddDays(-1), DateTimeOffset.UtcNow.AddYears(10));
+            pfx = made.Export(X509ContentType.Pfx);
+            try { File.WriteAllBytes(file, ProtectedData.Protect(pfx, null, DataProtectionScope.CurrentUser)); } catch { }
+        }
+        // through PFX: Windows' TLS needs a key it can reach, not an in-memory one
+        _cert = new X509Certificate2(pfx, (string)null, X509KeyStorageFlags.UserKeySet | X509KeyStorageFlags.Exportable);
+        return _cert;
+    }
+
+    /// <summary>Like LocalSend: the SHA-256 of the certificate.</summary>
+    private static string CertFingerprint()
+    {
+        try { return Convert.ToHexString(SHA256.HashData(Cert().RawData)).ToLowerInvariant(); }
+        catch { return null; }
+    }
+
+    private static class Clients
+    {
+        public static readonly HttpClient Modern = Make(System.Security.Authentication.SslProtocols.Tls12 | System.Security.Authentication.SslProtocols.Tls13);
+        public static readonly HttpClient Tls12 = Make(System.Security.Authentication.SslProtocols.Tls12);
+
+        private static HttpClient Make(System.Security.Authentication.SslProtocols p)
+        {
+            var h = Trusting();
+            h.SslProtocols = p;
+            try
+            {
+                h.ClientCertificateOptions = ClientCertificateOption.Manual;
+                h.ClientCertificates.Add(Cert());
+            }
+            catch { }
+            return new HttpClient(h) { Timeout = Timeout.InfiniteTimeSpan };
         }
     }
 

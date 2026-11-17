@@ -63,7 +63,7 @@ public partial class IslandWindow : Window
     private bool _queueOpen;
     private double TabHeight(string tab) => tab == "Clip" ? ClipHeight()
         : tab == "Ai" ? AiHeight()
-        : tab == "Send" && H.LocalSend.Devices.Count > 0 ? 156
+        : tab == "Send" ? SendHeight()
         : tab == "Notify" ? NotifyHeight()
         : tab == "Music" && (_queueOpen || _lyricsOpen) ? 300
         : tab == "Live" && _livePick ? LivePickH

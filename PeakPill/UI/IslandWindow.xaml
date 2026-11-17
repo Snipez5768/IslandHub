@@ -1298,9 +1298,41 @@
                         <!-- Ablage (approved 2026-11-14): empty = a calm invitation; with files = tiles, the actions only then -->
                         <!-- ===== LOCALSEND (2026-11-17): devices nearby, drop files on one to send; incoming files ask first ===== -->
                         <Grid x:Name="TabSend" Visibility="Collapsed" AllowDrop="True" Drop="Send_Drop" Background="Transparent">
+                            <Grid.Resources>
+                                <!-- the same underline buttons as on the Mitteilungen page (that style lives in its own page) -->
+                                <Style x:Key="SegBtn" TargetType="RadioButton">
+                                    <Setter Property="Foreground" Value="#FF8E8E93" />
+                                    <Setter Property="FontSize" Value="11.5" />
+                                    <Setter Property="Cursor" Value="Hand" />
+                                    <Setter Property="Focusable" Value="False" />
+                                    <Setter Property="GroupName" Value="SendSrc" />
+                                    <Setter Property="Margin" Value="0,0,14,0" />
+                                    <Setter Property="Template">
+                                        <Setter.Value>
+                                            <ControlTemplate TargetType="RadioButton">
+                                                <Border x:Name="b" Background="Transparent" Height="23" BorderThickness="0,0,0,1.5" BorderBrush="Transparent" Margin="0,0,0,-0.5">
+                                                    <ContentPresenter VerticalAlignment="Center" />
+                                                </Border>
+                                                <ControlTemplate.Triggers>
+                                                    <Trigger Property="IsChecked" Value="True">
+                                                        <Setter TargetName="b" Property="BorderBrush" Value="White" />
+                                                        <Setter Property="Foreground" Value="White" />
+                                                        <Setter Property="FontWeight" Value="SemiBold" />
+                                                    </Trigger>
+                                                    <Trigger Property="IsMouseOver" Value="True">
+                                                        <Setter Property="Foreground" Value="White" />
+                                                    </Trigger>
+                                                </ControlTemplate.Triggers>
+                                            </ControlTemplate>
+                                        </Setter.Value>
+                                    </Setter>
+                                </Style>
+                            </Grid.Resources>
                             <Grid.RowDefinitions>
                                 <RowDefinition Height="Auto" />
-                                <RowDefinition Height="*" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
                                 <RowDefinition Height="Auto" />
                             </Grid.RowDefinitions>
                             <DockPanel Margin="2,0,0,0">
@@ -1310,7 +1342,13 @@
                                         Foreground="#FF8E8E93" ui:Ext.Hover="White" ToolTip="Empfangene Dateien" Click="SendFolder_Click" />
                                 <TextBlock x:Name="SendMe" FontSize="10.5" Foreground="{StaticResource SubText}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
                             </DockPanel>
-                            <ScrollViewer Grid.Row="1" HorizontalScrollBarVisibility="Hidden" VerticalScrollBarVisibility="Disabled" Margin="0,4,0,0">
+                            <!-- what to send (2026-11-17): from the clipboard, a text of your own, or files – then tap a device -->
+                            <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,6,0,0">
+                                <RadioButton x:Name="SendSrcClip" Style="{StaticResource SegBtn}" GroupName="SendSrc" Content="Zwischenablage" Checked="SendSrc_Checked" Click="SendSrc_Click" />
+                                <RadioButton x:Name="SendSrcText" Style="{StaticResource SegBtn}" GroupName="SendSrc" Content="Text" Checked="SendSrc_Checked" Click="SendSrc_Click" />
+                                <RadioButton x:Name="SendSrcFiles" Style="{StaticResource SegBtn}" GroupName="SendSrc" Content="Dateien" Checked="SendSrc_Checked" Click="SendSrc_Click" />
+                            </StackPanel>
+                            <ScrollViewer Grid.Row="2" HorizontalScrollBarVisibility="Hidden" VerticalScrollBarVisibility="Disabled" Margin="0,6,0,0" MinHeight="66">
                                 <ItemsControl x:Name="SendDevices" ItemsSource="{Binding LocalSend.Devices}">
                                     <ItemsControl.ItemsPanel>
                                         <ItemsPanelTemplate><StackPanel Orientation="Horizontal" /></ItemsPanelTemplate>
@@ -1336,11 +1374,21 @@
                                     </ItemsControl.ItemTemplate>
                                 </ItemsControl>
                             </ScrollViewer>
-                            <StackPanel x:Name="SendEmpty" Grid.Row="1" HorizontalAlignment="Center" VerticalAlignment="Center" IsHitTestVisible="False">
+                            <StackPanel x:Name="SendEmpty" Grid.Row="2" Margin="0,6,0,0" HorizontalAlignment="Center" VerticalAlignment="Center" IsHitTestVisible="False">
                                 <TextBlock Text="Keine Geräte in der Nähe" FontSize="12.5" FontWeight="SemiBold" HorizontalAlignment="Center" />
                                 <TextBlock Text="Öffne LocalSend auf dem Handy – im selben WLAN" FontSize="10.5" Foreground="{StaticResource SubText}" HorizontalAlignment="Center" Margin="0,2,0,0" />
                             </StackPanel>
-                            <Grid x:Name="SendStatusRow" Grid.Row="2" Margin="2,2,2,0" Visibility="Collapsed">
+                            <!-- the chosen source: recent copies to pick from, or a text field -->
+                            <Grid x:Name="SendPick" Grid.Row="3" Margin="0,6,0,0" Visibility="Collapsed">
+                                <ScrollViewer x:Name="SendClipScroll" HorizontalScrollBarVisibility="Hidden" VerticalScrollBarVisibility="Disabled">
+                                    <StackPanel x:Name="SendClipList" Orientation="Horizontal" />
+                                </ScrollViewer>
+                                <Border x:Name="SendTextBox" CornerRadius="12" Background="#1AFFFFFF" Padding="10,4" Visibility="Collapsed">
+                                    <TextBox x:Name="SendText" Style="{StaticResource BareBox}" Tag="Text für dein Gerät …" FontSize="12" MinHeight="40" MaxHeight="74"
+                                             TextWrapping="Wrap" AcceptsReturn="True" VerticalScrollBarVisibility="Auto" TextChanged="SendText_TextChanged" />
+                                </Border>
+                            </Grid>
+                            <Grid x:Name="SendStatusRow" Grid.Row="4" Margin="2,2,2,0" Visibility="Collapsed">
                                 <TextBlock x:Name="SendStatus" FontSize="10.5" Foreground="{StaticResource SubText}" TextTrimming="CharacterEllipsis" />
                                 <Border x:Name="SendBar" Height="3" CornerRadius="1.5" Background="#26FFFFFF" VerticalAlignment="Bottom" Margin="0,0,0,-4" Visibility="Collapsed">
                                     <Border x:Name="SendBarFill" CornerRadius="1.5" Background="{StaticResource Accent}" HorizontalAlignment="Left" Width="0" />

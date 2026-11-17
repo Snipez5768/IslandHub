@@ -942,6 +942,24 @@ public partial class IslandWindow
                     H.LocalSend.Devices.Add(new LocalSendDevice { Fingerprint = "c", Alias = "Laptop", DeviceType = "desktop", DeviceModel = "Windows", Ip = "192.168.0.22" });
                     await Task.Delay(600);
                     Frame(); Save("1_devices");
+                    // the sources: recent copies (one picked), then a text of your own
+                    SendSrcClip.IsChecked = true;
+                    await Task.Delay(500);
+                    _sendClip = H.Clipboard.Items.FirstOrDefault(i => i.IsImage) ?? H.Clipboard.Items.FirstOrDefault();
+                    ShowSendPick();
+                    await Task.Delay(700);
+                    fh = 300;
+                    Frame(); Save("1b_clipboard");
+                    SendSrcText.IsChecked = true;
+                    SendText.Text = "Treffen um 18 Uhr am Bahnhof";
+                    await Task.Delay(700);
+                    Frame(); Save("1c_text");
+                    SendText.Clear();
+                    SendSrcText.IsChecked = false;
+                    _sendSrc = null;
+                    _sendClip = null;
+                    ShowSendPick();
+                    fh = 200;
                     Collapse();
                     await Task.Delay(1000);
                     var ask = AskReceive(new LocalSendRequest("Lenas iPhone", "mobile", new List<(string, long)> { ("Urlaub.jpg", 2_400_000), ("Notiz.pdf", 180_000) }));
