@@ -10,11 +10,13 @@ public enum TabBarStyle { Leise, Gruppen, Titel }
 public enum ClipLayout { Liste, Kacheln, Streifen }
 /// <summary>The small moments on the island (Claude done, timer end …): full (subtle), reduced (no light/rings), off.</summary>
 public enum AnimationLevel { An, Reduziert, Aus }
+/// <summary>Who answers on the KI page.</summary>
+public enum AiProvider { Claude, ChatGpt, Gemini }
 
 public enum HotkeyAction
 {
     ToggleIsland, Clipboard, Screenshot, ScreenshotOcr, Shelf, Music, Widgets, Reminders, Controls,
-    MicMute, QueueMode, PlayPause, NextTrack, PrevTrack, FocusTimer, Settings
+    MicMute, QueueMode, PlayPause, NextTrack, PrevTrack, FocusTimer, Settings, AiChat
 }
 
 public sealed record HotkeyDef(HotkeyAction Action, string Label, string Default);
@@ -40,6 +42,7 @@ public static class HotkeyInfo
         new(HotkeyAction.PrevTrack,     "Vorheriger Titel",                ""),
         new(HotkeyAction.FocusTimer,    "Timer starten / pausieren",       ""),
         new(HotkeyAction.Settings,      "Einstellungen öffnen",            "Ctrl+Alt+O"),
+        new(HotkeyAction.AiChat,        "KI-Chat öffnen",                  ""),
     };
 }
 
@@ -104,6 +107,11 @@ public sealed class AppSettings
     public string DhlKeyProtected { get; set; } = "";
     [System.Text.Json.Serialization.JsonIgnore] public string DhlKey { get => PeakPill.Services.DiscordService.Unprotect(DhlKeyProtected); set => DhlKeyProtected = PeakPill.Services.DiscordService.Protect(value); }
     public List<string> Parcels { get; set; } = new();
+    /// <summary>KI page (2026-11-17): which service answers, the user's own API keys (encrypted, per service) and the
+    /// chosen model per service.</summary>
+    public AiProvider AiProvider { get; set; } = AiProvider.Claude;
+    public Dictionary<string, string> AiKeysProtected { get; set; } = new();
+    public Dictionary<string, string> AiModels { get; set; } = new();
     /// <summary>Where the island sits (2026-11-16): the monitor (device name, null = main screen) and the centre as a
     /// share of the screen width from the middle (−0.5 … 0.5, 0 = centred).</summary>
     public string IslandScreen { get; set; }

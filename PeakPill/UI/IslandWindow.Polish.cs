@@ -743,6 +743,100 @@ public partial class IslandWindow
                     foreach (var f in fakes) H.Clipboard.Items.Remove(f);
                     break;
                 }
+                case "ai":
+                {
+                    // the KI page with a made-up chat (demo texts only, nothing is sent, the user's chat comes back afterwards)
+                    fh = 380;
+                    var keep = H.Ai.Messages.ToList();
+                    var keys = new Dictionary<string, string>(S.AiKeysProtected);
+                    var prov = S.AiProvider;
+                    S.AiProvider = AiProvider.Claude;
+                    S.AiKeysProtected.Clear();
+                    H.Ai.Messages.Clear();
+                    Expand("Ai", false);
+                    _sticky = true; // stays open without taking the keyboard from the user
+                    await Task.Delay(900);
+                    Frame(); Save("0_setup");
+                    AiService.SetKey(AiProvider.Claude, "demo");
+                    UpdateAiUi();
+                    await Task.Delay(500);
+                    Frame(); Save("1_empty");
+                    AiInput.Text = "Wie lange muss ein Ei kochen?";
+                    await Task.Delay(200);
+                    Frame();
+                    AiInput.Clear();
+                    var t = H.Ai.DemoAsync("Wie lange muss ein Ei kochen?",
+                        "Kommt drauf an, wie du es magst:\n\n- **Weich:** 4–5 Minuten\n- **Wachsweich:** 6–7 Minuten\n- **Hart:** 9–10 Minuten\n\nTipp: Danach kurz in kaltes Wasser legen, dann lässt es sich leichter schälen.",
+                        "Claude · Opus 5.5", 45);
+                    await Film(15, 150);
+                    await t;
+                    await Task.Delay(500);
+                    Frame(); Save("2_chat");
+                    await H.Ai.DemoAsync("Wie dreh ich einen Text in Python um?",
+                        "Mit Slicing geht das in einer Zeile:\n\n```python\ntext = \"PeakPill\"\nprint(text[::-1])\n```\n\nDas `[::-1]` läuft rückwärts durch den Text. Mehr dazu: [Python-Doku](https://docs.python.org/3/)",
+                        "Claude · Opus 5.5", 20);
+                    await Task.Delay(700);
+                    Frame(); Save("3_markdown");
+                    await H.Ai.DemoAsync("Und auf Englisch?", "Keine Verbindung. Bist du online?", "Claude · Opus 5.5", 0, fail: true);
+                    await Task.Delay(700);
+                    Frame(); Save("4_error");
+                    H.Ai.Messages.Clear();
+                    Collapse();
+                    await Task.Delay(900);
+                    fh = 160;
+                    var t2 = H.Ai.DemoAsync("Ein Wort für schnell?", "Zügig, flink oder rasch – je nachdem, wie es klingen soll.", "Claude · Opus 5.5", 30);
+                    await t2;
+                    await Film(8, 140);
+                    Save("5_peek");
+                    H.Ai.Messages.Clear();
+                    foreach (var m in keep) H.Ai.Messages.Add(m);
+                    S.AiKeysProtected.Clear();
+                    foreach (var (k, v) in keys) S.AiKeysProtected[k] = v;
+                    S.AiProvider = prov;
+                    break;
+                }
+                case "aisettings":
+                {
+                    var w = new SettingsWindow { ShowActivated = false, WindowStartupLocation = WindowStartupLocation.Manual, Left = -4000, Top = 0 };
+                    w.Show();
+                    w.ShowPage("Ai");
+                    await Task.Delay(800);
+                    var dpi = VisualTreeHelper.GetDpi(w);
+                    var el = (FrameworkElement)w.Content;
+                    var rtb = new RenderTargetBitmap((int)(el.ActualWidth * dpi.DpiScaleX), (int)(el.ActualHeight * dpi.DpiScaleY), dpi.PixelsPerInchX, dpi.PixelsPerInchY, PixelFormats.Pbgra32);
+                    rtb.Render(el);
+                    var enc = new PngBitmapEncoder();
+                    enc.Frames.Add(BitmapFrame.Create(rtb));
+                    using (var fs = File.Create(Path.Combine(dir, "settings_ai.png"))) enc.Save(fs);
+                    w.Close();
+                    break;
+                }
+                case "aikeys":
+                {
+                    // the real services with a made-up, invalid key: each must answer "key wrong" in plain words
+                    var lines = new List<string>();
+                    var keys = new Dictionary<string, string>(S.AiKeysProtected);
+                    var prov = S.AiProvider;
+                    var keep = H.Ai.Messages.ToList();
+                    foreach (var p in AiService.All)
+                    {
+                        var fake = p == AiProvider.Gemini ? "AIzaInvalidTestKey000000000000000000000" : p == AiProvider.ChatGpt ? "sk-invalid-test-key" : "sk-ant-invalid-test-key";
+                        try { var ms = await AiService.ListModels(p, fake, CancellationToken.None); lines.Add($"{p} list: {ms.Count} models (?)"); }
+                        catch (Exception ex) { lines.Add($"{p} list: {AiService.Explain(ex)}  [{ex.GetType().Name}]"); }
+                        S.AiProvider = p;
+                        AiService.SetKey(p, fake);
+                        H.Ai.Messages.Clear();
+                        await H.Ai.SendAsync("Hallo");
+                        lines.Add($"{p} chat: failed={H.Ai.Messages[^1].Failed} · {H.Ai.Messages[^1].Text}");
+                    }
+                    File.WriteAllLines(Path.Combine(dir, "keys.txt"), lines);
+                    H.Ai.Messages.Clear();
+                    foreach (var m in keep) H.Ai.Messages.Add(m);
+                    S.AiKeysProtected.Clear();
+                    foreach (var (k, v) in keys) S.AiKeysProtected[k] = v;
+                    S.AiProvider = prov;
+                    break;
+                }
                 case "listen":
                 {
                     // a known app starts listening while a Discord call runs – the wave must still come

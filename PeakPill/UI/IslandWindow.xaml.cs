@@ -25,7 +25,7 @@ public partial class IslandWindow : Window
     private enum State { Collapsed, Hint, Peek, Expanded }
     private enum Act { Live, Agent, Obs, Steam, Timer, Music, MicMuted, Queue, Recording, Alarm }
 
-    private static readonly string[] TabOrder = { "Live", "Obs", "Music", "Clip", "Shelf", "Agent", "Games", "Notify", "Timer", "Today", "Remind", "Controls" };
+    private static readonly string[] TabOrder = { "Live", "Obs", "Music", "Clip", "Shelf", "Agent", "Ai", "Games", "Notify", "Timer", "Today", "Remind", "Controls" };
     // one fixed size for every tab – the island never jumps when switching tabs
     private const double ExpW = 380, ExpH = 128, PeekW = 340, PillH = 32, IdleW = 176, ExpRadius = 24;
 
@@ -62,6 +62,7 @@ public partial class IslandWindow : Window
 
     private bool _queueOpen;
     private double TabHeight(string tab) => tab == "Clip" ? ClipHeight()
+        : tab == "Ai" ? AiHeight()
         : tab == "Notify" ? NotifyHeight()
         : tab == "Music" && (_queueOpen || _lyricsOpen) ? 300
         : tab == "Live" && H.Privacy.InUse && AnyDl ? 152 // call + download: a little taller, nothing cut off
@@ -112,6 +113,7 @@ public partial class IslandWindow : Window
         H.Privacy.Started += (_, _) => Ui.Run(() => Note("Live", 60));
         H.Timer.Completed += () => Ui.Run(() => Note("Timer", 60));
         H.Reminders.Due += _ => Ui.Run(() => Note("Remind", 120));
+        WireAi();
 
         // timer wheels start at the last used duration
         var secs = H.Timer.DurationSeconds;
@@ -211,7 +213,7 @@ public partial class IslandWindow : Window
         RemindEmpty.Visibility = H.Reminders.Items.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
         H.Shelf.Items.CollectionChanged += (_, _) => UpdateShelfUi();
         LiveApp.MicBrush = MicBrush;
-        App.SettingsChanged += () => { LiveApp.MicBrush = MicBrush; Reposition(); ApplyShape(); UpdatePill(true); UpdateLiveUi(); UpdateGlow(); ApplyTabStyle(); ApplyClipLayout(); };
+        App.SettingsChanged += () => { LiveApp.MicBrush = MicBrush; Reposition(); ApplyShape(); UpdatePill(true); UpdateLiveUi(); UpdateGlow(); ApplyTabStyle(); ApplyClipLayout(); UpdateAiUi(); };
 
         _hoverTimer.Tick += (_, _) =>
         {
@@ -2883,6 +2885,7 @@ public partial class IslandWindow : Window
             case HotkeyAction.Music: ToggleTab("Music"); break;
             case HotkeyAction.Widgets: ToggleTab("Timer"); break;
             case HotkeyAction.Reminders: ToggleTab("Remind"); break;
+            case HotkeyAction.AiChat: ToggleTab("Ai"); break;
             case HotkeyAction.Controls: ToggleTab("Controls"); break;
             case HotkeyAction.Screenshot: TakeScreenshot(false); break;
             case HotkeyAction.ScreenshotOcr: TakeScreenshot(true); break;
@@ -4207,6 +4210,7 @@ public partial class IslandWindow : Window
         TabLive.Visibility = tab == "Live" ? Visibility.Visible : Visibility.Collapsed;
         TabMusic.Visibility = tab == "Music" ? Visibility.Visible : Visibility.Collapsed;
         TabAgent.Visibility = tab == "Agent" ? Visibility.Visible : Visibility.Collapsed;
+        TabAi.Visibility = tab == "Ai" ? Visibility.Visible : Visibility.Collapsed;
         TabObs.Visibility = tab == "Obs" ? Visibility.Visible : Visibility.Collapsed;
         TabNotify.Visibility = tab == "Notify" ? Visibility.Visible : Visibility.Collapsed;
         TabClip.Visibility = tab == "Clip" ? Visibility.Visible : Visibility.Collapsed;
@@ -4248,6 +4252,7 @@ public partial class IslandWindow : Window
             case "Today": UpdateTodayUi(); break;
             case "Live": UpdateLiveUi(); break;
             case "Agent": UpdateAgentUi(); break;
+            case "Ai": UpdateAiUi(); break;
             case "Games": UpdateGamesUi(); break;
             case "Obs": UpdateObsUi(); break;
             case "Notify": UpdateNotifyUi(); break;
@@ -4260,8 +4265,8 @@ public partial class IslandWindow : Window
     //  optional "D" for all of them: fades to page dots while the pointer is not on the bar
     // =====================================================================
 
-    private static readonly string[] FlatTabOrder = { "Live", "Obs", "Music", "Clip", "Shelf", "Agent", "Games", "Notify", "Timer", "Today", "Remind", "Controls" };
-    private static readonly string[] GroupTabOrder = { "Live", "Obs", "Music", "|", "Clip", "Shelf", "Games", "Timer", "Today", "Remind", "|", "Agent", "Notify", "Controls" };
+    private static readonly string[] FlatTabOrder = { "Live", "Obs", "Music", "Clip", "Shelf", "Agent", "Ai", "Games", "Notify", "Timer", "Today", "Remind", "Controls" };
+    private static readonly string[] GroupTabOrder = { "Live", "Obs", "Music", "|", "Clip", "Shelf", "Games", "Timer", "Today", "Remind", "|", "Agent", "Ai", "Notify", "Controls" };
     private static readonly SolidColorBrush LiveBadge = Frozen(Color.FromRgb(0x30, 0xD1, 0x58));
     private static readonly SolidColorBrush RedBadge = Frozen(Color.FromRgb(0xFF, 0x45, 0x3A));
     private static readonly SolidColorBrush DotBrush = Frozen(Color.FromRgb(0x48, 0x48, 0x4A));
@@ -4278,7 +4283,7 @@ public partial class IslandWindow : Window
     private static readonly Dictionary<string, int> TabGroup = new()
     {
         ["Live"] = 0, ["Obs"] = 0, ["Music"] = 0, ["Clip"] = 1, ["Shelf"] = 1, ["Games"] = 1, ["Timer"] = 1, ["Today"] = 1, ["Remind"] = 1,
-        ["Agent"] = 2, ["Notify"] = 2, ["Controls"] = 2
+        ["Agent"] = 2, ["Ai"] = 2, ["Notify"] = 2, ["Controls"] = 2
     };
 
     private static IEnumerable<string> WithGroupDots(List<string> order)
@@ -4553,6 +4558,7 @@ public partial class IslandWindow : Window
                 }
                 break;
             case "Remind": RemindText.Focus(); break;
+            case "Ai": AiInput.Focus(); AiInput.CaretIndex = AiInput.Text.Length; break;
             default: Focus(); break;
         }
     }

@@ -677,6 +677,7 @@
                                 <RadioButton Style="{StaticResource TabButton}" Tag="Clip" Content="Zwischenablage" ui:Ext.Icon="clipboard" Checked="Tab_Checked" ToolTip="Zwischenablage" />
                                 <RadioButton x:Name="ShelfTabBtn" Style="{StaticResource TabButton}" Tag="Shelf" Content="Ablage" ui:Ext.Icon="folder" Checked="Tab_Checked" ToolTip="Ablage" Visibility="Collapsed" />
                                 <RadioButton Style="{StaticResource TabButton}" Tag="Agent" Content="Agent" ui:Ext.Icon="sparkles" Checked="Tab_Checked" ToolTip="KI-Agenten" />
+                                <RadioButton Style="{StaticResource TabButton}" Tag="Ai" Content="KI" ui:Ext.Icon="bubble" Checked="Tab_Checked" ToolTip="KI – mit Claude, ChatGPT oder Gemini schreiben" />
                                 <RadioButton Style="{StaticResource TabButton}" Tag="Games" Content="Spiele" ui:Ext.Icon="gamecontroller" Checked="Tab_Checked" ToolTip="Spiele und Programme" />
                                 <RadioButton Style="{StaticResource TabButton}" Tag="Notify" Content="Mitteilungen" ui:Ext.Icon="bell.badge" Checked="Tab_Checked" ToolTip="Mitteilungen, Preisalarme, Vorschläge" />
                                 <RadioButton Style="{StaticResource TabButton}" Tag="Timer" Content="Timer" ui:Ext.Icon="timer" Checked="Tab_Checked" ToolTip="Timer" />
@@ -1527,6 +1528,41 @@
                                     </ItemsControl.ItemTemplate>
                                 </ItemsControl>
                             </ScrollViewer>
+                        </Grid>
+
+                        <!-- ===== KI: chat with Claude / ChatGPT / Gemini on the user's own key (2026-11-17) ===== -->
+                        <Grid x:Name="TabAi" Visibility="Collapsed">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="*" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+                            <ScrollViewer x:Name="AiScroll" VerticalScrollBarVisibility="Auto" ScrollChanged="AiScroll_ScrollChanged">
+                                <StackPanel x:Name="AiList" Margin="0,0,2,6" />
+                            </ScrollViewer>
+                            <StackPanel x:Name="AiEmpty" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,0,0,4">
+                                <TextBlock x:Name="AiEmptyTitle" Text="Frag Claude etwas" FontSize="12.5" FontWeight="SemiBold" HorizontalAlignment="Center" />
+                                <TextBlock x:Name="AiEmptyText" FontSize="10.5" Foreground="{StaticResource SubText}" HorizontalAlignment="Center" Margin="0,2,0,0" />
+                                <Button x:Name="AiSetupBtn" Style="{StaticResource MacButton}" Content="API-Schlüssel eintragen" FontSize="11" Padding="10,2" Margin="0,6,0,0"
+                                        HorizontalAlignment="Center" Click="AiSetup_Click" Visibility="Collapsed" />
+                            </StackPanel>
+                            <Border x:Name="AiInputBox" Grid.Row="1" CornerRadius="15" Background="#1AFFFFFF" BorderBrush="#14FFFFFF" BorderThickness="0.5" Padding="12,2,3,2" MinHeight="30">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBox x:Name="AiInput" Style="{StaticResource BareBox}" Tag="Frag Claude …" FontSize="12.5" MinHeight="24" MaxHeight="58"
+                                             TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" PreviewKeyDown="AiInput_PreviewKeyDown" TextChanged="AiInput_TextChanged" />
+                                    <Button x:Name="AiNewBtn" Grid.Column="1" Style="{StaticResource BareIconButton}" Width="24" Height="24" ui:Ext.Icon="square.pencil" ui:Ext.IconSize="13"
+                                            Foreground="#FF8E8E93" ui:Ext.Hover="White" ToolTip="Neuer Chat" Click="AiNew_Click" VerticalAlignment="Bottom" Margin="0,0,0,1" />
+                                    <Border x:Name="AiSendBtn" Grid.Column="2" Width="24" Height="24" CornerRadius="12" Background="{StaticResource Accent}" Cursor="Hand"
+                                            VerticalAlignment="Bottom" Margin="3,0,0,1" MouseLeftButtonUp="AiSend_Click" ToolTip="Senden (Enter)" RenderTransformOrigin="0.5,0.5">
+                                        <Border.RenderTransform><ScaleTransform x:Name="AiSendScale" /></Border.RenderTransform>
+                                        <ui:SfIcon x:Name="AiSendIcon" Kind="arrow.up" Size="13" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                    </Border>
+                                </Grid>
+                            </Border>
                         </Grid>
 
                         <!-- ===== NOTIFICATIONS: Windows notifications · price alarms · suggestions ===== -->

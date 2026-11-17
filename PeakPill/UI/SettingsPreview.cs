@@ -156,6 +156,9 @@ public sealed class HintPic : Border
                 break;
             }
             case "autosave": c = Pv.Icon("save", 16, Pv.Sub); break;
+            case "aichat": c = Pv.Icon("bubble", 17, Pv.B("#FF5E5CE6")); break;
+            case "aikey": c = Pv.Icon("lock", 15, Pv.Sub); break;
+            case "aimodel": c = Pv.Icon("cpu", 16, Pv.Sub); break;
             case "glow":
             {
                 var p = Pill(34, 12, 0);

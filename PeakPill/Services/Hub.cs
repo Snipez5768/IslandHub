@@ -38,6 +38,7 @@ public sealed class Hub
     public DeviceMoments Devices { get; private set; }
     public LiveFeeds Feeds { get; private set; }
     public ClockModel Clock { get; private set; }
+    public AiService Ai { get; private set; }
 
     public void Init()
     {
@@ -54,6 +55,8 @@ public sealed class Hub
 
         Shelf = new ShelfService();
         Shelf.Load();
+        Ai = new AiService();
+        Ai.Load();
         Launcher = new LauncherService();
         Launcher.Load();
         // the Steam tile comes once by itself (user wish 2026-11-14); if it is removed later it stays away

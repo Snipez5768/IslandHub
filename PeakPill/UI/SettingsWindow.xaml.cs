@@ -325,6 +325,7 @@ public partial class SettingsWindow : Window
         OptTwitchChannels.Text = string.Join(", ", S.TwitchChannels);
         OptYouTube.Text = string.Join(", ", S.YouTubeChannels);
         OptDhlKey.Password = string.IsNullOrEmpty(S.DhlKeyProtected) ? "" : SecretMask;
+        LoadAi();
         OptParcels.Text = string.Join("\n", S.Parcels);
         ShapePill.IsChecked = S.Shape == IslandShape.Pill;
         ShapeNotch.IsChecked = S.Shape == IslandShape.Notch;
@@ -494,6 +495,7 @@ public partial class SettingsWindow : Window
         PageShot.Visibility = tag == "Shot" ? Visibility.Visible : Visibility.Collapsed;
         PageWidgets.Visibility = tag == "Widgets" ? Visibility.Visible : Visibility.Collapsed;
         PageAbout.Visibility = tag == "About" ? Visibility.Visible : Visibility.Collapsed;
+        PageAi.Visibility = tag == "Ai" ? Visibility.Visible : Visibility.Collapsed;
         PageScroll.ScrollToTop();
         if (tag == "Keys") RefreshKeyStatus(App.ApplyHotkeys());
         // the first time the page opens, every animation plays once, one after another
@@ -640,7 +642,7 @@ public partial class SettingsWindow : Window
     {
         ("Live", "Live", "dot.radiowaves", "nur wenn etwas läuft"), ("Obs", "OBS", "record", "nur wenn verbunden"),
         ("Music", "Musik", "music", ""), ("Clip", "Zwischenablage", "clipboard", ""), ("Shelf", "Ablage", "folder", ""),
-        ("Agent", "Agent", "sparkles", ""), ("Games", "Spiele", "gamecontroller", ""), ("Notify", "Mitteilungen", "bell.badge", ""),
+        ("Agent", "Agent", "sparkles", ""), ("Ai", "KI", "bubble", "Chat mit deinem API-Schlüssel"), ("Games", "Spiele", "gamecontroller", ""), ("Notify", "Mitteilungen", "bell.badge", ""),
         ("Timer", "Timer", "timer", ""), ("Today", "Heute", "calendar", "Wetter und Termine"), ("Remind", "Erinnerungen", "checklist", ""), ("Controls", "Steuerung", "sliders", "")
     };
 

@@ -132,6 +132,7 @@
                     <RadioButton Style="{StaticResource NavButton}" Tag="Clip" ui:Ext.Icon="clipboard" Background="#FFFF9F0A" Content="Zwischenablage" Checked="Nav_Checked" />
                     <RadioButton Style="{StaticResource NavButton}" Tag="Shot" ui:Ext.Icon="camera" Background="#FFBF5AF2" Content="Bildschirmfoto" Checked="Nav_Checked" />
                     <RadioButton Style="{StaticResource NavButton}" Tag="Widgets" ui:Ext.Icon="widgets" Background="#FF30D158" Content="Widgets" Checked="Nav_Checked" />
+                    <RadioButton Style="{StaticResource NavButton}" Tag="Ai" ui:Ext.Icon="bubble" Background="#FF5E5CE6" Content="KI" Checked="Nav_Checked" />
                     <RadioButton Style="{StaticResource NavButton}" Tag="About" ui:Ext.Icon="info" Background="#FF8E8E93" Content="Info" Checked="Nav_Checked" />
                 </StackPanel>
             </DockPanel>
@@ -918,6 +919,61 @@
                     </Border>
                     <TextBlock Style="{StaticResource Desc}" Margin="2,0,0,0"
                                Text="Bereich aufziehen wie beim Snipping Tool. Das Foto landet sofort in der Zwischenablage. Die Texterkennung läuft offline mit Windows." />
+                </StackPanel>
+
+                <!-- ======== KI (2026-11-17): who answers in the island's KI tab, the user's own key, the model ======== -->
+                <StackPanel x:Name="PageAi" Visibility="Collapsed">
+                    <TextBlock Text="KI" Style="{StaticResource PageTitle}" />
+                    <Border Style="{StaticResource SettingCard}">
+                        <StackPanel>
+                            <Border Style="{StaticResource Row}">
+                                <DockPanel>
+                                    <Border DockPanel.Dock="Right" Style="{StaticResource SegBox}" VerticalAlignment="Center">
+                                        <StackPanel Orientation="Horizontal">
+                                            <RadioButton x:Name="AiClaude" Style="{StaticResource Seg}" GroupName="AiProv" Content="Claude" Checked="AiProvider_Checked" />
+                                            <RadioButton x:Name="AiChatGpt" Style="{StaticResource Seg}" GroupName="AiProv" Content="ChatGPT" Checked="AiProvider_Checked" />
+                                            <RadioButton x:Name="AiGemini" Style="{StaticResource Seg}" GroupName="AiProv" Content="Gemini" Checked="AiProvider_Checked" />
+                                        </StackPanel>
+                                    </Border>
+                                    <ui:HintPic Kind="aichat" />
+                                    <StackPanel Margin="0,0,12,0" VerticalAlignment="Center">
+                                        <TextBlock Text="Wer antwortet" />
+                                        <TextBlock Style="{StaticResource Desc}" Text="Mit diesem Dienst schreibst du im KI-Tab der Insel." />
+                                    </StackPanel>
+                                </DockPanel>
+                            </Border>
+                            <Border Style="{StaticResource Row}">
+                                <StackPanel>
+                                    <DockPanel>
+                                        <Button x:Name="AiCheckBtn" DockPanel.Dock="Right" Style="{StaticResource MacButton}" Content="Prüfen" Margin="8,0,0,0" Click="AiCheck_Click" VerticalAlignment="Center" />
+                                        <ui:HintPic Kind="aikey" />
+                                        <StackPanel Width="118" VerticalAlignment="Center">
+                                            <TextBlock Text="API-Schlüssel" />
+                                            <TextBlock x:Name="AiKeyHint" Style="{StaticResource Desc}" />
+                                        </StackPanel>
+                                        <PasswordBox x:Name="OptAiKey" Height="26" Background="#FF2C2C2E" Foreground="White" BorderBrush="#26FFFFFF" CaretBrush="White"
+                                                     VerticalContentAlignment="Center" Padding="6,0" VerticalAlignment="Center" LostFocus="AiKey_LostFocus" />
+                                    </DockPanel>
+                                    <DockPanel Margin="76,6,0,0">
+                                        <TextBlock DockPanel.Dock="Right" Margin="10,0,0,0"><Hyperlink x:Name="AiKeyLink" NavigateUri="https://console.anthropic.com/settings/keys" RequestNavigate="Link_RequestNavigate">Schlüssel holen</Hyperlink></TextBlock>
+                                        <TextBlock x:Name="AiKeyStatus" Style="{StaticResource Desc}" TextWrapping="Wrap" />
+                                    </DockPanel>
+                                </StackPanel>
+                            </Border>
+                            <Border Style="{StaticResource LastRow}">
+                                <DockPanel>
+                                    <ComboBox x:Name="OptAiModel" DockPanel.Dock="Right" Style="{StaticResource DarkCombo}" Width="210" VerticalAlignment="Center" SelectionChanged="AiModel_Changed" />
+                                    <ui:HintPic Kind="aimodel" />
+                                    <StackPanel Margin="0,0,12,0" VerticalAlignment="Center">
+                                        <TextBlock Text="Modell" />
+                                        <TextBlock Style="{StaticResource Desc}" Text="„Prüfen“ lädt alle Modelle, die dein Schlüssel nutzen darf." />
+                                    </StackPanel>
+                                </DockPanel>
+                            </Border>
+                        </StackPanel>
+                    </Border>
+                    <TextBlock Style="{StaticResource Desc}" Margin="2,0,0,0" TextWrapping="Wrap"
+                               Text="Der Schlüssel liegt verschlüsselt auf diesem PC, nur dein Windows-Konto kann ihn lesen. Deine Fragen gehen direkt an den gewählten Dienst und kosten Guthaben auf deinem Konto dort. Der Chatverlauf bleibt auf diesem PC. Tipp: Unter Tastatur kannst du ein Kürzel für „KI-Chat öffnen“ setzen." />
                 </StackPanel>
 
                 <!-- ======== WIDGETS ======== -->

@@ -40,6 +40,10 @@
 
 <a href="https://snipez5768.github.io/PeakPill/#mikro"><img src="docs/img/listening-v3.svg" width="100%" alt="hört zu"></a>
 
+## KI-Chat
+
+Der Tab **KI** ist ein kleiner Chat mit **Claude, ChatGPT oder Gemini** – mit deinem eigenen API-Schlüssel (*Einstellungen › KI*). Antworten kommen Wort für Wort, mit Listen, Code und Links. Enter schickt ab, Esc stoppt, ↑ holt die letzte Frage zurück. Kommt eine Antwort, während die Insel zu ist, erscheint sie als Karte.
+
 ## Einstellungen
 
 <img src="docs/img/settings-tour-v1.svg" width="100%" alt="Durch die Einstellungen klicken">
@@ -58,7 +62,7 @@ Selbst bauen: `cd PeakPill` und `dotnet run` – App und Installer zusammen mit 
 
 ## Datenschutz
 
-Alles bleibt auf deinem PC (`%AppData%\PeakPill`). Ins Netz geht nur, was du selbst einrichtest – Wetter, Preisalarme, Spotify, Discord – und die Frage an GitHub, ob es eine neue Version gibt. Die Vorschauen in den Einstellungen und auf dieser Seite zeigen nur erfundene Beispiele.
+Alles bleibt auf deinem PC (`%AppData%\PeakPill`). Ins Netz geht nur, was du selbst einrichtest – Wetter, Preisalarme, Spotify, Discord, der KI-Chat (geht direkt an den gewählten Dienst, der Schlüssel liegt verschlüsselt) – und die Frage an GitHub, ob es eine neue Version gibt. Die Vorschauen in den Einstellungen und auf dieser Seite zeigen nur erfundene Beispiele.
 
 ---
 
