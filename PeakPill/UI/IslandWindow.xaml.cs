@@ -366,6 +366,7 @@ public partial class IslandWindow : Window
         _cursorOutsideSince = DateTime.MaxValue;
         _watchTimer.Start();
         UpdateHeaderFade(true);
+        PlaceTabIndicator();
 
         if (activate)
         {
@@ -4343,6 +4344,7 @@ public partial class IslandWindow : Window
         if (_tabNames != null && _tabNames.TryGetValue(tab, out var title)) TabTitle.Text = title;
         UpdateShelfTab();
         if (changed && _state == State.Expanded && _autoTab != null && tab != _autoTab) { ForgetMoment(_autoTab); _autoTab = null; }
+        _indicatorAnimate = changed && _state == State.Expanded; // the bar glides along (placed in UpdateTabDots)
         UpdateTabDots();
         if (changed && _state == State.Expanded && S.TabBarAutoHide)
         {
@@ -4354,7 +4356,6 @@ public partial class IslandWindow : Window
         {
             // only the clipboard is taller – every other tab keeps the same size
             AnimateSize(ExpW, TabHeight(tab) + NotchExtra, ExpRadius, true);
-            HopTab((RadioButton)sender);
             if (oldPage != null && slideDir != 0) PageSlide(slideDir, oldPage);
             else Pages.BeginAnimation(OpacityProperty, new DoubleAnimation(0, 1, TimeSpan.FromMilliseconds(220)) { EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut } });
             OnTabShown();
@@ -4486,6 +4487,7 @@ public partial class IslandWindow : Window
                 Background = on ? Brushes.White : DotBrush
             });
         }
+        PlaceTabIndicator();
         if (S.TabBar != TabBarStyle.Leise) { PlaceTimerSwitch(); return; }
         foreach (var (tag, rb) in _tabBtns) rb.Content = _tabNames[tag];
         TabHeaderBar.Measure(new Size(double.PositiveInfinity, 24));

@@ -332,38 +332,85 @@ public partial class IslandWindow
         catch { return null; }
     }
 
-    /// <summary>The old page leaves against the direction, the new one comes in from it – a short way, soft and slightly blurred.</summary>
+    /// <summary>
+    /// "Karussell mit Feder" (user's pick 2026-11-17, replaces the blurred short slide that stuttered): the old page and
+    /// the new one move together by the whole width like swiping on the iPhone, and the new one springs a little past
+    /// its place. No blur – WPF draws it without the graphics card. Reduced animations: a short soft slide instead.
+    /// </summary>
     private void PageSlide(int dir, BitmapSource old)
     {
         bool full = S.Animations == AnimationLevel.An;
-        double way = full ? 26 : 12;
-        var outT = TimeSpan.FromMilliseconds(200);
-        var inT = TimeSpan.FromMilliseconds(380);
-        var easeOut = new QuinticEase { EasingMode = EasingMode.EaseOut };
-        var easeIn = new CubicEase { EasingMode = EasingMode.EaseIn };
+        double w = Pages.ActualWidth;
+        double way = full ? w + 24 : 14;
+        var t = TimeSpan.FromMilliseconds(full ? 420 : 220);
+        IEasingFunction ease = full ? new BackEase { Amplitude = 0.22, EasingMode = EasingMode.EaseOut } : new CubicEase { EasingMode = EasingMode.EaseOut };
+
+        // only during the move: nothing shows beside the page area (the pages themselves may reach into the margins)
+        ExpandedPanel.Clip = new RectangleGeometry(new Rect(-1, -40, ExpandedPanel.ActualWidth + 2, ExpandedPanel.ActualHeight + 80));
 
         PageGhost.Source = old;
-        PageGhost.Width = Pages.ActualWidth;
+        PageGhost.Width = w;
+        PageGhost.Effect = null;
         PageGhost.RenderTransform = _ghostShift;
         PageGhost.Visibility = Visibility.Visible;
-        var ghostFade = new DoubleAnimation(1, 0, outT) { EasingFunction = easeIn };
-        ghostFade.Completed += (_, _) => { PageGhost.Visibility = Visibility.Collapsed; PageGhost.Source = null; PageGhost.Effect = null; };
-        PageGhost.BeginAnimation(OpacityProperty, ghostFade);
-        _ghostShift.BeginAnimation(TranslateTransform.XProperty, new DoubleAnimation(0, -dir * way, outT) { EasingFunction = easeIn });
+        PageGhost.BeginAnimation(OpacityProperty, full ? null : new DoubleAnimation(1, 0, TimeSpan.FromMilliseconds(140)));
+        PageGhost.Opacity = 1;
+        var outAnim = new DoubleAnimation(0, -dir * way, t) { EasingFunction = ease };
+        outAnim.Completed += (_, _) =>
+        {
+            PageGhost.Visibility = Visibility.Collapsed;
+            PageGhost.Source = null;
+            ExpandedPanel.Clip = null;
+        };
 
+        Pages.Effect = null;
         Pages.RenderTransform = _pageShift;
-        _pageShift.BeginAnimation(TranslateTransform.XProperty, new DoubleAnimation(dir * way, 0, inT) { EasingFunction = easeOut });
-        Pages.BeginAnimation(OpacityProperty, new DoubleAnimation(0, 1, TimeSpan.FromMilliseconds(260)) { FillBehavior = FillBehavior.Stop, EasingFunction = easeOut });
+        // start values right away – the animations only begin with the next tick, until then these are drawn
+        _ghostShift.BeginAnimation(TranslateTransform.XProperty, null);
+        _pageShift.BeginAnimation(TranslateTransform.XProperty, null);
+        _ghostShift.X = 0;
+        _pageShift.X = dir * way;
+        _ghostShift.BeginAnimation(TranslateTransform.XProperty, outAnim);
+        _pageShift.BeginAnimation(TranslateTransform.XProperty, new DoubleAnimation(dir * way, 0, t) { EasingFunction = ease });
+        Pages.BeginAnimation(OpacityProperty, full ? null : new DoubleAnimation(0, 1, TimeSpan.FromMilliseconds(200)) { FillBehavior = FillBehavior.Stop });
         Pages.Opacity = 1;
-        if (!full) return;
-        var gb = new BlurEffect { Radius = 0, RenderingBias = RenderingBias.Performance };
-        PageGhost.Effect = gb;
-        gb.BeginAnimation(BlurEffect.RadiusProperty, new DoubleAnimation(0, 6, outT));
-        var pb = new BlurEffect { Radius = 6, RenderingBias = RenderingBias.Performance };
-        Pages.Effect = pb;
-        var sharpen = new DoubleAnimation(6, 0, TimeSpan.FromMilliseconds(300)) { BeginTime = TimeSpan.FromMilliseconds(60), EasingFunction = easeOut };
-        sharpen.Completed += (_, _) => { if (Pages.Effect == pb) Pages.Effect = null; };
-        pb.BeginAnimation(BlurEffect.RadiusProperty, sharpen);
+        // the picture of the old page must be there in the very next frame – else the island flashes empty once
+        ExpandedPanel.UpdateLayout();
+    }
+
+    // ---------- the bar under the active tab glides to the new one, stretching on the way ----------
+
+    private bool _indicatorAnimate;
+    private TranslateTransform _indicatorShift => TabIndicatorShift;
+
+    /// <summary>After the layout (names in the quiet bar come and go): under the middle of the checked tab.</summary>
+    private void PlaceTabIndicator()
+    {
+        Dispatcher.BeginInvoke(new Action(() =>
+        {
+            bool animate = _indicatorAnimate;
+            _indicatorAnimate = false;
+            var rb = _tabBtns?.Values.FirstOrDefault(r => r.IsChecked == true && r.IsVisible);
+            if (rb == null || !TabHeaderBar.IsVisible) { TabIndicator.Opacity = 0; return; }
+            double x;
+            try { x = rb.TranslatePoint(new Point(rb.ActualWidth / 2, 0), TabHeaderBar).X - TabIndicator.Width / 2; }
+            catch { return; }
+            TabIndicator.Opacity = 1;
+            if (!animate || S.Animations == AnimationLevel.Aus || Math.Abs(_indicatorShift.X - x) < 0.5)
+            {
+                _indicatorShift.BeginAnimation(TranslateTransform.XProperty, null);
+                _indicatorShift.X = x;
+                return;
+            }
+            var t = TimeSpan.FromMilliseconds(420);
+            _indicatorShift.BeginAnimation(TranslateTransform.XProperty, new DoubleAnimation(x, t) { EasingFunction = new BackEase { Amplitude = 0.25, EasingMode = EasingMode.EaseOut } });
+            // stretched in the middle of the way, like a drop pulled along
+            var stretch = new DoubleAnimationUsingKeyFrames { Duration = t };
+            stretch.KeyFrames.Add(new EasingDoubleKeyFrame(1, KeyTime.FromPercent(0)));
+            stretch.KeyFrames.Add(new EasingDoubleKeyFrame(1.9, KeyTime.FromPercent(0.4), new SineEase { EasingMode = EasingMode.EaseOut }));
+            stretch.KeyFrames.Add(new EasingDoubleKeyFrame(1, KeyTime.FromPercent(1), new SineEase { EasingMode = EasingMode.EaseInOut }));
+            TabIndicatorScale.BeginAnimation(ScaleTransform.ScaleXProperty, stretch);
+        }), System.Windows.Threading.DispatcherPriority.Loaded);
     }
 
 #if DEBUG
@@ -1141,6 +1188,27 @@ public partial class IslandWindow
                         Frame();
                     }
                     Save("island_tabs");
+                    Collapse();
+                    Root.IsHitTestVisible = true;
+                    break;
+                }
+                case "carousel":
+                {
+                    // "Karussell mit Feder": Timer → Today (forward), then back to Timer; the bar under the tab glides along
+                    fh = 200;
+                    Root.IsHitTestVisible = false;
+                    Expand(L.T("Timer"), false);
+                    _sticky = true;
+                    await Task.Delay(900);
+                    Frame();
+                    _tabBtns["Today"].IsChecked = true;
+                    await Film(12, 40);
+                    await Task.Delay(400);
+                    Frame();
+                    Save("forward");
+                    _tabBtns["Timer"].IsChecked = true;
+                    await Film(12, 40);
+                    Save("back");
                     Collapse();
                     Root.IsHitTestVisible = true;
                     break;
