@@ -250,9 +250,16 @@ public partial class IslandWindow
         Eyes.Visibility = any ? Visibility.Visible : Visibility.Collapsed;
         // a little stretch as they pop: a touch wider than tall at first, settling round
         var fx = FxNow();
-        EyesPop.ScaleX = Math.Max(0.01, pop * (1 + 0.10 * (1 - Math.Clamp(pop, 0, 1))) * fx.X);
-        EyesPop.ScaleY = Math.Max(0.01, pop * fx.Y);
-        Eyes.Opacity = Math.Clamp(pop * 1.8, 0, 1);
+        // never over the cover (user report 2026-11-17: the eyes cut into the album / app icon while the room opened or
+        // closed): they are only as big as the room the island has opened so far, with 3 px to spare before the cover
+        double half = Math.Max(1, Eyes.ActualWidth / 2) * fx.X * 1.1;
+        double centre = Eyes.Margin.Left + Math.Max(1, Eyes.ActualWidth / 2);
+        double coverLeft = (_pillBaseSet ? _pillBase.Left : PillPanel.Margin.Left) + EyesExt;
+        double room = Math.Max(0, (coverLeft - 3 - centre) / half);
+        double shown = Math.Min(pop, room);
+        EyesPop.ScaleX = Math.Max(0.01, shown * (1 + 0.10 * (1 - Math.Clamp(shown, 0, 1))) * fx.X);
+        EyesPop.ScaleY = Math.Max(0.01, shown * fx.Y);
+        Eyes.Opacity = Math.Clamp(Math.Min(pop, room) * 1.8, 0, 1);
         double lid = Math.Min(Math.Clamp(_eyesOpen.Value, 0, 1.2), BlinkLid());
         SetLids(Math.Min(Math.Max(lid, fx.LidFloor), fx.LidCap));
         ApplyPillPad();

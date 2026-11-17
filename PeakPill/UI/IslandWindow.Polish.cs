@@ -1,4 +1,4 @@
-using System.Windows;
+﻿using System.Windows;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
 using System.Windows.Media.Effects;
@@ -10,10 +10,10 @@ using WF = System.Windows.Forms;
 
 namespace PeakPill.UI;
 
-/// <summary>Polish round 2026-11-15 (user's order): open/close, page switch, bubble birth, bell, new song, mute, tuck – plus the missing moments.</summary>
+/// <summary>Polish round 2026-11-15 (user's order): open/close, page switch, bubble birth, bell, new song, mute, tuck â€“ plus the missing moments.</summary>
 public partial class IslandWindow
 {
-    // ---------- the cover flies (Apple's matched geometry): pill cover ⇄ big cover on the Musik page ----------
+    // ---------- the cover flies (Apple's matched geometry): pill cover â‡„ big cover on the Musik page ----------
 
     private readonly Spring _flyX = new(0), _flyY = new(0), _flyS = new(20);
     private FrameworkElement _flyTo, _flyHide;
@@ -67,7 +67,7 @@ public partial class IslandWindow
         catch { EndCoverFlight(); }
     }
 
-    /// <summary>One frame: the goal is read live – the page is still scaling and the island still growing.</summary>
+    /// <summary>One frame: the goal is read live â€“ the page is still scaling and the island still growing.</summary>
     private void StepCoverFlight(double dt)
     {
         if (!_flying) return;
@@ -75,7 +75,7 @@ public partial class IslandWindow
         try
         {
             // the page is laid out at its final width and centred, while the island still grows or shrinks around it:
-            // aim at the cover's distance from the left edge of the FINISHED island, measured from today's left edge –
+            // aim at the cover's distance from the left edge of the FINISHED island, measured from today's left edge â€“
             // so the cover hugs the edge and never leaves the island
             var p = _flyTo.TranslatePoint(new Point(0, 0), IslandContent);
             double inset = p.X + (_targetW - IslandContent.ActualWidth) / 2;
@@ -98,7 +98,7 @@ public partial class IslandWindow
         CoverFlyer.CornerRadius = new CornerRadius(r * s / Math.Max(1, _flyS0 + (_flyS1 - _flyS0) * t));
     }
 
-    /// <summary>A picture of an element as it looks right now (through a brush – rendering it directly would carry its offset).</summary>
+    /// <summary>A picture of an element as it looks right now (through a brush â€“ rendering it directly would carry its offset).</summary>
     private static BitmapSource Snapshot(FrameworkElement e)
     {
         try
@@ -140,7 +140,7 @@ public partial class IslandWindow
         if (first) { S.TuckHintShown = true; App.SaveSettings(); }
         double hold = first ? 2.4 : 1.0;
         _tuckIntroUntil = DateTime.Now.AddSeconds(hold + 0.5); // the near-check waits until the intro is over
-        _stripShown = false;                                  // … and then shows the strip again only near the pointer
+        _stripShown = false;                                  // â€¦ and then shows the strip again only near the pointer
         TuckStrip.BeginAnimation(OpacityProperty, new DoubleAnimationUsingKeyFrames
         {
             Duration = TimeSpan.FromSeconds(hold + 0.5),
@@ -152,10 +152,10 @@ public partial class IslandWindow
                 new EasingDoubleKeyFrame(0, KeyTime.FromTimeSpan(TimeSpan.FromSeconds(hold + 0.5)), new SineEase())
             }
         });
-        // it widens out of the island's middle …
+        // it widens out of the island's middle â€¦
         TuckBarScale.BeginAnimation(ScaleTransform.ScaleXProperty, new DoubleAnimation(0.3, 1, TimeSpan.FromMilliseconds(420))
             { EasingFunction = new BackEase { Amplitude = 0.35, EasingMode = EasingMode.EaseOut } });
-        // … and glows (twice the first time)
+        // â€¦ and glows (twice the first time)
         var glow = new DoubleAnimationUsingKeyFrames { Duration = TimeSpan.FromSeconds(first ? 1.8 : 0.9) };
         glow.KeyFrames.Add(new LinearDoubleKeyFrame(0, KeyTime.FromPercent(0)));
         if (first)
@@ -185,7 +185,7 @@ public partial class IslandWindow
         HintSlash.Stroke = mute ? color : Brushes.White;
         HintSlash.Opacity = 1;
         var ease = new CubicEase { EasingMode = mute ? EasingMode.EaseOut : EasingMode.EaseIn };
-        // dash offset 9 = nothing drawn, 0 = the whole slash; −9 = drawn off the far end
+        // dash offset 9 = nothing drawn, 0 = the whole slash; âˆ’9 = drawn off the far end
         var draw = mute
             ? new DoubleAnimation(9, 0, TimeSpan.FromMilliseconds(320)) { BeginTime = TimeSpan.FromMilliseconds(120), EasingFunction = ease }
             : new DoubleAnimation(0, -9, TimeSpan.FromMilliseconds(300)) { BeginTime = TimeSpan.FromMilliseconds(160), EasingFunction = ease };
@@ -233,7 +233,7 @@ public partial class IslandWindow
     }
 
     /// <summary>
-    /// Volume / brightness: the pill widens to symbol · bar · number. While the key is held the bar just follows
+    /// Volume / brightness: the pill widens to symbol Â· bar Â· number. While the key is held the bar just follows
     /// (no new pop), and the notice stays until 1.5 s after the last change. The open island has its own slider.
     /// </summary>
     public void ShowLevel(string key, string icon, double value)
@@ -256,7 +256,7 @@ public partial class IslandWindow
             ShowHint(icon, pct, Brushes.White);
             if (_state != State.Hint) return;
             HintLevel.Visibility = Visibility.Visible;
-            HintText.MinWidth = 38; // "100 %" – the bar does not jump when the number gets a digit
+            HintText.MinWidth = 38; // "100 %" â€“ the bar does not jump when the number gets a digit
             HintText.TextAlignment = TextAlignment.Right;
             // the number is drawn by HintRoll from now on; HintText keeps only the room
             HintRoll.Roll = false;
@@ -303,7 +303,7 @@ public partial class IslandWindow
         if (!S.PowerInIsland) return;
         _hintHoldMs = 2200;
         var green = (Brush)FindResource("Green");
-        ShowHint(plugged ? "bolt" : "battery", plugged ? $"Lädt · {Math.Round(level * 100)} %" : $"{Math.Round(level * 100)} %", plugged ? green : Brushes.White);
+        ShowHint(plugged ? "bolt" : "battery", plugged ? $"LÃ¤dt Â· {Math.Round(level * 100)} %" : $"{Math.Round(level * 100)} %", plugged ? green : Brushes.White);
         if (_state != State.Hint) return;
         if (plugged) LiquidBolt(level, green); // the bolt fills like a liquid up to the level
         HintRing(level, plugged ? green : level <= 0.2 ? (Brush)FindResource("Danger") : Brushes.White);
@@ -348,7 +348,7 @@ public partial class IslandWindow
     /// <summary>
     /// "Karussell mit Feder" (user's pick 2026-11-17, replaces the blurred short slide that stuttered): the old page and
     /// the new one move together by the whole width like swiping on the iPhone, and the new one springs a little past
-    /// its place. No blur – WPF draws it without the graphics card. Reduced animations: a short soft slide instead.
+    /// its place. No blur â€“ WPF draws it without the graphics card. Reduced animations: a short soft slide instead.
     /// </summary>
     private void PageSlide(int dir, BitmapSource old)
     {
@@ -378,14 +378,14 @@ public partial class IslandWindow
 
         Pages.Effect = null;
         Pages.RenderTransform = _pageShift;
-        // start values right away – the animations only begin with the next tick, until then these are drawn
+        // start values right away â€“ the animations only begin with the next tick, until then these are drawn
         _ghostShift.BeginAnimation(TranslateTransform.XProperty, null);
         _pageShift.BeginAnimation(TranslateTransform.XProperty, null);
         _ghostShift.X = 0;
         _pageShift.X = dir * way;
         if (full)
         {
-            // the slide rides the island's own spring (2026-11-17) – a taller page and the slide are one move
+            // the slide rides the island's own spring (2026-11-17) â€“ a taller page and the slide are one move
             _slideDir = dir;
             _slideWay = way;
             _slide.Snap(1);
@@ -400,7 +400,7 @@ public partial class IslandWindow
         }
         Pages.BeginAnimation(OpacityProperty, full ? null : new DoubleAnimation(0, 1, TimeSpan.FromMilliseconds(200)) { FillBehavior = FillBehavior.Stop });
         Pages.Opacity = 1;
-        // the picture of the old page must be there in the very next frame – else the island flashes empty once
+        // the picture of the old page must be there in the very next frame â€“ else the island flashes empty once
         ExpandedPanel.UpdateLayout();
     }
 
@@ -452,7 +452,7 @@ public partial class IslandWindow
         bool peek = S.TrackPeek;
         S.TrackPeek = false;
         var frames = new List<BitmapSource>();
-        var xs = new List<string>(); // island centre per frame – horizontal sloshing shows here
+        var xs = new List<string>(); // island centre per frame â€“ horizontal sloshing shows here
         double fh = 200;
         void Frame()
         {
@@ -613,7 +613,7 @@ public partial class IslandWindow
                     break;
                 }
                 case "reply":
-                    // the card with "Antworten" and the open message field – nothing is sent
+                    // the card with "Antworten" and the open message field â€“ nothing is sent
                     fh = 170;
                     OnNotificationArrived(new IslandNotification { Id = 0, AppName = "WhatsApp", Title = "Anna", Text = "Kommst du heute noch vorbei?", Time = DateTime.Now });
                     await Task.Delay(2200);
@@ -628,7 +628,7 @@ public partial class IslandWindow
                     EndPeek();
                     break;
                 case "eyes":
-                    // music plays: the eyes come out left of the cover (the island widens), go again; then pause → no bars
+                    // music plays: the eyes come out left of the cover (the island widens), go again; then pause â†’ no bars
                     fh = 60;
                     _sticky = false;
                     Collapse();
@@ -638,7 +638,7 @@ public partial class IslandWindow
                     var zoom = new List<BitmapSource>();
                     async Task Zoom(int count, int ms)
                     {
-                        // 4× around the island's left end: the lids, the blink and the gaze are a few pixels only
+                        // 4Ã— around the island's left end: the lids, the blink and the gaze are a few pixels only
                         for (int i = 0; i < count; i++)
                         {
                             var dpi = VisualTreeHelper.GetDpi(this);
@@ -717,12 +717,12 @@ public partial class IslandWindow
                     if (_state != State.Expanded) { Expand("Music", true); await Task.Delay(300); if (!_lyricsOpen) MusicLyrics_Click(null, null); }
                     await Task.Delay(1000);
                     Frame(); Save("1_lyrics");
-                    File.WriteAllText(Path.Combine(dir, "lyrics.txt"), $"{LyricsHint.Text}\n{_lyrics.Count} Zeilen\nSpotify verbunden: {H.Spotify.Connected}, neu verbinden nötig: {H.Spotify.NeedsReconnect}");
+                    File.WriteAllText(Path.Combine(dir, "lyrics.txt"), $"{LyricsHint.Text}\n{_lyrics.Count} Zeilen\nSpotify verbunden: {H.Spotify.Connected}, neu verbinden nÃ¶tig: {H.Spotify.NeedsReconnect}");
                     MusicLyrics_Click(null, null);
                     break;
                 case "agentring":
                 {
-                    // Claude works (no plan): the ring turns – the bubble is refilled again and again, the angle must keep going
+                    // Claude works (no plan): the ring turns â€“ the bubble is refilled again and again, the angle must keep going
                     var log = new System.Text.StringBuilder();
                     H.Agents.Demo("Test", "Bearbeitet Datei", 0, 0, 30, AgentState.Running);
                     await Task.Delay(1500);
@@ -732,7 +732,7 @@ public partial class IslandWindow
                         UpdatePill(true); // what the half-second refresh does
                         await Task.Delay(120);
                         double ra = (ring.RenderTransform as RotateTransform)?.Angle ?? -1, ia = (icon.RenderTransform as RotateTransform)?.Angle ?? -1;
-                        log.AppendLine($"{i,2}: Ring {ra,6:0.0}°  Stern {ia,6:0.0}°");
+                        log.AppendLine($"{i,2}: Ring {ra,6:0.0}Â°  Stern {ia,6:0.0}Â°");
                     }
                     File.WriteAllText(Path.Combine(dir, "angles.txt"), log.ToString());
                     H.Agents.EndDemo();
@@ -740,7 +740,7 @@ public partial class IslandWindow
                 }
                 case "clipconfirm":
                 {
-                    // only pictures in the clipboard history (test copy – nothing is saved), then "Alles löschen"
+                    // only pictures in the clipboard history (test copy â€“ nothing is saved), then "Alles lÃ¶schen"
                     fh = 320;
                     H.Clipboard.Items.Clear();
                     for (int i = 0; i < 3; i++)
@@ -770,7 +770,7 @@ public partial class IslandWindow
                     Frame(); Save("1_today");
                     break;
                 case "reverse":
-                    // open, change your mind after 0.12 s, change it again after 0.15 s – nothing may jump
+                    // open, change your mind after 0.12 s, change it again after 0.15 s â€“ nothing may jump
                     fh = 150;
                     Expand("Music", true);
                     await Film(3, 40);
@@ -804,7 +804,7 @@ public partial class IslandWindow
                     // The real clipboard is NOT touched (the stack is on only inside the service, nothing is promised).
                     fh = 200;
                     var qf = typeof(PeakPill.Services.ClipboardService).GetField("_queueMode", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-                    var fakes = new[] { "Rechnung Nr. 4711", "Musterstraße 12, Berlin", "demo@example.com" }
+                    var fakes = new[] { "Rechnung Nr. 4711", "MusterstraÃŸe 12, Berlin", "demo@example.com" }
                         .Select((t, i) => new ClipItem { Kind = ClipKind.Text, Text = t, Time = DateTime.Now.AddMinutes(-3 + i), Source = "Demo" }).ToList();
                     foreach (var f in fakes) H.Clipboard.Items.Insert(0, f);
                     qf.SetValue(H.Clipboard, true);
@@ -839,25 +839,25 @@ public partial class IslandWindow
                     Frame();
                     AiInput.Clear();
                     var t = H.Ai.DemoAsync("Wie lange muss ein Ei kochen?",
-                        "Kommt drauf an, wie du es magst:\n\n- **Weich:** 4–5 Minuten\n- **Wachsweich:** 6–7 Minuten\n- **Hart:** 9–10 Minuten\n\nTipp: Danach kurz in kaltes Wasser legen, dann lässt es sich leichter schälen.",
-                        "Claude · Opus 5.5", 45);
+                        "Kommt drauf an, wie du es magst:\n\n- **Weich:** 4â€“5 Minuten\n- **Wachsweich:** 6â€“7 Minuten\n- **Hart:** 9â€“10 Minuten\n\nTipp: Danach kurz in kaltes Wasser legen, dann lÃ¤sst es sich leichter schÃ¤len.",
+                        "Claude Â· Opus 5.5", 45);
                     await Film(15, 150);
                     await t;
                     await Task.Delay(500);
                     Frame(); Save("2_chat");
                     await H.Ai.DemoAsync("Wie dreh ich einen Text in Python um?",
-                        "Mit Slicing geht das in einer Zeile:\n\n```python\ntext = \"PeakPill\"\nprint(text[::-1])\n```\n\nDas `[::-1]` läuft rückwärts durch den Text. Mehr dazu: [Python-Doku](https://docs.python.org/3/)",
-                        "Claude · Opus 5.5", 20);
+                        "Mit Slicing geht das in einer Zeile:\n\n```python\ntext = \"PeakPill\"\nprint(text[::-1])\n```\n\nDas `[::-1]` lÃ¤uft rÃ¼ckwÃ¤rts durch den Text. Mehr dazu: [Python-Doku](https://docs.python.org/3/)",
+                        "Claude Â· Opus 5.5", 20);
                     await Task.Delay(700);
                     Frame(); Save("3_markdown");
-                    await H.Ai.DemoAsync("Und auf Englisch?", "Keine Verbindung. Bist du online?", "Claude · Opus 5.5", 0, fail: true);
+                    await H.Ai.DemoAsync("Und auf Englisch?", "Keine Verbindung. Bist du online?", "Claude Â· Opus 5.5", 0, fail: true);
                     await Task.Delay(700);
                     Frame(); Save("4_error");
                     H.Ai.Messages.Clear();
                     Collapse();
                     await Task.Delay(900);
                     fh = 160;
-                    var t2 = H.Ai.DemoAsync("Ein Wort für schnell?", "Zügig, flink oder rasch – je nachdem, wie es klingen soll.", "Claude · Opus 5.5", 30);
+                    var t2 = H.Ai.DemoAsync("Ein Wort fÃ¼r schnell?", "ZÃ¼gig, flink oder rasch â€“ je nachdem, wie es klingen soll.", "Claude Â· Opus 5.5", 30);
                     await t2;
                     await Film(8, 140);
                     Save("5_peek");
@@ -878,17 +878,17 @@ public partial class IslandWindow
                     _sticky = true;
                     await Task.Delay(900);
                     H.Ai.Messages.Add(new AiMessage { IsUser = true, Text = "Schick die Einkaufsliste an Demo-Handy" });
-                    var a = new AiMessage { IsStreaming = true, By = "Gemini · Demo" };
+                    var a = new AiMessage { IsStreaming = true, By = "Gemini Â· Demo" };
                     H.Ai.Messages.Add(a);
                     await Task.Delay(300);
                     a.Steps = L.T("Schaut auf die Insel") + "\n" + L.T("Sendet mit LocalSend");
                     var answer = new TaskCompletionSource<bool>();
-                    a.Ask(L.T("„Milch, Eier, Brot“ an Demo-Handy senden?"), L.T("Senden"), answer);
+                    a.Ask(L.T("â€žMilch, Eier, Brotâ€œ an Demo-Handy senden?"), L.T("Senden"), answer);
                     await Task.Delay(700);
                     Frame(); Save("0_confirm");
                     a.Reply(true);
                     await answer.Task;
-                    a.Text = "Erledigt – die Liste ist auf **Demo-Handy**.";
+                    a.Text = "Erledigt â€“ die Liste ist auf **Demo-Handy**.";
                     a.IsStreaming = false;
                     await Task.Delay(700);
                     Frame(); Save("1_done");
@@ -917,7 +917,7 @@ public partial class IslandWindow
                     await Task.Delay(400);
                     Frame(); Save("0_recording");
                     DictationUi(DictState.Writing);
-                    AiRecText.Text = L.T($"{AiService.Name(AiProvider.Gemini)} schreibt mit …");
+                    AiRecText.Text = L.T($"{AiService.Name(AiProvider.Gemini)} schreibt mit â€¦");
                     await Task.Delay(300);
                     Frame(); Save("1_writing");
                     DictationMessage(L.T("Nichts verstanden."));
@@ -1027,7 +1027,7 @@ public partial class IslandWindow
                     await Task.Delay(1200);
 
                     fh = 150;
-                    ShowPeek(new PeekInfo { Icon = "bell", Title = "Lena", Text = "Kommst du heute noch vorbei?", Source = "Nachrichten · jetzt", TimeoutMs = 4000 });
+                    ShowPeek(new PeekInfo { Icon = "bell", Title = "Lena", Text = "Kommst du heute noch vorbei?", Source = "Nachrichten Â· jetzt", TimeoutMs = 4000 });
                     await Film(9, 55);
                     Save("6_card_drop");
                     Root.IsHitTestVisible = true;
@@ -1035,7 +1035,7 @@ public partial class IslandWindow
                 }
                 case "hangup":
                 {
-                    // the hang-up moment with a made-up call next to music – nothing is really hung up
+                    // the hang-up moment with a made-up call next to music â€“ nothing is really hung up
                     Root.IsHitTestVisible = false;
                     var discord = System.Diagnostics.Process.GetProcessesByName("Discord").Select(p => { try { return p.MainModule?.FileName; } catch { return null; } }).FirstOrDefault(f => f != null)
                                   ?? @"C:\Windows\System32\notepad.exe";
@@ -1065,7 +1065,7 @@ public partial class IslandWindow
                     await Task.Delay(1500);
                     fh = 170;
                     var lines = new List<string>();
-                    foreach (var b in new[] { Bubble, Bubble2 }) lines.Add($"{b.Name}: visible={b.Visibility} tag={b.Tag} → {BubbleTab(b) ?? "(usual)"}");
+                    foreach (var b in new[] { Bubble, Bubble2 }) lines.Add($"{b.Name}: visible={b.Visibility} tag={b.Tag} â†’ {BubbleTab(b) ?? "(usual)"}");
                     File.WriteAllLines(Path.Combine(dir, "bubbles.txt"), lines);
                     Frame();
                     var live = new[] { Bubble, Bubble2 }.FirstOrDefault(b => b.Visibility == Visibility.Visible && b.Tag is Act.Live);
@@ -1079,7 +1079,7 @@ public partial class IslandWindow
                 }
                 case "livepick":
                 {
-                    // the screen choice in the island – only shown, no tile is clicked (that would drive the real Discord)
+                    // the screen choice in the island â€“ only shown, no tile is clicked (that would drive the real Discord)
                     Root.IsHitTestVisible = false;
                     var discord = System.Diagnostics.Process.GetProcessesByName("Discord").Select(p => { try { return p.MainModule?.FileName; } catch { return null; } }).FirstOrDefault(f => f != null)
                                   ?? @"C:\Windows\System32\notepad.exe";
@@ -1150,7 +1150,7 @@ public partial class IslandWindow
                 }
                 case "aipics":
                 {
-                    // KI chat with pictures and selectable answers – a made-up picture and answer, nothing is sent
+                    // KI chat with pictures and selectable answers â€“ a made-up picture and answer, nothing is sent
                     Root.IsHitTestVisible = false;
                     fh = 400;
                     var keep = H.Ai.Messages.ToList();
@@ -1160,15 +1160,15 @@ public partial class IslandWindow
                     var demo = Pic(Color.FromRgb(0x0A, 0x84, 0xFF), Color.FromRgb(0xBF, 0x5A, 0xF2));
                     AskAiAbout(demo);
                     _sticky = true;
-                    AiInput.Text = "Was ist das für eine Farbe?";
+                    AiInput.Text = "Was ist das fÃ¼r eine Farbe?";
                     await Task.Delay(900);
                     Frame(); Save("1_attached");
                     var path = _aiPics.FirstOrDefault();
                     _aiPics.Clear();
                     ShowAiPics();
                     AiInput.Clear();
-                    H.Ai.Messages.Add(new AiMessage { IsUser = true, Text = "Was ist das für eine Farbe?", Images = path != null ? new List<string> { path } : new() });
-                    H.Ai.Messages.Add(new AiMessage { By = "Gemini · gemini-2.5-flash", Text = "Ein **Verlauf** von Blau nach Lila:\n\n- oben links: `#0A84FF`\n- unten rechts: `#BF5AF2`\n\nDu kannst diesen Text markieren und mit Strg+C kopieren." });
+                    H.Ai.Messages.Add(new AiMessage { IsUser = true, Text = "Was ist das fÃ¼r eine Farbe?", Images = path != null ? new List<string> { path } : new() });
+                    H.Ai.Messages.Add(new AiMessage { By = "Gemini Â· gemini-2.5-flash", Text = "Ein **Verlauf** von Blau nach Lila:\n\n- oben links: `#0A84FF`\n- unten rechts: `#BF5AF2`\n\nDu kannst diesen Text markieren und mit Strg+C kopieren." });
                     await Task.Delay(800);
                     Frame(); Save("2_answer");
                     H.Ai.Messages.Clear();
@@ -1218,21 +1218,83 @@ public partial class IslandWindow
                     Root.IsHitTestVisible = true;
                     break;
                 }
+                case "coverclip":
+                {
+                    // the left end of the closed island while music plays, 4Ã— â€“ with and without eyes
+                    fh = 60;
+                    _sticky = false;
+                    Collapse();
+                    H.Media.Fake("Nachtlicht", "Lena Ost", Pic(Color.FromRgb(0xFF, 0x7A, 0x3D), Color.FromRgb(0xE0, 0x3A, 0x5A)), true);
+                    await Task.Delay(1200);
+                    var shots = new List<BitmapSource>();
+                    var info = new List<string>();
+                    async Task Zoomed(int n, int ms)
+                    {
+                        for (int i = 0; i < n; i++)
+                        {
+                            var dpi = VisualTreeHelper.GetDpi(this);
+                            var full = new RenderTargetBitmap((int)(ActualWidth * dpi.DpiScaleX), (int)(fh * dpi.DpiScaleY), dpi.PixelsPerInchX, dpi.PixelsPerInchY, PixelFormats.Pbgra32);
+                            var bgv = new DrawingVisual();
+                            using (var dc = bgv.RenderOpen()) dc.DrawRectangle(new SolidColorBrush(Color.FromRgb(0x3D, 0x4A, 0x63)), null, new Rect(0, 0, ActualWidth, fh));
+                            full.Render(bgv); full.Render(Root);
+                            var l = Island.TranslatePoint(new Point(0, 0), Root);
+                            int x0 = (int)Math.Max(0, (l.X - 6) * dpi.DpiScaleX), y0 = (int)Math.Max(0, (l.Y - 4) * dpi.DpiScaleY);
+                            int cw = (int)Math.Min(110 * dpi.DpiScaleX, full.PixelWidth - x0), ch = (int)Math.Min(42 * dpi.DpiScaleY, full.PixelHeight - y0);
+                            var big = new TransformedBitmap(new CroppedBitmap(full, new Int32Rect(x0, y0, cw, ch)), new ScaleTransform(4 / dpi.DpiScaleX, 4 / dpi.DpiScaleY));
+                            big.Freeze(); shots.Add(big);
+                            try
+                            {
+                                var c = LeadCover.TranslatePoint(new Point(0, 0), Island);
+                                var eb = Eyes.IsVisible ? Eyes.TransformToAncestor(Island).TransformBounds(new Rect(0, 0, Eyes.ActualWidth, Eyes.ActualHeight)) : Rect.Empty;
+                                info.Add($"cover left={c.X:0.0} eyes right={(eb.IsEmpty ? 0 : eb.Right):0.0} gap={(eb.IsEmpty ? 99 : c.X - eb.Right):0.0} ext={EyesExt:0.0}");
+                            }
+                            catch { }
+                            await Task.Delay(ms);
+                        }
+                    }
+                    await Zoomed(2, 120);
+                    // a strong bass kick, made up: the cover must stay inside its place
+                    for (int i = 0; i < 30; i++) CoverBeat(0.1);
+                    CoverBeat(0.95);
+                    var b = LeadCover.TransformToAncestor(Island).TransformBounds(new Rect(0, 0, LeadCover.ActualWidth, LeadCover.ActualHeight));
+                    info.Add($"kick: scale={LeadCoverScale.ScaleX:0.000} bounds L={b.Left:0.00} T={b.Top:0.00} R={b.Right:0.00} B={b.Bottom:0.00} (rest: L=6 T=6 R=26 B=26)");
+                    await Zoomed(1, 60);
+                    shots.Clear();
+                    info.Clear();
+                    // waking up and falling asleep, frame by frame: the eyes must never reach the cover
+                    _eyesUntil = DateTime.Now.AddSeconds(30);
+                    await Zoomed(15, 35);
+                    await Task.Delay(800);
+                    _eyesUntil = DateTime.MinValue;
+                    await Zoomed(18, 45);
+                    int cols = 3, rows = (shots.Count + cols - 1) / cols;
+                    double zw = shots[0].PixelWidth, zh = shots[0].PixelHeight;
+                    var dv2 = new DrawingVisual();
+                    using (var dc = dv2.RenderOpen())
+                        for (int i = 0; i < shots.Count; i++) dc.DrawImage(shots[i], new Rect(i % cols * zw, i / cols * zh, zw, zh));
+                    var all = new RenderTargetBitmap((int)(cols * zw), (int)(rows * zh), 96, 96, PixelFormats.Pbgra32);
+                    all.Render(dv2);
+                    var enc = new PngBitmapEncoder();
+                    enc.Frames.Add(BitmapFrame.Create(all));
+                    using (var fs = File.Create(Path.Combine(dir, "coverclip.png"))) enc.Save(fs);
+                    File.WriteAllLines(Path.Combine(dir, "coverclip.txt"), info);
+                    break;
+                }
                 case "forget":
                 {
-                    // closed ≥ 1 min → what runs wins (KI first); closed 20 s → the last page as before
+                    // closed â‰¥ 1 min â†’ what runs wins (KI first); closed 20 s â†’ the last page as before
                     var log = new List<string> { $"running now: ai={H.Ai.Busy} agent={H.Agents.AnyRunning || H.Agents.AnyWaiting} call={H.Privacy.InUse} music={H.Media.IsPlaying} timer={H.Timer.Running}" };
                     H.Agents.Demo("Demo-Aufgabe", "Liest", 1, 3, 20, AgentState.Running, "demo-forget");
                     _moments.Clear();
                     S.LastTab = "Remind";
                     _closedTab = "Remind";
                     _closedAt = DateTime.Now.AddSeconds(-90);
-                    log.Add($"closed 90 s, agent runs → {ContextTab()} (expected Agent)");
+                    log.Add($"closed 90 s, agent runs â†’ {ContextTab()} (expected Agent)");
                     _closedAt = DateTime.Now.AddSeconds(-20);
-                    log.Add($"closed 20 s, agent runs → {ContextTab()} (expected Remind; hidden={IsTabHidden("Remind")} minimal={MinimalAway("Remind")} smart={S.SmartTab})");
+                    log.Add($"closed 20 s, agent runs â†’ {ContextTab()} (expected Remind; hidden={IsTabHidden("Remind")} minimal={MinimalAway("Remind")} smart={S.SmartTab})");
                     H.Agents.EndDemo();
                     _closedAt = DateTime.Now.AddSeconds(-90);
-                    log.Add($"closed 90 s, no agent → {ContextTab()} (music={H.Media.IsPlaying}: expected Music if it plays, else Remind)");
+                    log.Add($"closed 90 s, no agent â†’ {ContextTab()} (music={H.Media.IsPlaying}: expected Music if it plays, else Remind)");
                     File.WriteAllLines(Path.Combine(dir, "forget.txt"), log);
                     break;
                 }
@@ -1271,7 +1333,7 @@ public partial class IslandWindow
                     await Film(12, 90);
                     Save("bolt");
                     await Task.Delay(2500);
-                    // the page slide on the spring: Timer → Today, then a taller page (Clip)
+                    // the page slide on the spring: Timer â†’ Today, then a taller page (Clip)
                     fh = 260;
                     Expand(L.T("Timer"), false);
                     _sticky = true;
@@ -1281,7 +1343,7 @@ public partial class IslandWindow
                     _tabBtns["Clip"].IsChecked = true;
                     await Film(12, 45);
                     Save("slide");
-                    // a new clipboard entry grows in; deleting it folds away and offers "Rückgängig"
+                    // a new clipboard entry grows in; deleting it folds away and offers "RÃ¼ckgÃ¤ngig"
                     var demo = H.Clipboard.AddText("Demo: Einkaufsliste Milch, Brot", "Demo");
                     await Film(8, 45);
                     var item = H.Clipboard.Items.FirstOrDefault(i => i.Text?.StartsWith("Demo: Einkaufsliste") == true);
@@ -1293,12 +1355,12 @@ public partial class IslandWindow
                     log.Add($"after undo: in list={H.Clipboard.Items.Contains(item)}");
                     if (item != null) H.Clipboard.Remove(item);
                     Save("list_undo");
-                    // keyboard: → walks to the next tab
+                    // keyboard: â†’ walks to the next tab
                     var before = _tab;
                     Window_PreviewKeyDown(this, new System.Windows.Input.KeyEventArgs(System.Windows.Input.Keyboard.PrimaryDevice, PresentationSource.FromVisual(this), 0, System.Windows.Input.Key.Right) { RoutedEvent = System.Windows.Input.Keyboard.PreviewKeyDownEvent });
-                    log.Add($"keyboard → : {before} → {_tab}");
+                    log.Add($"keyboard â†’ : {before} â†’ {_tab}");
                     Collapse();
-                    // copy flight (separate window – only checked for errors here)
+                    // copy flight (separate window â€“ only checked for errors here)
                     try { FlyCopy("Demo-Text zum Kopieren"); log.Add("fly copy ok"); } catch (Exception ex) { log.Add("fly copy: " + ex.Message); }
                     await Task.Delay(900);
                     // settings: carousel page switch + a switch springing
@@ -1365,7 +1427,7 @@ public partial class IslandWindow
                 }
                 case "carousel":
                 {
-                    // "Karussell mit Feder": Timer → Today (forward), then back to Timer; the bar under the tab glides along
+                    // "Karussell mit Feder": Timer â†’ Today (forward), then back to Timer; the bar under the tab glides along
                     fh = 200;
                     Root.IsHitTestVisible = false;
                     Expand(L.T("Timer"), false);
@@ -1386,14 +1448,14 @@ public partial class IslandWindow
                 }
                 case "detach":
                 {
-                    // a made-up WhatsApp message: banner, then "the user went into WhatsApp" → the card drops away
+                    // a made-up WhatsApp message: banner, then "the user went into WhatsApp" â†’ the card drops away
                     fh = 160;
                     var lines = new List<string>();
                     var wa = new IslandNotification { Id = -77, AppId = "5319275A.WhatsAppDesktop_cv1g1gvanyjgm!App", AppName = "WhatsApp", Title = "Mia", Text = "Bist du schon unterwegs?", Time = DateTime.Now };
                     foreach (var keys in new[] { new[] { "whatsapp", "whatsappdesktop" }, new[] { "discord" }, new[] { "chrome", "googlechrome" } })
-                        lines.Add($"{string.Join("/", keys)} → {FromApp(wa, keys)}");
+                        lines.Add($"{string.Join("/", keys)} â†’ {FromApp(wa, keys)}");
                     var dc = new IslandNotification { AppId = "com.squirrel.Discord.Discord", AppName = "Discord" };
-                    lines.Add($"discord app vs Discord notif → {FromApp(dc, new[] { "discord" })}");
+                    lines.Add($"discord app vs Discord notif â†’ {FromApp(dc, new[] { "discord" })}");
                     File.WriteAllLines(Path.Combine(dir, "match.txt"), lines);
                     Collapse();
                     await Task.Delay(400);
@@ -1425,7 +1487,7 @@ public partial class IslandWindow
                     var enc2 = new PngBitmapEncoder();
                     enc2.Frames.Add(BitmapFrame.Create(rtb2));
                     using (var fs = File.Create(Path.Combine(dir, "settings_claude.png"))) enc2.Save(fs);
-                    File.WriteAllText(Path.Combine(dir, "status.txt"), $"{ClaudeHooks.Check()} · {((System.Windows.Controls.TextBlock)w.FindName("ClaudeStatus")).Text}");
+                    File.WriteAllText(Path.Combine(dir, "status.txt"), $"{ClaudeHooks.Check()} Â· {((System.Windows.Controls.TextBlock)w.FindName("ClaudeStatus")).Text}");
                     w.Close();
                     break;
                 }
@@ -1440,7 +1502,7 @@ public partial class IslandWindow
                     _sticky = true;
                     await Task.Delay(900);
                     Frame();
-                    NoteInput.Text = "Neue Notiz …";
+                    NoteInput.Text = "Neue Notiz â€¦";
                     await Task.Delay(200);
                     Frame();
                     NoteInput.Clear();
@@ -1464,7 +1526,7 @@ public partial class IslandWindow
                         enc2.Save(fs);
                     }
                     var lines = new List<string>();
-                    foreach (var q in new[] { "spotify", "minimal", "kürzel", "redirect", "xyzzy" })
+                    foreach (var q in new[] { "spotify", "minimal", "kÃ¼rzel", "redirect", "xyzzy" })
                     {
                         box.Text = q;
                         await Task.Delay(250);
@@ -1542,7 +1604,7 @@ public partial class IslandWindow
                         w.ShowPage(page);
                         await Task.Delay(700);
                         if (page == "General")
-                            foreach (var link in FindKids<System.Windows.Controls.TextBlock>((DependencyObject)w.Content).Where(t => t.Cursor == System.Windows.Input.Cursors.Hand && t.Text.Contains("▾")).Take(1).ToList())
+                            foreach (var link in FindKids<System.Windows.Controls.TextBlock>((DependencyObject)w.Content).Where(t => t.Cursor == System.Windows.Input.Cursors.Hand && t.Text.Contains("â–¾")).Take(1).ToList())
                                 link.RaiseEvent(new System.Windows.Input.MouseButtonEventArgs(System.Windows.Input.Mouse.PrimaryDevice, 0, System.Windows.Input.MouseButton.Left) { RoutedEvent = UIElement.MouseLeftButtonUpEvent });
                         await Task.Delay(200);
                         var el = (FrameworkElement)w.Content;
@@ -1607,7 +1669,7 @@ public partial class IslandWindow
                         AiService.SetKey(p, fake);
                         H.Ai.Messages.Clear();
                         await H.Ai.SendAsync("Hallo");
-                        lines.Add($"{p} chat: failed={H.Ai.Messages[^1].Failed} · {H.Ai.Messages[^1].Text}");
+                        lines.Add($"{p} chat: failed={H.Ai.Messages[^1].Failed} Â· {H.Ai.Messages[^1].Text}");
                     }
                     File.WriteAllLines(Path.Combine(dir, "keys.txt"), lines);
                     H.Ai.Messages.Clear();
@@ -1619,7 +1681,7 @@ public partial class IslandWindow
                 }
                 case "listen":
                 {
-                    // a known app starts listening while a Discord call runs – the wave must still come
+                    // a known app starts listening while a Discord call runs â€“ the wave must still come
                     fh = 120;
                     var claude = System.Diagnostics.Process.GetProcessesByName("Claude").Select(p => { try { return p.MainModule?.FileName; } catch { return null; } }).FirstOrDefault(f => f != null);
                     H.Privacy.Demo((claude ?? @"C:\Windows\System32\notepad.exe", true, false, false, 3));
@@ -1634,7 +1696,7 @@ public partial class IslandWindow
                 }
                 case "queue2":
                 {
-                    // another process pastes (reads the clipboard) – the queue must move once per paste
+                    // another process pastes (reads the clipboard) â€“ the queue must move once per paste
                     var log = new System.Text.StringBuilder();
                     bool qm = H.Clipboard.QueueMode;
                     H.Clipboard.QueueMode = true;
@@ -1685,3 +1747,4 @@ public partial class IslandWindow
     }
 #endif
 }
+

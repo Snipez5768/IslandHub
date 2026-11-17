@@ -127,7 +127,7 @@ public partial class IslandWindow
         _boltFill.Visibility = Visibility.Collapsed;
     }
 
-    // ---------- music: the small cover breathes with the bass ----------
+    // ---------- music: the small cover thumps with the bass (inwards, see below) ----------
 
     private ScaleTransform _coverPulse;
     private double _bassAvg, _coverBeat;
@@ -135,17 +135,15 @@ public partial class IslandWindow
     private void CoverBeat(double bass)
     {
         if (S.Animations != AnimationLevel.An || LeadCover.Visibility != Visibility.Visible || _songPending || _state != State.Collapsed) return;
-        if (!ReferenceEquals(LeadCover.RenderTransform, _coverPulse))
-        {
-            if (LeadCover.RenderTransform is not null && LeadCover.RenderTransform != Transform.Identity) return; // something else moves it
-            _coverPulse ??= new ScaleTransform();
-            LeadCover.RenderTransformOrigin = new Point(0.5, 0.5);
-            LeadCover.RenderTransform = _coverPulse;
-        }
+        // the cover's own scale (the song swap uses it too – only while no swap moves the cover)
+        if (Math.Abs(LeadCoverShift.X) > 0.01 || LeadCoverScale.HasAnimatedProperties) return;
+        _coverPulse = LeadCoverScale;
         _bassAvg = _bassAvg * 0.92 + bass * 0.08;
         double kick = Math.Max(0, bass - _bassAvg * 1.08);
         _coverBeat = Math.Max(_coverBeat * 0.8, Math.Min(1, kick * 3.2));
-        _coverPulse.ScaleX = _coverPulse.ScaleY = 1 + 0.075 * _coverBeat;
+        // the beat pushes the cover IN and it springs back – never bigger than its place (growing outwards cut it at the
+        // island's round left end, user report 2026-11-17)
+        _coverPulse.ScaleX = _coverPulse.ScaleY = 1 - 0.07 * _coverBeat;
     }
 
     private void CoverBeatStop()
