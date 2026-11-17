@@ -1000,5 +1000,19 @@ public static class LangEn
         // ---------- installer-free app texts: tray, update, misc ----------
         ("Running Update", "Running update"),
         ("Gib die Insel frei", "Release the island"),
+
+        // ---------- KI uses the island (tool steps, confirmation) ----------
+        ("Schaut auf die Insel", "Checks the island"),
+        ("Liest die Zwischenablage", "Reads the clipboard"),
+        ("Kopiert in die Zwischenablage", "Copies to the clipboard"),
+        ("Sendet mit LocalSend", "Sends with LocalSend"),
+        ("Stellt den Timer", "Sets the timer"),
+        ("Legt eine Erinnerung an", "Adds a reminder"),
+        ("Steuert die Musik", "Controls the music"),
+        ("Öffnet eine Seite", "Opens a page"),
+        ("Erledigt.", "Done."),
+        ("das Bild aus der Zwischenablage", "the picture from the clipboard"),
+        ("den letzten Screenshot", "the latest screenshot"),
+        ("{0} an {1} senden?", "Send {0} to {1}?"),
     };
 }

@@ -795,6 +795,55 @@ public partial class IslandWindow
                     S.AiProvider = prov;
                     break;
                 }
+                case "aitools":
+                {
+                    // the KI acting on the island: steps above the answer, the confirmation card (demo texts only, nothing is sent)
+                    fh = 380;
+                    var keep = H.Ai.Messages.ToList();
+                    H.Ai.Messages.Clear();
+                    Expand("Ai", false);
+                    _sticky = true;
+                    await Task.Delay(900);
+                    H.Ai.Messages.Add(new AiMessage { IsUser = true, Text = "Schick die Einkaufsliste an Demo-Handy" });
+                    var a = new AiMessage { IsStreaming = true, By = "Gemini · Demo" };
+                    H.Ai.Messages.Add(a);
+                    await Task.Delay(300);
+                    a.Steps = L.T("Schaut auf die Insel") + "\n" + L.T("Sendet mit LocalSend");
+                    var answer = new TaskCompletionSource<bool>();
+                    a.Ask(L.T("„Milch, Eier, Brot“ an Demo-Handy senden?"), L.T("Senden"), answer);
+                    await Task.Delay(700);
+                    Frame(); Save("0_confirm");
+                    a.Reply(true);
+                    await answer.Task;
+                    a.Text = "Erledigt – die Liste ist auf **Demo-Handy**.";
+                    a.IsStreaming = false;
+                    await Task.Delay(700);
+                    Frame(); Save("1_done");
+                    H.Ai.Messages.Clear();
+                    foreach (var m in keep) H.Ai.Messages.Add(m);
+                    break;
+                }
+                case "aireal":
+                {
+                    // one real, tiny request with the user's own key: the model must call start_timer (no personal data leaves the PC)
+                    fh = 380;
+                    var keep = H.Ai.Messages.ToList();
+                    H.Ai.Messages.Clear();
+                    Expand("Ai", false);
+                    _sticky = true;
+                    await Task.Delay(900);
+                    var send = H.Ai.SendAsync("Start a 1 minute timer. Reply with one word.");
+                    for (int i = 0; i < 60 && !send.IsCompleted; i++) await Task.Delay(500);
+                    await Task.Delay(800);
+                    Frame(); Save("0_answer");
+                    var last = H.Ai.Messages.LastOrDefault();
+                    System.IO.File.WriteAllText(System.IO.Path.Combine(dir, "result.txt"),
+                        $"steps={last?.Steps?.Replace("\n", " | ")}\ntext={last?.Text}\nfailed={last?.Failed}\ntimer={H.Timer.Active} {H.Timer.RemainingText}");
+                    H.Timer.Reset();
+                    H.Ai.Messages.Clear();
+                    foreach (var m in keep) H.Ai.Messages.Add(m);
+                    break;
+                }
                 case "delight":
                 {
                     // 2026-11-17: mute without the red island, Discord hang-up, KI aura + thinking eyes, tab hop, cards drop in

@@ -39,6 +39,8 @@ public partial class IslandWindow
     private void WireAi()
     {
         AiInput.AcceptsReturn = true;
+        // the model may open a page of the island ("zeig mir den Timer")
+        H.Ai.PageOpener = tab => { if (_tabBtns != null && _tabBtns.ContainsKey(tab)) Expand(tab, true); };
         H.Ai.Messages.CollectionChanged += (_, e) => Ui.Run(() => OnAiMessages(e));
         H.Ai.PropertyChanged += (_, e) => { if (e.PropertyName == nameof(AiService.Busy)) Ui.Run(UpdateAiSend); };
         H.Ai.Answered += m => Ui.Run(() => OnAiAnswered(m));
@@ -164,6 +166,45 @@ public partial class IslandWindow
         }
 
         var row = new StackPanel { Margin = new Thickness(0, 3, 30, 3), HorizontalAlignment = HorizontalAlignment.Left, Background = Brushes.Transparent };
+        // what the model did on the island while answering – small grey lines above the answer (2026-11-17)
+        if (m.Steps.Length > 0)
+        {
+            var steps = new StackPanel { Margin = new Thickness(4, 0, 0, 4) };
+            foreach (var line in m.Steps.Split('\n'))
+            {
+                var sp = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 1, 0, 1) };
+                sp.Children.Add(new SfIcon { Kind = "sparkles", Size = 10, Foreground = (Brush)FindResource("SubText"), Margin = new Thickness(0, 0, 6, 0), VerticalAlignment = VerticalAlignment.Center });
+                var t = new TextBlock { Text = line, FontSize = 10.5, VerticalAlignment = VerticalAlignment.Center };
+                t.SetResourceReference(TextBlock.ForegroundProperty, "SubText");
+                sp.Children.Add(t);
+                steps.Children.Add(sp);
+            }
+            row.Children.Add(steps);
+        }
+        // the model wants something that leaves the PC: ask here, nothing happens without a yes
+        if (m.Question != null)
+        {
+            var card = new Border
+            {
+                Background = AiBubble, CornerRadius = new CornerRadius(14), Padding = new Thickness(12, 9, 10, 9), Margin = new Thickness(0, 0, 0, 4),
+                BorderBrush = (Brush)FindResource("Accent"), BorderThickness = new Thickness(1),
+            };
+            var grid = new DockPanel();
+            var buttons = new StackPanel { Orientation = Orientation.Horizontal, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(10, 0, 0, 0) };
+            DockPanel.SetDock(buttons, Dock.Right);
+            var no = new Button { Content = L.T("Abbrechen"), Padding = new Thickness(10, 4, 10, 4), Margin = new Thickness(0, 0, 6, 0) };
+            no.SetResourceReference(StyleProperty, "PillButton");
+            no.Click += (_, _) => m.Reply(false);
+            var yes = new Button { Content = m.QuestionYes, Padding = new Thickness(12, 4, 12, 4) };
+            yes.SetResourceReference(StyleProperty, "AccentButton");
+            yes.Click += (_, _) => m.Reply(true);
+            buttons.Children.Add(no);
+            buttons.Children.Add(yes);
+            grid.Children.Add(buttons);
+            grid.Children.Add(new TextBlock { Text = m.Question, TextWrapping = TextWrapping.Wrap, FontSize = 12, Foreground = AiText, VerticalAlignment = VerticalAlignment.Center });
+            card.Child = grid;
+            row.Children.Add(card);
+        }
         FrameworkElement content = m.IsStreaming && m.Text.Length == 0 ? TypingDots()
             : m.Failed ? AiFailure(m)
             : AiRich(m.Text, AiText);

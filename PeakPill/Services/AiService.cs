@@ -27,6 +27,32 @@ public sealed class AiMessage : ObservableObject
     public string By { get; set; }
     /// <summary>Pictures sent with a question (2026-11-17): PNG files in the data folder (ai-images).</summary>
     public List<string> Images { get; set; } = new();
+
+    private string _steps = "";
+    /// <summary>What the model did on the island while answering ("Liest die Zwischenablage" …), one per line.</summary>
+    public string Steps { get => _steps; set => Set(ref _steps, value ?? ""); }
+
+    // a question to the user inside the answer ("… an Lenas iPhone senden?" – Senden / Abbrechen)
+    private string _question;
+    private TaskCompletionSource<bool> _answer;
+    public string Question { get => _question; private set => Set(ref _question, value); }
+    public string QuestionYes { get; private set; }
+
+    public void Ask(string question, string yes, TaskCompletionSource<bool> answer)
+    {
+        _answer?.TrySetResult(false);
+        _answer = answer;
+        QuestionYes = yes;
+        Question = question;
+    }
+
+    public void Reply(bool yes)
+    {
+        var a = _answer;
+        _answer = null;
+        Question = null;
+        a?.TrySetResult(yes);
+    }
 }
 
 /// <summary>
@@ -34,16 +60,22 @@ public sealed class AiMessage : ObservableObject
 /// stored encrypted for this Windows user; the chat itself stays on this PC (ai-chat.json) and goes only to the
 /// service that answers.
 /// </summary>
-public sealed class AiService : ObservableObject
+public sealed class AiService : ObservableObject, IAiHost
 {
     /// <summary>The same for the whole chat (it is part of what the answers build on).</summary>
     public static string SystemPrompt => L.English
         ? "You are the AI assistant in PeakPill, a small island at the top of the Windows screen. " +
           "Answer in the language of the question, friendly, clear and rather brief: the window is narrow. " +
-          "Short paragraphs, Markdown sparingly (bold, lists and code blocks work)."
+          "Short paragraphs, Markdown sparingly (bold, lists and code blocks work). " +
+          "You can act on the user's island with your functions (clipboard, LocalSend to their phone or PCs, timer, reminders, music, its pages). " +
+          "Use them when the user asks for such an action; check island_status first when you need device names or the current time. " +
+          "Sending with LocalSend asks the user to confirm – just call it."
         : "Du bist der KI-Assistent in PeakPill, einer kleinen Insel oben am Windows-Bildschirm. " +
           "Antworte in der Sprache der Frage (meist Deutsch), freundlich, klar und eher knapp: das Fenster ist schmal. " +
-          "Kurze Absätze, Markdown sparsam (fett, Listen, Code-Blöcke gehen).";
+          "Kurze Absätze, Markdown sparsam (fett, Listen, Code-Blöcke gehen). " +
+          "Du kannst mit deinen Funktionen die Insel des Nutzers bedienen (Zwischenablage, LocalSend an Handy oder PCs, Timer, Erinnerungen, Musik, ihre Seiten). " +
+          "Nutze sie, wenn der Nutzer so etwas möchte; frag zuerst island_status ab, wenn du Gerätenamen oder die aktuelle Zeit brauchst. " +
+          "Senden mit LocalSend fragt den Nutzer selbst nach einer Bestätigung – ruf es einfach auf.";
 
     private const string FileName = "ai-chat.json";
     private static readonly HttpClient Http = new() { Timeout = TimeSpan.FromMinutes(5) };
@@ -217,6 +249,37 @@ public sealed class AiService : ObservableObject
     }
 #endif
 
+    // ---------- the island for the model (IAiHost) ----------
+
+    private AiMessage _answering;
+    /// <summary>Set by the island window: opens one of its pages.</summary>
+    public Action<string> PageOpener;
+
+    public void OpenPage(string tab) => Ui.Run(() => PageOpener?.Invoke(tab));
+
+    /// <summary>A card in the answer with the question and two buttons (nothing leaves the PC without a yes).</summary>
+    public Task<bool> ConfirmAsync(string question, string yes)
+    {
+        var tcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var m = _answering;
+        if (m == null) { tcs.SetResult(false); return tcs.Task; }
+        Ui.Run(() => m.Ask(question, yes, tcs));
+        return tcs.Task;
+    }
+
+    private static string StepText(string tool) => tool switch
+    {
+        "island_status" => L.T("Schaut auf die Insel"),
+        "get_clipboard" => L.T("Liest die Zwischenablage"),
+        "copy_to_clipboard" => L.T("Kopiert in die Zwischenablage"),
+        "localsend_send" => L.T("Sendet mit LocalSend"),
+        "start_timer" => L.T("Stellt den Timer"),
+        "add_reminder" => L.T("Legt eine Erinnerung an"),
+        "media" => L.T("Steuert die Musik"),
+        "open_page" => L.T("Öffnet eine Seite"),
+        _ => tool,
+    };
+
     /// <summary>The user's last question (↑ in the empty field brings it back).</summary>
     public string LastQuestion => Messages.LastOrDefault(m => m.IsUser)?.Text ?? "";
 
@@ -241,12 +304,24 @@ public sealed class AiService : ObservableObject
         {
             if (key.Length == 0) throw new AiException(L.T($"Noch kein API-Schlüssel für {Name(provider)}. Trag ihn in den Einstellungen unter „KI“ ein."));
             void Add(string piece) { if (!string.IsNullOrEmpty(piece)) answer.Text += piece; }
+            // the island's functions (2026-11-17): the model may call them; each call shows as a small line
+            _answering = answer;
+            var turn = new Turn { Add = Add, Tools = AiTools.All(this) };
+            turn.Run = async (name, args) =>
+            {
+                var tool = turn.Tools.FirstOrDefault(t => t.Name == name);
+                Ui.Run(() => answer.Steps = (answer.Steps.Length > 0 ? answer.Steps + "\n" : "") + StepText(name));
+                if (tool == null) return "{\"ok\":false,\"error\":\"unknown function\"}";
+                try { return await tool.Run(args); }
+                catch (Exception ex) { return JsonSerializer.Serialize(new { ok = false, error = ex.Message }); }
+            };
             switch (provider)
             {
-                case AiProvider.ChatGpt: await StreamOpenAi(history, key, model, Add, ct); break;
-                case AiProvider.Gemini: await StreamGemini(history, key, model, Add, ct); break;
-                default: await StreamClaude(history, key, model, Add, ct); break;
+                case AiProvider.ChatGpt: await StreamOpenAi(history, key, model, turn, ct); break;
+                case AiProvider.Gemini: await StreamGemini(history, key, model, turn, ct); break;
+                default: await StreamClaude(history, key, model, turn, ct); break;
             }
+            if (answer.Text.Trim().Length == 0 && answer.Steps.Length > 0) answer.Text = L.T("Erledigt.");
             if (answer.Text.Trim().Length == 0) throw new AiException(L.T("Keine Antwort bekommen. Versuch es noch einmal."));
         }
         catch (OperationCanceledException) when (ct.IsCancellationRequested)
@@ -301,31 +376,102 @@ public sealed class AiService : ObservableObject
     /// <summary>Models where a declined request is answered by another model in the same call (server-side fallback).</summary>
     private static readonly string[] WithFallback = { "claude-fable-5-2", "claude-fable-5-1", "claude-opus-5-5", "claude-opus-5", "claude-sonnet-5-5" };
 
-    private static async Task StreamClaude(List<AiMessage> history, string key, string model, Action<string> add, CancellationToken ct)
+    /// <summary>One answer in progress: where the words go and which island functions the model may call.</summary>
+    private sealed class Turn
+    {
+        public Action<string> Add;
+        public List<AiTool> Tools = new();
+        public Func<string, JsonObject, Task<string>> Run;
+        public const int MaxRounds = 8;
+    }
+
+    private static Dictionary<string, JsonElement> ToElements(JsonObject o) =>
+        o.ToDictionary(p => p.Key, p => JsonSerializer.SerializeToElement(p.Value));
+
+    private static async Task StreamClaude(List<AiMessage> history, string key, string model, Turn turn, CancellationToken ct)
     {
         var client = new AnthropicClient { ApiKey = key };
         bool fallback = WithFallback.Contains(model);
-        var p = new MessageCreateParams
+        var messages = history.Select(m => m.IsUser
+            ? (BetaMessageParam)new BetaUserMessageParam { Content = ClaudeContent(m) }
+            : new BetaAssistantMessageParam { Content = m.Text }).ToList();
+        var tools = turn.Tools.Select(t => (BetaToolUnion)new BetaTool
         {
-            Model = model,
-            MaxTokens = 64000,
-            System = SystemPrompt,
-            CacheControl = new BetaCacheControlEphemeral(),
-            Messages = history.Select(m => m.IsUser
-                ? (BetaMessageParam)new BetaUserMessageParam { Content = ClaudeContent(m) }
-                : new BetaAssistantMessageParam { Content = m.Text }).ToList(),
-            Betas = fallback ? ["server-side-fallback-2026-07-01"] : null,
-            Fallbacks = fallback ? new Default() : null,
-        };
-        bool refused = false;
-        await foreach (var ev in client.Beta.Messages.CreateStreaming(p, ct))
+            Name = t.Name,
+            Description = t.Description,
+            InputSchema = new()
+            {
+                Properties = ToElements(t.Parameters["properties"]!.AsObject()),
+                Required = t.Parameters["required"]!.AsArray().Select(r => r!.GetValue<string>()).ToList(),
+            },
+        }).ToList();
+
+        for (int round = 0; round < Turn.MaxRounds; round++)
         {
-            if (ev.TryPickContentBlockDelta(out var d) && d.Delta.TryPickText(out var t)) add(t.Text);
-            else if (ev.TryPickDelta(out var md) && md.Delta.StopReason == BetaStopReason.Refusal) refused = true;
+            var p = new MessageCreateParams
+            {
+                Model = model,
+                MaxTokens = 64000,
+                System = SystemPrompt,
+                CacheControl = new BetaCacheControlEphemeral(),
+                Messages = messages.ToList(),
+                Tools = tools.Count > 0 ? tools : null,
+                Betas = fallback ? ["server-side-fallback-2026-07-01"] : null,
+                Fallbacks = fallback ? new Default() : null,
+            };
+            // the blocks of this reply, gathered from the stream (thinking must go back unchanged with tool results)
+            var blocks = new SortedDictionary<long, (string Kind, StringBuilder Text, string Id, string Name, string Signature)>();
+            bool refused = false;
+            await foreach (var ev in client.Beta.Messages.CreateStreaming(p, ct))
+            {
+                if (ev.TryPickContentBlockStart(out var s))
+                {
+                    var cb = s.ContentBlock;
+                    if (cb.TryPickBetaToolUse(out var tu)) blocks[s.Index] = ("tool", new StringBuilder(), tu.ID, tu.Name, null);
+                    else if (cb.TryPickBetaThinking(out var th)) blocks[s.Index] = ("thinking", new StringBuilder(th.Thinking ?? ""), null, null, th.Signature);
+                    else if (cb.TryPickBetaRedactedThinking(out var rd)) blocks[s.Index] = ("redacted", new StringBuilder(rd.Data ?? ""), null, null, null);
+                    else if (cb.TryPickBetaText(out var tx)) { blocks[s.Index] = ("text", new StringBuilder(tx.Text ?? ""), null, null, null); turn.Add(tx.Text); }
+                }
+                else if (ev.TryPickContentBlockDelta(out var d))
+                {
+                    if (!blocks.TryGetValue(d.Index, out var b)) continue;
+                    if (d.Delta.TryPickText(out var t)) { b.Text.Append(t.Text); turn.Add(t.Text); }
+                    else if (d.Delta.TryPickInputJson(out var j)) b.Text.Append(j.PartialJson);
+                    else if (d.Delta.TryPickThinking(out var th2)) b.Text.Append(th2.Thinking);
+                    else if (d.Delta.TryPickSignature(out var sg)) blocks[d.Index] = (b.Kind, b.Text, b.Id, b.Name, sg.Signature);
+                }
+                else if (ev.TryPickDelta(out var md) && md.Delta.StopReason == BetaStopReason.Refusal) refused = true;
+            }
+            if (refused) throw new AiException(L.T("Claude hat diese Anfrage abgelehnt. Formulier sie anders oder versuch ein anderes Modell."));
+            var calls = blocks.Values.Where(b => b.Kind == "tool").ToList();
+            if (calls.Count == 0) return;
+
+            // echo the reply, then one result per tool call in a single user message
+            var echo = new List<BetaContentBlockParam>();
+            foreach (var b in blocks.Values)
+            {
+                switch (b.Kind)
+                {
+                    case "thinking": echo.Add(new BetaThinkingBlockParam { Thinking = b.Text.ToString(), Signature = b.Signature ?? "" }); break;
+                    case "redacted": echo.Add(new BetaRedactedThinkingBlockParam { Data = b.Text.ToString() }); break;
+                    case "text": if (b.Text.Length > 0) echo.Add(new BetaTextBlockParam { Text = b.Text.ToString() }); break;
+                    case "tool": echo.Add(new BetaToolUseBlockParam { ID = b.Id, Name = b.Name, Input = ToElements(ParseArgs(b.Text.ToString())) }); break;
+                }
+            }
+            messages.Add(new BetaAssistantMessageParam { Content = echo });
+            var results = new List<BetaContentBlockParam>();
+            foreach (var c in calls)
+                results.Add(new BetaToolResultBlockParam { ToolUseID = c.Id, Content = await turn.Run(c.Name, ParseArgs(c.Text.ToString())) });
+            messages.Add(new BetaUserMessageParam { Content = results });
+            if (turn.Add != null) turn.Add("\n\n"); // the words after the tools start a new paragraph
         }
-        if (refused) throw new AiException(L.T("Claude hat diese Anfrage abgelehnt. Formulier sie anders oder versuch ein anderes Modell."));
     }
 
+    private static JsonObject ParseArgs(string json)
+    {
+        try { return JsonNode.Parse(string.IsNullOrWhiteSpace(json) ? "{}" : json) as JsonObject ?? new JsonObject(); }
+        catch (JsonException) { return new JsonObject(); }
+    }
     /// <summary>A question as Claude reads it: its pictures first, then the words.</summary>
     private static List<BetaContentBlockParam> ClaudeContent(AiMessage m)
     {
@@ -345,7 +491,7 @@ public sealed class AiService : ObservableObject
 
     // ---------- ChatGPT (OpenAI Chat Completions, streamed) ----------
 
-    private static async Task StreamOpenAi(List<AiMessage> history, string key, string model, Action<string> add, CancellationToken ct)
+    private static async Task StreamOpenAi(List<AiMessage> history, string key, string model, Turn turn, CancellationToken ct)
     {
         var msgs = new JsonArray { new JsonObject { ["role"] = "system", ["content"] = SystemPrompt } };
         foreach (var m in history)
@@ -356,19 +502,55 @@ public sealed class AiService : ObservableObject
                 parts.Add(new JsonObject { ["type"] = "image_url", ["image_url"] = new JsonObject { ["url"] = "data:image/png;base64," + Base64(img) } });
             msgs.Add(new JsonObject { ["role"] = "user", ["content"] = parts });
         }
-        var body = new JsonObject { ["model"] = model, ["stream"] = true, ["messages"] = msgs };
-        using var req = new HttpRequestMessage(HttpMethod.Post, "https://api.openai.com/v1/chat/completions")
+        var tools = new JsonArray(turn.Tools.Select(t => (JsonNode)new JsonObject
         {
-            Content = new StringContent(body.ToJsonString(), Encoding.UTF8, "application/json"),
-        };
-        req.Headers.Authorization = new AuthenticationHeaderValue("Bearer", key);
-        await ReadSse(req, "ChatGPT", ct, json =>
-        {
-            var ch = json["choices"] as JsonArray;
-            if (ch is { Count: > 0 }) add(ch[0]?["delta"]?["content"]?.GetValue<string>());
-        });
-    }
+            ["type"] = "function",
+            ["function"] = new JsonObject { ["name"] = t.Name, ["description"] = t.Description, ["parameters"] = t.Parameters.DeepClone() },
+        }).ToArray());
 
+        for (int round = 0; round < Turn.MaxRounds; round++)
+        {
+            var body = new JsonObject { ["model"] = model, ["stream"] = true, ["messages"] = msgs.DeepClone() };
+            if (tools.Count > 0) body["tools"] = tools.DeepClone();
+            using var req = new HttpRequestMessage(HttpMethod.Post, "https://api.openai.com/v1/chat/completions")
+            {
+                Content = new StringContent(body.ToJsonString(), Encoding.UTF8, "application/json"),
+            };
+            req.Headers.Authorization = new AuthenticationHeaderValue("Bearer", key);
+            var text = new StringBuilder();
+            var calls = new SortedDictionary<int, (string Id, string Name, StringBuilder Args)>();
+            await ReadSse(req, "ChatGPT", ct, json =>
+            {
+                var delta = (json["choices"] as JsonArray)?[0]?["delta"];
+                if (delta == null) return;
+                if (delta["content"] is JsonValue c && c.TryGetValue<string>(out var piece)) { text.Append(piece); turn.Add(piece); }
+                if (delta["tool_calls"] is JsonArray tcs)
+                    foreach (var tc in tcs)
+                    {
+                        int i = tc?["index"]?.GetValue<int>() ?? 0;
+                        if (!calls.TryGetValue(i, out var call)) call = (null, null, new StringBuilder());
+                        var id = tc?["id"]?.GetValue<string>() ?? call.Id;
+                        var name = tc?["function"]?["name"]?.GetValue<string>() ?? call.Name;
+                        call.Args.Append(tc?["function"]?["arguments"]?.GetValue<string>() ?? "");
+                        calls[i] = (id, name, call.Args);
+                    }
+            });
+            if (calls.Count == 0) return;
+            msgs.Add(new JsonObject
+            {
+                ["role"] = "assistant",
+                ["content"] = text.Length > 0 ? text.ToString() : null,
+                ["tool_calls"] = new JsonArray(calls.Values.Select(c => (JsonNode)new JsonObject
+                {
+                    ["id"] = c.Id, ["type"] = "function",
+                    ["function"] = new JsonObject { ["name"] = c.Name, ["arguments"] = c.Args.ToString() },
+                }).ToArray()),
+            });
+            foreach (var c in calls.Values)
+                msgs.Add(new JsonObject { ["role"] = "tool", ["tool_call_id"] = c.Id, ["content"] = await turn.Run(c.Name, ParseArgs(c.Args.ToString())) });
+            if (text.Length > 0) turn.Add("\n\n");
+        }
+    }
     public static async Task<List<string>> OpenAiModels(string key, CancellationToken ct)
     {
         using var req = new HttpRequestMessage(HttpMethod.Get, "https://api.openai.com/v1/models");
@@ -382,7 +564,7 @@ public sealed class AiService : ObservableObject
 
     // ---------- Gemini (Google AI Studio, streamed) ----------
 
-    private static async Task StreamGemini(List<AiMessage> history, string key, string model, Action<string> add, CancellationToken ct)
+    private static async Task StreamGemini(List<AiMessage> history, string key, string model, Turn turn, CancellationToken ct)
     {
         var contents = new JsonArray();
         foreach (var m in history)
@@ -394,22 +576,63 @@ public sealed class AiService : ObservableObject
             parts.Add(new JsonObject { ["text"] = m.Text.Length > 0 ? m.Text : PictureOnly });
             contents.Add(new JsonObject { ["role"] = m.IsUser ? "user" : "model", ["parts"] = parts });
         }
-        var body = new JsonObject
+        var decls = new JsonArray(turn.Tools.Select(t =>
         {
-            ["systemInstruction"] = new JsonObject { ["parts"] = new JsonArray { new JsonObject { ["text"] = SystemPrompt } } },
-            ["contents"] = contents,
-        };
+            var d = new JsonObject { ["name"] = t.Name, ["description"] = t.Description };
+            // a function without parameters gets no schema at all (an empty object schema is rejected)
+            if (t.Parameters["properties"] is JsonObject { Count: > 0 }) d["parameters"] = GeminiSchema(t.Parameters);
+            return (JsonNode)d;
+        }).ToArray());
         var url = $"https://generativelanguage.googleapis.com/v1beta/models/{Uri.EscapeDataString(model)}:streamGenerateContent?alt=sse";
-        using var req = new HttpRequestMessage(HttpMethod.Post, url) { Content = new StringContent(body.ToJsonString(), Encoding.UTF8, "application/json") };
-        req.Headers.Add("x-goog-api-key", key);
-        await ReadSse(req, "Gemini", ct, json =>
+
+        for (int round = 0; round < Turn.MaxRounds; round++)
         {
-            var parts = json["candidates"]?[0]?["content"]?["parts"] as JsonArray;
-            if (parts != null) foreach (var part in parts) add(part?["text"]?.GetValue<string>());
-            if (json["promptFeedback"]?["blockReason"] != null) throw new AiException(L.T("Gemini hat diese Anfrage abgelehnt."));
-        });
+            var body = new JsonObject
+            {
+                ["systemInstruction"] = new JsonObject { ["parts"] = new JsonArray { new JsonObject { ["text"] = SystemPrompt } } },
+                ["contents"] = contents.DeepClone(),
+            };
+            if (decls.Count > 0) body["tools"] = new JsonArray { new JsonObject { ["functionDeclarations"] = decls.DeepClone() } };
+            using var req = new HttpRequestMessage(HttpMethod.Post, url) { Content = new StringContent(body.ToJsonString(), Encoding.UTF8, "application/json") };
+            req.Headers.Add("x-goog-api-key", key);
+            // every part of the reply goes back as it came (newer models attach a "thoughtSignature" to function calls)
+            var modelParts = new JsonArray();
+            var calls = new List<JsonObject>();
+            await ReadSse(req, "Gemini", ct, json =>
+            {
+                if (json["promptFeedback"]?["blockReason"] != null) throw new AiException(L.T("Gemini hat diese Anfrage abgelehnt."));
+                if (json["candidates"]?[0]?["content"]?["parts"] is not JsonArray parts) return;
+                foreach (var part in parts)
+                {
+                    if (part is not JsonObject po) continue;
+                    modelParts.Add(po.DeepClone());
+                    if (po["functionCall"] is JsonObject fc) calls.Add(fc);
+                    else if (po["text"] is JsonValue tv && po["thought"]?.GetValue<bool>() != true) turn.Add(tv.GetValue<string>());
+                }
+            });
+            if (calls.Count == 0) return;
+            contents.Add(new JsonObject { ["role"] = "model", ["parts"] = modelParts });
+            var answers = new JsonArray();
+            foreach (var fc in calls)
+            {
+                var name = fc["name"]?.GetValue<string>() ?? "";
+                var result = await turn.Run(name, fc["args"] as JsonObject ?? new JsonObject());
+                var resp = new JsonObject { ["name"] = name, ["response"] = new JsonObject { ["result"] = JsonNode.Parse(result) } };
+                if (fc["id"] != null) resp["id"] = fc["id"]!.DeepClone();
+                answers.Add(new JsonObject { ["functionResponse"] = resp });
+            }
+            contents.Add(new JsonObject { ["role"] = "user", ["parts"] = answers });
+        }
     }
 
+    /// <summary>Gemini reads OpenAPI-style schemas: no "additionalProperties", an empty "required" left out.</summary>
+    private static JsonNode GeminiSchema(JsonObject schema)
+    {
+        var s = schema.DeepClone().AsObject();
+        if (s["required"] is JsonArray { Count: 0 }) s.Remove("required");
+        if (s["properties"] is JsonObject { Count: 0 }) { s.Remove("properties"); }
+        return s;
+    }
     public static async Task<List<string>> GeminiModels(string key, CancellationToken ct)
     {
         using var req = new HttpRequestMessage(HttpMethod.Get, "https://generativelanguage.googleapis.com/v1beta/models?pageSize=200");
