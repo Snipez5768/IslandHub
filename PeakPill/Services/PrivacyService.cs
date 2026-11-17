@@ -259,6 +259,8 @@ public sealed class PrivacyService : ObservableObject
                         // update during a call leaves the old version "in use" forever while the new one runs (a friend's
                         // island showed Discord twice, "Mikrofon 3:32:30", 2026-11-16)
                         if (exe != null && !RunsAt(exe)) continue;
+                        // the island itself (speaking into the KI chat) is no "live" app
+                        if (exe != null && string.Equals(exe, Environment.ProcessPath, StringComparison.OrdinalIgnoreCase)) continue;
 
                         var h = Mark(exe ?? pkg, exe, pkg);
                         if (kind == 'm') { h.M = true; h.MSince = since; }

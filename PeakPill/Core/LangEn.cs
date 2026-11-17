@@ -1014,5 +1014,15 @@ public static class LangEn
         ("das Bild aus der Zwischenablage", "the picture from the clipboard"),
         ("den letzten Screenshot", "the latest screenshot"),
         ("{0} an {1} senden?", "Send {0} to {1}?"),
+
+        // ---------- KI chat: speaking instead of typing ----------
+        ("Sprechen statt tippen", "Speak instead of typing"),
+        ("Fertig – Text ins Feld (Enter schickt sofort ab, Esc verwirft)", "Done – text into the field (Enter sends right away, Esc discards)"),
+        ("Kein Mikrofon gefunden – oder Windows erlaubt es nicht.", "No microphone found – or Windows doesn’t allow it."),
+        ("Zu kurz, um etwas zu verstehen.", "Too short to understand anything."),
+        ("{0} schreibt mit …", "{0} is writing it down …"),
+        ("Nichts verstanden.", "Didn’t catch anything."),
+        ("Das hat nicht geklappt.", "That didn’t work."),
+        ("{0} konnte die Aufnahme nicht lesen.", "{0} couldn’t read the recording."),
     };
 }

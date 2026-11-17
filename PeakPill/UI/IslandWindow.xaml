@@ -1709,10 +1709,19 @@
                                     </Grid.ColumnDefinitions>
                                     <TextBox x:Name="AiInput" Style="{StaticResource BareBox}" Tag="Frag Claude …" FontSize="12.5" MinHeight="24" MaxHeight="58"
                                              TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" PreviewKeyDown="AiInput_PreviewKeyDown" TextChanged="AiInput_TextChanged" />
+                                    <!-- speaking instead of typing: red dot, running time, level bars – or "writing it down …" -->
+                                    <DockPanel x:Name="AiRec" Visibility="Collapsed" Height="24" VerticalAlignment="Bottom" Margin="0,0,4,1" Background="Transparent">
+                                        <Ellipse x:Name="AiRecDot" DockPanel.Dock="Left" Width="7" Height="7" Fill="#FFFF453A" VerticalAlignment="Center" Margin="0,0,7,0" />
+                                        <TextBlock x:Name="AiRecTime" DockPanel.Dock="Left" Text="0:00" FontSize="11.5" Foreground="#FFEBEBF5" VerticalAlignment="Center" Margin="0,0,9,0" />
+                                        <TextBlock x:Name="AiRecText" Visibility="Collapsed" FontSize="11.5" Foreground="#FF8E8E93" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                                        <StackPanel x:Name="AiRecBars" Orientation="Horizontal" VerticalAlignment="Center" HorizontalAlignment="Right" FlowDirection="RightToLeft" ClipToBounds="True" />
+                                    </DockPanel>
                                     <Button x:Name="AiPicBtn" Grid.Column="1" Style="{StaticResource BareIconButton}" Width="24" Height="24" ui:Ext.Icon="photo" ui:Ext.IconSize="13" HorizontalAlignment="Left"
                                             Foreground="#FF8E8E93" ui:Ext.Hover="White" ToolTip="Bild anhängen (oder Strg+V, hineinziehen)" Click="AiPicture_Click" VerticalAlignment="Bottom" Margin="0,0,0,1" />
-                                    <Button x:Name="AiNewBtn" Grid.Column="1" Margin="24,0,0,1" Style="{StaticResource BareIconButton}" Width="24" Height="24" ui:Ext.Icon="square.pencil" ui:Ext.IconSize="13"
+                                    <Button x:Name="AiNewBtn" Grid.Column="1" Margin="48,0,0,1" Style="{StaticResource BareIconButton}" Width="24" Height="24" ui:Ext.Icon="square.pencil" ui:Ext.IconSize="13"
                                             Foreground="#FF8E8E93" ui:Ext.Hover="White" ToolTip="Neuer Chat" Click="AiNew_Click" VerticalAlignment="Bottom" />
+                                    <Button x:Name="AiMicBtn" Grid.Column="1" Margin="24,0,0,1" Style="{StaticResource BareIconButton}" Width="24" Height="24" ui:Ext.Icon="mic" ui:Ext.IconSize="13"
+                                            Foreground="#FF8E8E93" ui:Ext.Hover="White" ToolTip="Sprechen statt tippen" Click="AiMic_Click" VerticalAlignment="Bottom" HorizontalAlignment="Left" />
                                     <Border x:Name="AiSendBtn" Grid.Column="2" Width="24" Height="24" CornerRadius="12" Background="{StaticResource Accent}" Cursor="Hand"
                                             VerticalAlignment="Bottom" Margin="3,0,0,1" MouseLeftButtonUp="AiSend_Click" ToolTip="Senden (Enter)" RenderTransformOrigin="0.5,0.5">
                                         <Border.RenderTransform><ScaleTransform x:Name="AiSendScale" /></Border.RenderTransform>

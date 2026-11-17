@@ -768,6 +768,7 @@ public partial class IslandWindow
 
     private void AiInput_PreviewKeyDown(object sender, KeyEventArgs e)
     {
+        if (DictationKey(e)) return; // recording: Enter = write down and send, Esc = throw away
         if (e.Key == Key.Enter && (Keyboard.Modifiers & ModifierKeys.Shift) == 0) { e.Handled = true; AiSend(); }
         // a picture in the clipboard (screenshot, copied photo): Ctrl+V adds it to the question
         else if (e.Key == Key.V && Keyboard.Modifiers == ModifierKeys.Control && Clipboard.ContainsImage()) { e.Handled = true; AiAttach(Clipboard.GetImage()); }
@@ -785,6 +786,7 @@ public partial class IslandWindow
 
     private void AiSend()
     {
+        if (_dict != null) { _ = DictationFinish(true); return; } // recording: write it down and send
         if (H.Ai.Busy) { H.Ai.Stop(); return; }
         var text = AiInput.Text.Trim();
         if (text.Length == 0 && _aiPics.Count == 0) return;

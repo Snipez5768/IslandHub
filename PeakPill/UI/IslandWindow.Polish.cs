@@ -823,6 +823,61 @@ public partial class IslandWindow
                     foreach (var m in keep) H.Ai.Messages.Add(m);
                     break;
                 }
+                case "dictate":
+                {
+                    // speaking into the KI chat: the recording look (made-up levels), "writing it down", a message;
+                    // then 1.5 s of the real microphone only to check the capture (kept in memory, thrown away)
+                    fh = 260;
+                    var keep = H.Ai.Messages.ToList();
+                    H.Ai.Messages.Clear();
+                    Expand("Ai", false);
+                    _sticky = true;
+                    await Task.Delay(900);
+                    DictationUi(DictState.Recording);
+                    var rnd = new Random(7);
+                    for (int i = 0; i < DictBars; i++)
+                    {
+                        double lvl = Math.Abs(Math.Sin(i * 0.45)) * (0.4 + rnd.NextDouble() * 0.6);
+                        AiRecBars.Children.Insert(0, new System.Windows.Shapes.Rectangle { Width = 2.5, Height = 2 + lvl * 16, RadiusX = 1.25, RadiusY = 1.25, Margin = new Thickness(1.2, 0, 1.2, 0), Fill = DictBar, VerticalAlignment = VerticalAlignment.Center });
+                    }
+                    AiRecTime.Text = "0:07";
+                    await Task.Delay(400);
+                    Frame(); Save("0_recording");
+                    DictationUi(DictState.Writing);
+                    AiRecText.Text = L.T($"{AiService.Name(AiProvider.Gemini)} schreibt mit …");
+                    await Task.Delay(300);
+                    Frame(); Save("1_writing");
+                    DictationMessage(L.T("Nichts verstanden."));
+                    await Task.Delay(300);
+                    Frame(); Save("2_message");
+                    DictationUi(DictState.Idle);
+                    await Task.Delay(300);
+                    Frame(); Save("3_idle");
+                    var info = new System.Text.StringBuilder();
+                    using (var d = new Dictation())
+                    {
+                        try
+                        {
+                            d.Start();
+                            float peak = 0;
+                            for (int i = 0; i < 15; i++) { await Task.Delay(100); peak = Math.Max(peak, d.TakePeak()); }
+                            var wav = await d.StopAsync();
+                            info.AppendLine($"capture ok: {wav?.Length ?? 0} bytes, {d.Length.TotalSeconds:0.00} s, peak {peak:0.000}");
+                        }
+                        catch (Exception ex) { info.AppendLine("capture failed: " + ex.Message); }
+                    }
+                    // optional: a made-up spoken sentence (Windows' text-to-speech) written down by the user's own key
+                    var test = Environment.GetEnvironmentVariable("PP_TEST_WAV");
+                    if (test != null && File.Exists(test) && Dictation.Writer() is { } who)
+                    {
+                        try { info.AppendLine($"{who}: " + await Dictation.TranscribeAsync(File.ReadAllBytes(test), who, CancellationToken.None)); }
+                        catch (Exception ex) { info.AppendLine($"{who} failed: " + ex.Message); }
+                    }
+                    File.WriteAllText(Path.Combine(dir, "result.txt"), info.ToString());
+                    H.Ai.Messages.Clear();
+                    foreach (var m in keep) H.Ai.Messages.Add(m);
+                    break;
+                }
                 case "aireal":
                 {
                     // one real, tiny request with the user's own key: the model must call start_timer (no personal data leaves the PC)
