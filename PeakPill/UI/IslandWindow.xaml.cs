@@ -161,7 +161,7 @@ public partial class IslandWindow : Window
         H.Timer.PropertyChanged += (_, e) => { if (e.PropertyName is nameof(FocusTimerService.Active)) { UpdatePill(); UpdateTimerUi(); } };
         H.Timer.Completed += OnTimerCompleted;
         H.Audio.PropertyChanged += (_, _) => { UpdatePill(); UpdateControlsUi(); UpdateLiveUi(); };
-        H.Privacy.PropertyChanged += (_, _) => { UpdatePill(); UpdateLiveUi(); };
+        H.Privacy.PropertyChanged += (_, _) => { if (!WatchCallEnd()) UpdatePill(); UpdateLiveUi(); };
         H.Privacy.Started += OnLiveStarted;
         H.Agents.PropertyChanged += (_, _) =>
         {
@@ -3122,6 +3122,7 @@ public partial class IslandWindow : Window
     {
         if (!Dispatcher.CheckAccess()) { Dispatcher.BeginInvoke(new Action(UpdateDiscordState)); return; }
         PrivacyService.DiscordInVoice = H.Discord.Connected && H.Discord.InVoice;
+        WatchCallEnd(); // hung up in Discord itself: the same moment as with the island's button
         foreach (var a in H.Privacy.Apps) a.SelfMuted = a.IsDiscord && H.Discord.Connected && H.Discord.Muted;
         UpdatePill();
         UpdateLiveUi();
@@ -3181,19 +3182,21 @@ public partial class IslandWindow : Window
         var app = (sender as FrameworkElement)?.Tag as LiveApp ?? H.Privacy.Apps.FirstOrDefault(a => a.IsDiscord);
         if (app == null) return;
         Collapse();
-        // hang up at once – the moment (red phone, into the island, "Anruf beendet") plays meanwhile
+        // hang up at once; the end of the call is noticed by WatchCallEnd – here it waits until the island has
+        // closed and the call bubble is out again, then plays the moment itself
+        _hangUpMomentAt = DateTime.Now;
         var leave = H.Discord.Connected ? H.Discord.LeaveVoice() : Task.FromResult(false);
-        await Task.Delay(380); // the island has closed, the call bubble is out again
-        var bubble = CallBubble();
-        var tip = bubble != null ? TipPhone(bubble == Bubble ? BubbleIcon : Bubble2Icon) : Task.CompletedTask;
+        await Task.Delay(380);
         bool ok = await leave;
         if (!ok) ok = await H.Privacy.HangUpAsync(app);
-        await tip;
-        if (ok) { HungUpMoment(bubble); return; }
-        // not hung up: the phone turns back
-        _phoneTipping = false;
-        BubbleIcon.RenderTransform = Bubble2Icon.RenderTransform = null;
-        UpdatePill(true);
+        if (ok)
+        {
+            _hangUpMomentAt = DateTime.Now;
+            _wasInVoice = _wasDiscordMic = false;
+            await HangUpMoment();
+            return;
+        }
+        _hangUpMomentAt = DateTime.MinValue;
         H.Privacy.Open(app);
         ShowPeek(new PeekInfo
         {

@@ -868,16 +868,9 @@ public partial class IslandWindow
                     var bubble = CallBubble();
                     File.WriteAllText(Path.Combine(dir, "bubble.txt"), bubble?.Name ?? "no call bubble");
                     Frame();
-                    var tip = bubble != null ? TipPhone(bubble == Bubble ? BubbleIcon : Bubble2Icon) : Task.CompletedTask;
-                    for (int i = 0; i < 5; i++) { Frame(); await Task.Delay(60); }
-                    await tip;
-                    var trace = new List<string>();
-                    string State() => $"vis={Bubble.Visibility} tag={Bubble.Tag} fg={(BubbleIcon.Foreground as SolidColorBrush)?.Color} gap={_bm1.Gap.Value:0.0}->{_bm1.Gap.Target:0.0} fade={_bm1.Fade.Value:0.00} want={_bm1.Want} justHungUp={JustHungUp} apps={string.Join(",", H.Privacy.Apps.Select(a => a.Name + ":" + a.IsDiscord))}";
-                    trace.Add("before: " + State());
-                    HungUpMoment(bubble);
-                    trace.Add("after: " + State());
-                    for (int i = 0; i < 14; i++) { Frame(); trace.Add($"f{i}: " + State()); await Task.Delay(60); }
-                    File.WriteAllLines(Path.Combine(dir, "trace.txt"), trace);
+                    var moment = HangUpMoment();
+                    for (int i = 0; i < 22; i++) { Frame(); await Task.Delay(45); }
+                    await moment;
                     Save("1_hangup");
                     await Task.Delay(2500);
                     H.Privacy.EndDemo();
