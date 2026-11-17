@@ -856,6 +856,32 @@ public partial class IslandWindow
                     Root.IsHitTestVisible = true;
                     break;
                 }
+                case "livepick":
+                {
+                    // the screen choice in the island – only shown, no tile is clicked (that would drive the real Discord)
+                    Root.IsHitTestVisible = false;
+                    var discord = System.Diagnostics.Process.GetProcessesByName("Discord").Select(p => { try { return p.MainModule?.FileName; } catch { return null; } }).FirstOrDefault(f => f != null)
+                                  ?? @"C:\Windows\System32\notepad.exe";
+                    H.Privacy.Demo((discord, true, false, false, 3));
+                    await Task.Delay(500);
+                    UpdateLiveUi();
+                    Expand("Live", false);
+                    _sticky = true;
+                    await Task.Delay(900);
+                    fh = 240;
+                    var app = H.Privacy.Apps.FirstOrDefault(a => a.IsDiscord) ?? H.Privacy.Apps.FirstOrDefault();
+                    var screens = System.Windows.Forms.Screen.AllScreens;
+                    File.WriteAllText(Path.Combine(dir, "screens.txt"), string.Join("\n", screens.Select((s, i) => $"{i + 1}: {s.Bounds} primary={s.Primary}")));
+                    ShowLivePick(app, screens);
+                    await Film(9, 70);
+                    Save("1_pick");
+                    LivePickCancel_Click(null, null);
+                    await Film(6, 70);
+                    Save("2_cancel");
+                    H.Privacy.EndDemo();
+                    Root.IsHitTestVisible = true;
+                    break;
+                }
                 case "aisettings":
                 {
                     var w = new SettingsWindow { ShowActivated = false, WindowStartupLocation = WindowStartupLocation.Manual, Left = -4000, Top = 0 };

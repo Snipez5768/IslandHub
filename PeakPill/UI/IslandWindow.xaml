@@ -839,6 +839,23 @@
                                 </ItemsControl>
                             </ScrollViewer>
 
+                            <!-- "Streamen" with several screens: pick the screen right here (2026-11-17), the island then drives Discord's picker -->
+                            <Grid x:Name="LivePick" Visibility="Collapsed" Margin="2,0,0,0">
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="*" />
+                                </Grid.RowDefinitions>
+                                <DockPanel>
+                                    <Button DockPanel.Dock="Right" Style="{StaticResource BareIconButton}" Width="24" Height="22" ui:Ext.Icon="xmark" ui:Ext.IconSize="12"
+                                            Foreground="#FF8E8E93" ui:Ext.Hover="White" ToolTip="Abbrechen" Click="LivePickCancel_Click" />
+                                    <ui:SfIcon Kind="display" Size="13" Foreground="{StaticResource Blue}" Margin="0,0,7,0" VerticalAlignment="Center" />
+                                    <TextBlock Text="Welchen Bildschirm streamen?" FontSize="12.5" FontWeight="SemiBold" VerticalAlignment="Center" />
+                                </DockPanel>
+                                <ScrollViewer Grid.Row="1" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled" Margin="0,8,0,0">
+                                    <StackPanel x:Name="LivePickScreens" Orientation="Horizontal" />
+                                </ScrollViewer>
+                            </Grid>
+
                             <!-- one app (even if it streams AND uses the mic): one big entry -->
                             <Grid x:Name="LiveSingle" DataContext="{Binding Privacy.Primary}" Margin="2,0,0,0" Visibility="Collapsed">
                                 <Grid.ColumnDefinitions>

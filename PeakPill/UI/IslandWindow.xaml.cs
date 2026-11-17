@@ -65,6 +65,7 @@ public partial class IslandWindow : Window
         : tab == "Ai" ? AiHeight()
         : tab == "Notify" ? NotifyHeight()
         : tab == "Music" && (_queueOpen || _lyricsOpen) ? 300
+        : tab == "Live" && _livePick ? LivePickH
         : tab == "Live" && H.Privacy.InUse && AnyDl ? 152 // call + download: a little taller, nothing cut off
         : ExpH;
 
@@ -373,6 +374,7 @@ public partial class IslandWindow : Window
             if (_autoTab != null && _tab == _autoTab && DateTime.Now - _autoShownAt >= TimeSpan.FromSeconds(1)) ForgetMoment(_autoTab);
         }
         _sticky = false;
+        _livePick = false; // a half-made screen choice is not kept
         _watchTimer.Stop();
         _outside.Uninstall();
         _hintGen++;
@@ -3055,6 +3057,7 @@ public partial class IslandWindow : Window
             // on a white badge (white mic colour) the symbol is dark
             LiveSingleBadge.Foreground = ReferenceEquals(p.Accent, Brushes.White) ? Brushes.Black : Brushes.White;
         }
+        ApplyLivePick();
     }
 
     private void LiveMute_Click(object sender, RoutedEventArgs e)
@@ -3109,51 +3112,6 @@ public partial class IslandWindow : Window
     }
 
     private static bool DiscordStreamKey(out HotkeyGesture g) => HotkeyGesture.TryParse(S.DiscordStreamKey, out g);
-
-    /// <summary>
-    /// Discord has no API for Go Live. With the user's keybind set the island presses it like a person (held, with
-    /// scan codes – the instant burst before 1.4.0 was ignored by Discord). If no stream shows up after a few
-    /// seconds, or no keybind is set, it presses Discord's own "share your screen" button and brings Discord up.
-    /// </summary>
-    private async void LiveStartStream_Click(object sender, RoutedEventArgs e)
-    {
-        var app = (sender as FrameworkElement)?.Tag as LiveApp ?? H.Privacy.Apps.FirstOrDefault(a => a.IsDiscord);
-        if (app == null) return;
-        Collapse();
-        ShowHint("display", "Stream wird gestartet …", (Brush)FindResource("Blue"), key: "live");
-        // 1) Discord to the front – its picker opens there, and keys reach Discord only reliably when it has the
-        //    focus (user report 2026-11-17: the held keybind sent while the island was in front did nothing)
-        await Task.Delay(120);
-        bool front = H.Privacy.Open(app);
-        await Task.Delay(700);
-        // 2) Discord's own "share your screen" button
-        var seen = new List<string>();
-        bool picker = await H.Privacy.OpenSharePickerAsync(app, seen);
-        LiveLog($"stream: discord front={front} in-front={IsDiscordInFront()} button={picker} near=[{string.Join(" | ", seen)}]");
-        if (picker) { StreamPicked(); return; }
-        // 3) the user's Discord keybind – now into the Discord window
-        if (DiscordStreamKey(out var g))
-        {
-            await PasteHelper.SendComboHeldAsync(g);
-            for (int i = 0; i < 12; i++)
-            {
-                await Task.Delay(250);
-                if (H.Privacy.Apps.Any(a => a.IsDiscord && a.Screen)) { LiveLog("stream: keybind started it"); return; }
-            }
-            LiveLog("stream: keybind sent, no stream seen after 3 s");
-        }
-        ShowPeek(new PeekInfo
-        {
-            Icon = "display",
-            Key = "live",
-            GlyphBrush = (Brush)FindResource("Blue"),
-            Title = "Discord ist vorn",
-            Text = DiscordStreamKey(out _)
-                ? "Den Knopf zum Teilen fand die Insel nicht, und Discord hat Strg+F9 nicht angenommen. Klick unten links auf das Bildschirm-Symbol."
-                : "Klick unten links auf das Bildschirm-Symbol, um zu streamen.",
-            TimeoutMs = 7000,
-        });
-    }
 
     /// <summary>Discord's picker is open: only the choice is left.</summary>
     private void StreamPicked() => ShowPeek(new PeekInfo

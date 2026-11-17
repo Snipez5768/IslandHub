@@ -603,6 +603,112 @@ public sealed class PrivacyService : ObservableObject
     /// <summary>Presses Discord's share button; <paramref name="seen"/> collects nearby button names for the log.</summary>
     public Task<bool> OpenSharePickerAsync(LiveApp app, List<string> seen = null) => PressAsync(app, ShareNames, seen);
 
+    // ---------- Go Live with a chosen screen (user wish 2026-11-17: choose the screen in the island) ----------
+
+    public enum GoLiveResult { Live, PickerOpen, NoButton }
+
+    // Discord's picker (seen 2026-11-17, German client): tabs "Anwendungen" | "Gesamter Bildschirm" | "Geräte",
+    // screen tiles are buttons "Bildschirm 1", "Bildschirm 2" (same order as Windows' screens, 1 = main screen),
+    // and a click on a tile starts the stream at once – there is no separate "Live gehen" any more.
+    private static readonly Regex ScreensTab = new(@"^(gesamter bildschirm|entire screen|bildschirme|screens|displays|monitore)$", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+    private static readonly Regex GoLiveButton = new(@"^(live gehen|go live|stream starten|start stream|übertragung starten)$", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+    private static readonly Regex AnyScreenTile = new(@"^(bildschirm|screen|display|monitor)\s*(\d+)\b", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
+    /// <summary>
+    /// Opens Discord's Go-Live picker, chooses screen number <paramref name="screen"/> (1-based, like Discord's
+    /// "Bildschirm 1") and presses "Live gehen". Everything goes through UI Automation; <paramref name="log"/> gets
+    /// what was found (names of the picker's controls, nothing of the call).
+    /// </summary>
+    public Task<GoLiveResult> GoLiveAsync(LiveApp app, int screen, Action<string> log) => Task.Run(async () =>
+    {
+        if (!await PressAsync(app, ShareNames)) return GoLiveResult.NoButton;
+
+        // the picker takes a moment to open – it starts on "Anwendungen", the screens are on "Gesamter Bildschirm"
+        // (tiles are only looked for after the tab: on "Anwendungen" a window could be called "Display 1 …")
+        AutomationElement tile = null, tab = null;
+        for (int i = 0; i < 20 && tab == null; i++)
+        {
+            Thread.Sleep(200);
+            tab = Find(app, ScreensTab);
+        }
+        if (tab != null) log($"golive: tab '{SafeName(tab)}' {Activate(tab)}");
+        for (int i = 0; i < 10 && tile == null; i++) { Thread.Sleep(200); tile = FindTile(app, screen); }
+        if (tile == null) { log("golive: no tile " + screen + " · " + Dump(app)); return GoLiveResult.PickerOpen; }
+        log($"golive: tile '{SafeName(tile)}' {Activate(tile)}");
+
+        // the click on the tile starts the stream; older / other clients still ask with a "Live gehen" button
+        for (int i = 0; i < 10; i++)
+        {
+            Thread.Sleep(200);
+            var go = Find(app, GoLiveButton);
+            if (go == null) continue;
+            log($"golive: button '{SafeName(go)}' {Activate(go)}");
+            break;
+        }
+        return GoLiveResult.Live;
+    });
+
+    private AutomationElement FindTile(LiveApp app, int screen) =>
+        All(app).FirstOrDefault(e => AnyScreenTile.Match(SafeName(e)) is { Success: true } m && m.Groups[2].Value == screen.ToString());
+
+    private AutomationElement Find(LiveApp app, Regex names) => All(app).FirstOrDefault(e => names.IsMatch(SafeName(e)));
+
+    private IEnumerable<AutomationElement> All(LiveApp app)
+    {
+        foreach (var w in Windows(app).Where(w => w.Visible).OrderByDescending(w => w.Area))
+        {
+            AutomationElementCollection all;
+            try { all = AutomationElement.FromHandle(w.Hwnd).FindAll(TreeScope.Descendants, Condition.TrueCondition); }
+            catch { continue; }
+            foreach (AutomationElement e in all) yield return e;
+        }
+    }
+
+    private static string SafeName(AutomationElement e)
+    {
+        try { return (e.Current.Name ?? "").Trim(); } catch { return ""; }
+    }
+
+    /// <summary>Presses / selects / toggles – whatever the control offers; else focus + Space (Discord is in front).</summary>
+    private static string Activate(AutomationElement e)
+    {
+        try
+        {
+            if (e.TryGetCurrentPattern(InvokePattern.Pattern, out var p)) { ((InvokePattern)p).Invoke(); return "invoke"; }
+            if (e.TryGetCurrentPattern(SelectionItemPattern.Pattern, out p)) { ((SelectionItemPattern)p).Select(); return "select"; }
+            if (e.TryGetCurrentPattern(TogglePattern.Pattern, out p)) { ((TogglePattern)p).Toggle(); return "toggle"; }
+            e.SetFocus();
+            Thread.Sleep(80);
+            keybd_event(0x20, 0x39, 0, UIntPtr.Zero);
+            Thread.Sleep(40);
+            keybd_event(0x20, 0x39, 2, UIntPtr.Zero);
+            return "focus+space";
+        }
+        catch (Exception ex) { return "failed: " + ex.GetType().Name; }
+    }
+
+    /// <summary>For the log: the picker's controls (type and label), so the next version can match them exactly.</summary>
+    private string Dump(LiveApp app)
+    {
+        var parts = new List<string>();
+        foreach (var e in All(app))
+        {
+            var n = SafeName(e);
+            if (n.Length == 0 || n.Length > 60) continue;
+            string t;
+            try { t = e.Current.ControlType.ProgrammaticName.Replace("ControlType.", ""); } catch { continue; }
+            // only what can belong to the picker – no server, channel or chat names
+            if (!PickerWords.IsMatch(n)) continue;
+            parts.Add($"{t}:{n}");
+            if (parts.Count >= 60) break;
+        }
+        return string.Join(" | ", parts);
+    }
+
+    private static readonly Regex PickerWords = new(
+        @"(?i)^(bildschirm|screen|display|monitor|anwendung|application|fenster|window|live|stream|übertrag|qualität|quality|auflösung|resolution|bildrate|frame ?rate|fps|abbrechen|cancel|schließen|close|ton|audio|\d)",
+        RegexOptions.Compiled);
+
     private static readonly Regex NearShare = new(@"(?i)bildschirm|screen|teil|share|stream|live|übertrag|kamera|camera|aktivit", RegexOptions.Compiled);
 
     /// <summary>Presses the first button of the app whose name matches (UI Automation). False if there is none.</summary>
