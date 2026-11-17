@@ -376,6 +376,60 @@ public partial class SettingsWindow : Window
         if (!string.IsNullOrEmpty(S.DiscordSecret)) OptDiscordSecret.Password = "••••••••"; // placeholder – the real secret is never shown
         UpdateDiscordStatus();
         App.Hub.Discord.PropertyChanged += (_, _) => Dispatcher.BeginInvoke(new Action(UpdateDiscordStatus));
+        UpdateClaudeStatus();
+    }
+
+    // ---------- Claude Code: hooks for the Agent page ----------
+
+    private void UpdateClaudeStatus(string message = null)
+    {
+        var st = Services.ClaudeHooks.Check();
+        int live = App.Hub.Agents.Sessions.Count(s => s.Id != null && !s.Id.StartsWith("demo"));
+        ClaudeStatus.Text = st switch
+        {
+            Services.ClaudeHooks.State.Ready => live > 0 ? L.T($"Eingerichtet · {live} aktiv") : L.T("Eingerichtet"),
+            Services.ClaudeHooks.State.Partly => L.T("Teilweise eingerichtet"),
+            Services.ClaudeHooks.State.NoClaude => L.T("Claude Code nicht gefunden"),
+            Services.ClaudeHooks.State.Broken => L.T("Einstellungen nicht lesbar"),
+            _ => L.T("Nicht eingerichtet"),
+        };
+        ClaudeStatus.Foreground = st == Services.ClaudeHooks.State.Ready ? (Brush)FindResource("Green") : (Brush)FindResource("SubText");
+        ClaudeInstallBtn.Visibility = st == Services.ClaudeHooks.State.Ready ? Visibility.Collapsed : Visibility.Visible;
+        ClaudeRemoveBtn.Visibility = st is Services.ClaudeHooks.State.Ready or Services.ClaudeHooks.State.Partly ? Visibility.Visible : Visibility.Collapsed;
+        ClaudeHint.Text = message ?? (st == Services.ClaudeHooks.State.Ready
+            ? L.T("Neue Claude-Sitzungen erscheinen im Agent-Tab.")
+            : st == Services.ClaudeHooks.State.NoClaude ? L.T("Erst Claude Code installieren und einmal starten.") : "");
+    }
+
+    private void ClaudeInstall_Click(object sender, RoutedEventArgs e)
+    {
+        var err = Services.ClaudeHooks.Install();
+        UpdateClaudeStatus(err ?? L.T("Fertig – laufende Claude-Sitzungen einmal neu starten."));
+    }
+
+    private void ClaudeRemove_Click(object sender, RoutedEventArgs e)
+    {
+        var err = Services.ClaudeHooks.Remove();
+        UpdateClaudeStatus(err ?? L.T("Entfernt – Claude meldet der Insel nichts mehr."));
+    }
+
+    private void ClaudeCopy_Click(object sender, RoutedEventArgs e)
+    {
+        try { Clipboard.SetText(Services.ClaudeHooks.Snippet()); ClaudeHint.Text = L.T("Kopiert – in settings.json unter die oberste Klammer einfügen."); }
+        catch { }
+    }
+
+    /// <summary>A made-up task runs through the island for a few seconds – so you see where it shows up.</summary>
+    private async void ClaudeTest_Click(object sender, RoutedEventArgs e)
+    {
+        var a = App.Hub.Agents;
+        a.Demo(L.T("Beispiel: Wetter-Widget bauen"), L.T("Liest WeatherService.cs"), 1, 4, 12, Services.AgentState.Running, "demo-test", "PeakPill");
+        await Task.Delay(2500);
+        a.Demo(L.T("Beispiel: Wetter-Widget bauen"), L.T("Bearbeitet WeatherWidget.xaml"), 3, 4, 40, Services.AgentState.Running, "demo-test", "PeakPill");
+        await Task.Delay(2500);
+        a.Demo(L.T("Beispiel: Wetter-Widget bauen"), L.T("Fertig"), 4, 4, 55, Services.AgentState.Done, "demo-test", "PeakPill");
+        await Task.Delay(3000);
+        a.EndDemo();
     }
 
     // ---------- Discord ----------

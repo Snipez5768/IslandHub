@@ -1145,6 +1145,51 @@ public partial class IslandWindow
                     Root.IsHitTestVisible = true;
                     break;
                 }
+                case "detach":
+                {
+                    // a made-up WhatsApp message: banner, then "the user went into WhatsApp" → the card drops away
+                    fh = 160;
+                    var lines = new List<string>();
+                    var wa = new IslandNotification { Id = -77, AppId = "5319275A.WhatsAppDesktop_cv1g1gvanyjgm!App", AppName = "WhatsApp", Title = "Mia", Text = "Bist du schon unterwegs?", Time = DateTime.Now };
+                    foreach (var keys in new[] { new[] { "whatsapp", "whatsappdesktop" }, new[] { "discord" }, new[] { "chrome", "googlechrome" } })
+                        lines.Add($"{string.Join("/", keys)} → {FromApp(wa, keys)}");
+                    var dc = new IslandNotification { AppId = "com.squirrel.Discord.Discord", AppName = "Discord" };
+                    lines.Add($"discord app vs Discord notif → {FromApp(dc, new[] { "discord" })}");
+                    File.WriteAllLines(Path.Combine(dir, "match.txt"), lines);
+                    Collapse();
+                    await Task.Delay(400);
+                    ShowNotificationBanner(wa);
+                    await Film(6, 120);
+                    DetachPeek();
+                    await Film(10, 60);
+                    Save("detach");
+                    break;
+                }
+                case "claudeset":
+                {
+                    // the Claude Code row opened (status read from the real settings file, nothing written) + the test run
+                    var w = new SettingsWindow { ShowActivated = false, WindowStartupLocation = WindowStartupLocation.Manual, Left = -4000, Top = 0 };
+                    w.Show();
+                    w.ShowPage("General");
+                    await Task.Delay(500);
+                    var tg = (System.Windows.Controls.Primitives.ToggleButton)w.FindName("ClaudeExpand");
+                    tg.IsChecked = true;
+                    tg.RaiseEvent(new RoutedEventArgs(System.Windows.Controls.Primitives.ButtonBase.ClickEvent));
+                    await Task.Delay(400);
+                    var row = (FrameworkElement)w.FindName("ClaudeDetails");
+                    row.BringIntoView();
+                    await Task.Delay(400);
+                    var el = (FrameworkElement)w.Content;
+                    var dpi2 = VisualTreeHelper.GetDpi(w);
+                    var rtb2 = new RenderTargetBitmap((int)(el.ActualWidth * dpi2.DpiScaleX), (int)(el.ActualHeight * dpi2.DpiScaleY), dpi2.PixelsPerInchX, dpi2.PixelsPerInchY, PixelFormats.Pbgra32);
+                    rtb2.Render(el);
+                    var enc2 = new PngBitmapEncoder();
+                    enc2.Frames.Add(BitmapFrame.Create(rtb2));
+                    using (var fs = File.Create(Path.Combine(dir, "settings_claude.png"))) enc2.Save(fs);
+                    File.WriteAllText(Path.Combine(dir, "status.txt"), $"{ClaudeHooks.Check()} · {((System.Windows.Controls.TextBlock)w.FindName("ClaudeStatus")).Text}");
+                    w.Close();
+                    break;
+                }
                 case "trio":
                 {
                     // quick notes (demo text only), the settings search, and a made-up browser download end to end

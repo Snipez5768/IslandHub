@@ -126,6 +126,7 @@ public partial class IslandWindow : Window
         WireAi();
         WireSend();
         WireNotes();
+        WireNotifyDetach();
 
         // timer wheels start at the last used duration
         var secs = H.Timer.DurationSeconds;
@@ -3859,6 +3860,7 @@ public partial class IslandWindow : Window
         // user wish 2026-11-15: after the bell a one-line ticker (the island only grows sideways); the pointer on it
         // opens the full card – app on top, the person, two lines, "Gelesen" / "Öffnen", a line that runs down.
         // A newer message replaces it and counts up; when the card is already open the new one stays a card.
+        _peekNotif = n; // going into its app lets the card drop away (IslandWindow.NotifyDetach.cs)
         bool open = _state == State.Peek && _peek is { Key: "notif", Ticker: true, Open: true };
         int count = _state == State.Peek && _peek is { Key: "notif" } cur ? cur.Count + 1 : 1;
         ShowPeek(new PeekInfo

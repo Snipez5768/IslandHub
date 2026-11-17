@@ -179,7 +179,7 @@ public partial class SettingsWindow
             if (p.Visibility == Visibility.Collapsed) p.Visibility = Visibility.Visible;
         }
         // an app row (Discord, Spotify, OBS): its setup opens too
-        foreach (var t in new[] { DiscordExpand, SpotifyExpand, ObsExpand })
+        foreach (var t in new[] { DiscordExpand, SpotifyExpand, ClaudeExpand, ObsExpand })
             if (IsInside(t, hit.Target) && t.IsChecked != true) { t.IsChecked = true; t.RaiseEvent(new RoutedEventArgs(ButtonBase.ClickEvent)); }
 
         Dispatcher.BeginInvoke(new Action(() =>
@@ -203,7 +203,7 @@ public partial class SettingsWindow
 
     private ToggleButton FindToggleFor(string panelName) =>
         string.IsNullOrEmpty(panelName) ? null
-        : new[] { DiscordExpand, SpotifyExpand, ObsExpand }.FirstOrDefault(t => (string)t.Tag == panelName);
+        : new[] { DiscordExpand, SpotifyExpand, ClaudeExpand, ObsExpand }.FirstOrDefault(t => (string)t.Tag == panelName);
 
     /// <summary>The found row lights up in the accent colour and fades back.</summary>
     private void Flash(FrameworkElement t)

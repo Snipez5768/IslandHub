@@ -448,6 +448,40 @@
                                 </Border>
                             </StackPanel>
 
+                            <!-- Claude Code (2026-11-17): the hooks that tell the Agent page what Claude works on -->
+                            <Border Style="{StaticResource Row}">
+                                <DockPanel>
+                                    <ToggleButton x:Name="ClaudeExpand" DockPanel.Dock="Right" Style="{StaticResource MacButtonToggle}" Content="Details" Tag="ClaudeDetails" Click="Expand_Click" VerticalAlignment="Center" Margin="8,0,0,0" />
+                                    <TextBlock x:Name="ClaudeStatus" DockPanel.Dock="Right" Style="{StaticResource Desc}" VerticalAlignment="Center" Margin="8,0,0,0" MaxWidth="200" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" />
+                                    <Border Style="{StaticResource AppTile}" Background="#FFD97757"><ui:SfIcon Kind="sparkles" Size="16" Foreground="White" /></Border>
+                                    <StackPanel VerticalAlignment="Center">
+                                        <TextBlock Text="Claude Code (Agenten)" />
+                                        <TextBlock Style="{StaticResource Desc}" Text="Zeigt im Agent-Tab, woran Claude gerade arbeitet." />
+                                    </StackPanel>
+                                </DockPanel>
+                            </Border>
+                            <StackPanel x:Name="ClaudeDetails" Visibility="Collapsed" Background="#0AFFFFFF">
+                                <Border Style="{StaticResource Row}" Padding="54,9,12,9">
+                                    <StackPanel>
+                                        <TextBlock Style="{StaticResource Desc}" Margin="0"
+                                                   Text="Claude Code meldet der Insel jede Aufgabe, den aktuellen Schritt, den Fortschritt der Aufgabenliste und ob es auf dich wartet. Gilt im Terminal, in VS Code und in der Claude-App." />
+                                        <TextBlock Style="{StaticResource Desc}" Tag="Guide"
+                                                   Text="„Einrichten“ trägt fünf Hooks in deine Claude-Code-Einstellungen ein (%USERPROFILE%\.claude\settings.json, vorher wird eine Kopie angelegt). Sie schicken nur an diesen PC (127.0.0.1) und ändern nichts an Claudes Arbeit. Erkannt werden Sitzungen, die nach dem Einrichten starten – laufende einmal neu starten. Von Hand: den Block mit „Kopieren“ in die Datei einfügen." />
+                                    </StackPanel>
+                                </Border>
+                                <Border Style="{StaticResource Row}" Padding="54,9,12,9">
+                                    <DockPanel>
+                                        <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                                            <Button Style="{StaticResource MacButton}" Content="Kopieren" Padding="10,3" Click="ClaudeCopy_Click" ToolTip="Den Hook-Block für die Datei kopieren" />
+                                            <Button Style="{StaticResource MacButton}" Content="Testen" Padding="10,3" Margin="8,0,0,0" Click="ClaudeTest_Click" ToolTip="Zeigt in der Insel kurz eine Beispiel-Aufgabe" />
+                                            <Button x:Name="ClaudeRemoveBtn" Style="{StaticResource MacButton}" Content="Entfernen" Padding="10,3" Margin="8,0,0,0" Click="ClaudeRemove_Click" />
+                                            <Button x:Name="ClaudeInstallBtn" Style="{StaticResource MacAccentButton}" Content="Einrichten" Margin="8,0,0,0" Click="ClaudeInstall_Click" />
+                                        </StackPanel>
+                                        <TextBlock x:Name="ClaudeHint" Style="{StaticResource Desc}" VerticalAlignment="Center" TextWrapping="Wrap" Margin="0,0,10,0" />
+                                    </DockPanel>
+                                </Border>
+                            </StackPanel>
+
                             <!-- OBS -->
                             <Border x:Name="ObsRow" Style="{StaticResource LastRow}">
                                 <DockPanel>
