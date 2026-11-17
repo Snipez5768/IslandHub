@@ -65,11 +65,28 @@ public partial class IslandWindow
         _eyeLast = p;
         bool can = _state == State.Collapsed && Island.IsVisible && !_roomAway;
         if (can && moved && PointerNear(p)) _eyesUntil = DateTime.Now + EyesLinger;
-        bool want = can && DateTime.Now < _eyesUntil;
+        // the KI writes an answer: the eyes wake up by themselves and look up, thinking (2026-11-17)
+        bool thinking = H.Ai.Busy && S.Animations != AnimationLevel.Aus;
+        bool want = can && (DateTime.Now < _eyesUntil || thinking);
         if (want && !_eyesShown) ShowEyes();
         else if (!want && _eyesShown) HideEyes();
-        // awake: follow the pointer (not while the lids are still opening – they look up first)
-        if (_eyesShown && moved && EyesAge > OpenDelay + 0.12) LookAt(p);
+        if (!_eyesShown || EyesAge <= OpenDelay + 0.12) return; // the lids are still opening – they look up first
+        if (thinking) Ponder();
+        else if (moved || _pondering) { _pondering = false; LookAt(p); } // awake: follow the pointer
+    }
+
+    private bool _pondering;
+    private int _ponderSide = 1;
+    private DateTime _ponderAt;
+
+    /// <summary>Up to one side, a pause, up to the other – like someone thinking.</summary>
+    private void Ponder()
+    {
+        if (_pondering && DateTime.Now - _ponderAt < TimeSpan.FromMilliseconds(1500)) return;
+        _pondering = true;
+        _ponderAt = DateTime.Now;
+        _ponderSide = -_ponderSide;
+        Glance(1.1 * _ponderSide, -1.9, 650);
     }
 
     /// <summary>Within ~150 px beside and ~120 px below the island (in island units, so it scales with it).</summary>

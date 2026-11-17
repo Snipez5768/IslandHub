@@ -795,6 +795,67 @@ public partial class IslandWindow
                     S.AiProvider = prov;
                     break;
                 }
+                case "delight":
+                {
+                    // 2026-11-17: mute without the red island, Discord hang-up, KI aura + thinking eyes, tab hop, cards drop in
+                    Root.IsHitTestVisible = false; // the real mouse must not open the island mid-test
+                    var discord = System.Diagnostics.Process.GetProcessesByName("Discord").Select(p => { try { return p.MainModule?.FileName; } catch { return null; } }).FirstOrDefault(f => f != null)
+                                  ?? @"C:\Windows\System32\notepad.exe";
+                    fh = 150;
+                    ShowHint("mic.slash", "Stumm", (Brush)FindResource("Danger"), key: "mic");
+                    MuteMoment();
+                    await Film(8, 90);
+                    Save("1_mute_pill");
+                    await Task.Delay(2500);
+
+                    H.Privacy.Demo((discord, true, false, false, 3));
+                    await Task.Delay(500);
+                    UpdateLiveUi();
+                    Expand("Live", false);
+                    _sticky = true;
+                    await Task.Delay(900);
+                    Frame(); Save("2_live_discord");
+                    MuteMoment();
+                    await Film(8, 90);
+                    Save("3_mute_open");
+                    H.Privacy.EndDemo();
+                    Collapse();
+                    await Task.Delay(1200);
+
+                    var eyes = S.IslandEyes;
+                    S.IslandEyes = true;
+                    UpdateEyes();
+                    var keep = H.Ai.Messages.ToList();
+                    var think = H.Ai.DemoAsync("Demo", new string('x', 1) + " " + string.Join(" ", Enumerable.Repeat("Wort", 40)), "Demo", 70);
+                    await Film(14, 160);
+                    Save("4_aura_eyes");
+                    await think;
+                    await Task.Delay(1500);
+                    S.IslandEyes = eyes;
+                    UpdateEyes();
+                    H.Ai.Messages.Clear();
+                    foreach (var m in keep) H.Ai.Messages.Add(m);
+                    _peeks.Clear();
+                    EndPeek();
+                    await Task.Delay(1200);
+
+                    fh = 200;
+                    Expand("Music", false);
+                    _sticky = true;
+                    await Task.Delay(900);
+                    SelectTab("Timer", false);
+                    await Film(7, 55);
+                    Save("5_tab_hop");
+                    Collapse();
+                    await Task.Delay(1200);
+
+                    fh = 150;
+                    ShowPeek(new PeekInfo { Icon = "bell", Title = "Lena", Text = "Kommst du heute noch vorbei?", Source = "Nachrichten · jetzt", TimeoutMs = 4000 });
+                    await Film(9, 55);
+                    Save("6_card_drop");
+                    Root.IsHitTestVisible = true;
+                    break;
+                }
                 case "aisettings":
                 {
                     var w = new SettingsWindow { ShowActivated = false, WindowStartupLocation = WindowStartupLocation.Manual, Left = -4000, Top = 0 };

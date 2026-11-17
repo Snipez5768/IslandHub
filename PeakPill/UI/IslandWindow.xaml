@@ -288,6 +288,24 @@
             </Border.Effect>
         </Border>
 
+        <!-- KI writes: a soft band of colour turns around the closed island (only its blurred edge shows past the island) -->
+        <Border x:Name="AiAura" HorizontalAlignment="Center" VerticalAlignment="Top" IsHitTestVisible="False" Opacity="0" Visibility="Collapsed"
+                Width="{Binding ActualWidth, ElementName=Island}" Height="{Binding ActualHeight, ElementName=Island}"
+                Margin="{Binding Margin, ElementName=Island}" CornerRadius="{Binding CornerRadius, ElementName=Island}" RenderTransformOrigin="0.5,0.5">
+            <!-- a little larger than the island, so a soft rim of colour shows all around -->
+            <Border.RenderTransform><ScaleTransform x:Name="AiAuraScale" ScaleX="1.03" ScaleY="1.2" /></Border.RenderTransform>
+            <Border.Background>
+                <LinearGradientBrush StartPoint="0,0.5" EndPoint="1,0.5">
+                    <LinearGradientBrush.RelativeTransform><RotateTransform x:Name="AiAuraSpin" CenterX="0.5" CenterY="0.5" /></LinearGradientBrush.RelativeTransform>
+                    <GradientStop Color="#FFBF5AF2" Offset="0" />
+                    <GradientStop Color="#FF0A84FF" Offset="0.35" />
+                    <GradientStop Color="#FFFF375F" Offset="0.7" />
+                    <GradientStop Color="#FFFF9F0A" Offset="1" />
+                </LinearGradientBrush>
+            </Border.Background>
+            <Border.Effect><BlurEffect Radius="12" /></Border.Effect>
+        </Border>
+
         <Border x:Name="Bubble" HorizontalAlignment="Center" VerticalAlignment="Top" Width="32" Height="32" CornerRadius="16"
                 Background="{DynamicResource IslandBubbleBackground}" BorderBrush="{DynamicResource IslandBorder}" BorderThickness="0.5"
                 Margin="0,8,0,0" Visibility="Collapsed" Cursor="Hand">
@@ -798,6 +816,8 @@
                                                             Background="{StaticResource Danger}" Content="Beenden" ToolTip="Teilen beenden" Tag="{Binding}" Click="LiveStop_Click" />
                                                     <Button x:Name="StartBtn" Style="{StaticResource PillButton}" Height="28" Padding="11,0" Margin="6,0,0,0" ui:Ext.Icon="display" ui:Ext.IconSize="12"
                                                             Background="{StaticResource Blue}" Content="Streamen" ToolTip="Stream in Discord starten" Tag="{Binding}" Click="LiveStartStream_Click" Visibility="Collapsed" />
+                                                    <Button x:Name="HangBtn" Style="{StaticResource GlassIcon}" Margin="6,0,0,0" ui:Ext.Icon="phone.down" Background="{StaticResource Danger}"
+                                                            ToolTip="Anruf beenden" Tag="{Binding}" Click="LiveHangUp_Click" Visibility="Collapsed" />
                                                 </StackPanel>
                                             </Grid>
                                             <DataTemplate.Triggers>
@@ -809,6 +829,9 @@
                                                 </DataTrigger>
                                                 <DataTrigger Binding="{Binding CanStartStream}" Value="True">
                                                     <Setter TargetName="StartBtn" Property="Visibility" Value="Visible" />
+                                                </DataTrigger>
+                                                <DataTrigger Binding="{Binding CanHangUp}" Value="True">
+                                                    <Setter TargetName="HangBtn" Property="Visibility" Value="Visible" />
                                                 </DataTrigger>
                                             </DataTemplate.Triggers>
                                         </DataTemplate>
@@ -823,7 +846,7 @@
                                     <ColumnDefinition Width="*" />
                                     <ColumnDefinition Width="Auto" />
                                 </Grid.ColumnDefinitions>
-                                <Grid Width="46" Height="46" VerticalAlignment="Center">
+                                <Grid Width="46" Height="46" VerticalAlignment="Center" Cursor="Hand" ToolTip="App öffnen" Tag="{Binding}" MouseLeftButtonUp="LiveIcon_Click">
                                     <Border CornerRadius="11" Background="{StaticResource Card}">
                                         <Image Source="{Binding Icon}" Width="34" Height="34" RenderOptions.BitmapScalingMode="HighQuality" />
                                     </Border>
@@ -880,7 +903,7 @@
                                                 ui:Ext.Hover="{StaticResource Orange}" Click="LiveDeaf_Click" ToolTip="In Discord taub schalten" />
                                         <TextBlock x:Name="LiveSingleDeafText" Text="Taub" FontSize="10" Foreground="{StaticResource SubText}" HorizontalAlignment="Center" Margin="0,3,0,0" />
                                     </StackPanel>
-                                    <StackPanel>
+                                    <StackPanel x:Name="LiveSingleOpen">
                                         <Button Style="{StaticResource GlassIcon}" Width="34" Height="34" ui:Ext.Icon="open" ui:Ext.IconSize="15"
                                                 ui:Ext.Hover="{StaticResource Blue}" Tag="{Binding}" Click="LiveOpen_Click" />
                                         <TextBlock Text="Öffnen" FontSize="10" Foreground="{StaticResource SubText}" HorizontalAlignment="Center" Margin="0,3,0,0" />
@@ -894,6 +917,12 @@
                                         <Button Style="{StaticResource GlassIcon}" Width="34" Height="34" ui:Ext.Icon="stop" ui:Ext.IconSize="13"
                                                 Background="{StaticResource Danger}" Tag="{Binding}" Click="LiveStop_Click" />
                                         <TextBlock Text="Beenden" FontSize="10" Foreground="{StaticResource SubText}" HorizontalAlignment="Center" Margin="0,3,0,0" />
+                                    </StackPanel>
+                                    <!-- Discord call: hang up (red phone, turned down like on a phone) -->
+                                    <StackPanel x:Name="LiveSingleHangUp" Margin="10,0,0,0" Visibility="Collapsed">
+                                        <Button Style="{StaticResource GlassIcon}" Width="34" Height="34" ui:Ext.Icon="phone.down" ui:Ext.IconSize="15"
+                                                Background="{StaticResource Danger}" Tag="{Binding}" Click="LiveHangUp_Click" ToolTip="Anruf beenden" />
+                                        <TextBlock Text="Auflegen" FontSize="10" Foreground="{StaticResource SubText}" HorizontalAlignment="Center" Margin="0,3,0,0" />
                                     </StackPanel>
                                 </StackPanel>
                             </Grid>

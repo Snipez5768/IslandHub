@@ -280,6 +280,16 @@ public sealed class DiscordService : ObservableObject
 
     public Task<bool> ToggleMute() => SetMute(!Muted);
 
+    /// <summary>Leaves the voice channel or call – the red phone in Discord (RPC: SELECT_VOICE_CHANNEL with no channel).</summary>
+    public async Task<bool> LeaveVoice()
+    {
+        if (!Connected) return false;
+        var r = await Command("SELECT_VOICE_CHANNEL", new JsonObject { ["channel_id"] = null, ["force"] = true }, TimeSpan.FromSeconds(5));
+        if (r == null || r["evt"]?.GetValue<string>() == "ERROR") return false;
+        ApplyChannel(null);
+        return true;
+    }
+
     // ---------- pipe protocol: [int32 op][int32 length][json] ----------
 
     private async Task<JsonNode> Command(string cmd, JsonObject args, TimeSpan timeout, string evt = null)

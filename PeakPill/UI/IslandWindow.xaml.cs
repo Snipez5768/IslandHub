@@ -1088,6 +1088,7 @@ public partial class IslandWindow : Window
     {
         _targetW = w; _targetH = h;
         _w0 = _sw.Value; _h0 = _sh.Value;
+        UpdateAura(); // every change of state comes through here (open, close, card)
         _sw.Target = w; _sh.Target = h; _sr.Target = radius;
         Pin(_activePanel);
         // bubbles centred next to a slim island (pill, hint); next to a tall alert they stay at the top
@@ -2732,6 +2733,7 @@ public partial class IslandWindow : Window
         PeekActionsRight.Visibility = right && _peek.Actions.Count > 0 || _peek.Buttons.Count > 0 || _peek.Reply != null ? Visibility.Visible : Visibility.Collapsed;
 
         ShowPanel(PeekPanel);
+        DropInPeek();
         PeekPanel.Measure(new Size(PeekW - 20, double.PositiveInfinity));
         double h = Math.Clamp(PeekPanel.DesiredSize.Height + 2, 54, 130);
         AnimateSize(PeekW, h + NotchExtra, Math.Min(28, (h + 2) / 2), true);
@@ -3000,11 +3002,12 @@ public partial class IslandWindow : Window
         if (steam && (SteamRow.DataContext as DlHolder)?.Steam != Dl) SteamRow.DataContext = new DlHolder { Steam = Dl };
         SteamRow.ToolTip = Dl == H.Downloads ? "Browser-Download" : "Steam-Download";
         bool any = apps || steam;
-        bool streamKey = DiscordStreamKey(out _);
         foreach (var a in H.Privacy.Apps)
         {
             a.SelfMuted = a.IsDiscord && H.Discord.Connected && H.Discord.Muted;
-            a.CanStartStream = a.IsDiscord && a.Mic && !a.Screen && streamKey;
+            // without a keybind the island presses Discord's own "share your screen" button
+            a.CanStartStream = a.IsDiscord && a.Mic && !a.Screen;
+            a.CanHangUp = a.IsDiscord && a.Mic;
         }
         var liveVis = any && !IsTabHidden("Live") ? Visibility.Visible : Visibility.Collapsed;
         if (LiveTabBtn.Visibility != liveVis) { LiveTabBtn.Visibility = liveVis; UpdateTabDots(); }
@@ -3036,6 +3039,9 @@ public partial class IslandWindow : Window
             LiveSingleMute.Visibility = p.Mic ? Visibility.Visible : Visibility.Collapsed;
             LiveSingleStop.Visibility = p.Screen ? Visibility.Visible : Visibility.Collapsed;
             LiveSingleStart.Visibility = p.CanStartStream ? Visibility.Visible : Visibility.Collapsed;
+            LiveSingleHangUp.Visibility = p.CanHangUp ? Visibility.Visible : Visibility.Collapsed;
+            // a Discord call has many buttons – "Öffnen" moves onto the app icon there
+            LiveSingleOpen.Visibility = p.CanHangUp ? Visibility.Collapsed : Visibility.Visible;
             // Discord connected: the call with its people, "Taub", the channel as title
             bool dc = p.IsDiscord && H.Discord.Connected && H.Discord.InVoice;
             LiveMembers.Visibility = dc && H.Discord.Members.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
@@ -3087,6 +3093,11 @@ public partial class IslandWindow : Window
         UpdateLiveUi();
     }
 
+    private void LiveIcon_Click(object sender, MouseButtonEventArgs e)
+    {
+        if ((sender as FrameworkElement)?.Tag is LiveApp app) { e.Handled = true; OpenLiveApp(app); }
+    }
+
     private void LiveOpen_Click(object sender, RoutedEventArgs e)
     {
         if ((sender as FrameworkElement)?.Tag is LiveApp app) OpenLiveApp(app);
@@ -3099,18 +3110,75 @@ public partial class IslandWindow : Window
 
     private static bool DiscordStreamKey(out HotkeyGesture g) => HotkeyGesture.TryParse(S.DiscordStreamKey, out g);
 
-    /// <summary>Discord: presses the user's own Discord keybind for screen sharing (Discord has no API for it).</summary>
-    private void LiveStartStream_Click(object sender, RoutedEventArgs e)
+    /// <summary>
+    /// Discord has no API for Go Live. With the user's keybind set the island presses it like a person (held, with
+    /// scan codes – the instant burst before 1.4.0 was ignored by Discord). If no stream shows up after a few
+    /// seconds, or no keybind is set, it presses Discord's own "share your screen" button and brings Discord up.
+    /// </summary>
+    private async void LiveStartStream_Click(object sender, RoutedEventArgs e)
     {
-        if (!DiscordStreamKey(out var g))
+        var app = (sender as FrameworkElement)?.Tag as LiveApp ?? H.Privacy.Apps.FirstOrDefault(a => a.IsDiscord);
+        Collapse();
+        ShowHint("display", "Stream wird gestartet …", (Brush)FindResource("Blue"), key: "live");
+        if (DiscordStreamKey(out var g))
         {
-            ShowPeek(new PeekInfo { Icon = "display", Title = "Kürzel fehlt", Text = "Lege in den Einstellungen das Discord-Kürzel für den Stream fest.", TimeoutMs = 5000 }
-                .Action("Einstellungen", () => SettingsWindow.ShowSingle("General"), true));
+            await Task.Delay(150); // the island lets go of the click first
+            await PasteHelper.SendComboHeldAsync(g);
+            for (int i = 0; i < 16; i++)
+            {
+                await Task.Delay(250);
+                if (H.Privacy.Apps.Any(a => a.IsDiscord && a.Screen)) return;
+                // the keybind opened Discord's picker: it is in front, the user chooses there
+                if (IsDiscordInFront()) return;
+            }
+        }
+        if (app == null) return;
+        bool picker = await H.Privacy.OpenSharePickerAsync(app);
+        H.Privacy.Open(app);
+        ShowPeek(new PeekInfo
+        {
+            Icon = "display",
+            Key = "live",
+            GlyphBrush = (Brush)FindResource("Blue"),
+            Title = picker ? "Wähl in Discord, was du teilst" : "Discord geöffnet",
+            Text = picker ? "Fenster oder Bildschirm auswählen, dann „Live gehen“."
+                : DiscordStreamKey(out _) ? "Discord hat das Kürzel nicht angenommen. Prüf es in Discord › Tastenbelegungen (Aktion „Bildschirmübertragung“)."
+                : "Klick dort auf „Bildschirm teilen“. Mit einem Discord-Kürzel geht es direkt.",
+            TimeoutMs = 7000,
+        }.Action("Einstellungen", () => SettingsWindow.ShowSingle("General")));
+    }
+
+    private static bool IsDiscordInFront()
+    {
+        Native.GetWindowThreadProcessId(Native.GetForegroundWindow(), out uint pid);
+        try { return System.Diagnostics.Process.GetProcessById((int)pid).ProcessName.StartsWith("Discord", StringComparison.OrdinalIgnoreCase); }
+        catch { return false; }
+    }
+
+    /// <summary>Red phone: leave the Discord call (RPC when connected, else Discord's own button).</summary>
+    private async void LiveHangUp_Click(object sender, RoutedEventArgs e)
+    {
+        var app = (sender as FrameworkElement)?.Tag as LiveApp ?? H.Privacy.Apps.FirstOrDefault(a => a.IsDiscord);
+        if (app == null) return;
+        Collapse();
+        ShowHint("phone", "Wird aufgelegt …", (Brush)FindResource("Danger"), key: "live");
+        bool ok = H.Discord.Connected && await H.Discord.LeaveVoice();
+        if (!ok) ok = await H.Privacy.HangUpAsync(app);
+        if (ok)
+        {
+            ShowHint("phone", "Aufgelegt", (Brush)FindResource("Danger"), key: "live");
             return;
         }
-        Collapse();
-        PasteHelper.SendCombo(g);
-        ShowHint("display", "Stream wird gestartet …", (Brush)FindResource("Blue"), key: "live");
+        H.Privacy.Open(app);
+        ShowPeek(new PeekInfo
+        {
+            Icon = "phone",
+            Key = "live",
+            GlyphBrush = (Brush)FindResource("Danger"),
+            Title = "Discord geöffnet",
+            Text = "Leg dort auf – der Knopf war nicht erreichbar.",
+            TimeoutMs = 4500,
+        });
     }
 
     private void OpenLiveApp(LiveApp app)
@@ -3125,9 +3193,12 @@ public partial class IslandWindow : Window
         if (app.IsDiscord && DiscordStreamKey(out var g))
         {
             Collapse();
-            PasteHelper.SendCombo(g);
             ShowHint("stop", "Stream wird beendet …", (Brush)FindResource("Danger"), key: "live");
-            return;
+            await Task.Delay(150);
+            await PasteHelper.SendComboHeldAsync(g);
+            await Task.Delay(3000);
+            if (!H.Privacy.Apps.Any(a => a.IsDiscord && a.Screen)) return;
+            // the keybind did not take – Discord's own "stop streaming" button below
         }
         ShowHint("stop", "Wird beendet …", (Brush)FindResource("Danger"), key: "live");
         if (await H.Privacy.StopSharingAsync(app))
@@ -3313,16 +3384,6 @@ public partial class IslandWindow : Window
             KeyFrames = { new EasingDoubleKeyFrame(0, KeyTime.FromPercent(0)), new EasingDoubleKeyFrame(strength, KeyTime.FromPercent(0.25), new SineEase()), new EasingDoubleKeyFrame(strength, KeyTime.FromPercent(0.6)), new EasingDoubleKeyFrame(0, KeyTime.FromPercent(1), new SineEase()) } });
     }
 
-    /// <summary>Muted: the island turns dark red for a moment, the mic bubble twitches and its symbol pops.</summary>
-    private void MuteMoment()
-    {
-        if (S.Animations == AnimationLevel.Aus) return;
-        if (S.Animations == AnimationLevel.An) Tint(Color.FromRgb(0x4A, 0x0E, 0x0B), 0.9, 1100);
-        Swell(Act.Live, 1.1);
-        Swell(Act.MicMuted, 1.1);
-        foreach (var (b, icon) in new[] { (Bubble, BubbleIcon), (Bubble2, Bubble2Icon) })
-            if (b.Tag is Act.Live or Act.MicMuted) Pop(icon);
-    }
 
     // ---------- new song: the covers swap places ----------
 
@@ -4235,6 +4296,7 @@ public partial class IslandWindow : Window
         {
             // only the clipboard is taller – every other tab keeps the same size
             AnimateSize(ExpW, TabHeight(tab) + NotchExtra, ExpRadius, true);
+            HopTab((RadioButton)sender);
             if (oldPage != null && slideDir != 0) PageSlide(slideDir, oldPage);
             else Pages.BeginAnimation(OpacityProperty, new DoubleAnimation(0, 1, TimeSpan.FromMilliseconds(220)) { EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut } });
             OnTabShown();

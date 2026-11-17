@@ -48,6 +48,9 @@ public sealed class LiveApp : ObservableObject
     private bool _canStream;
     /// <summary>Not streaming yet, but the island can start it (Discord with its stream keybind set).</summary>
     public bool CanStartStream { get => _canStream; set => Set(ref _canStream, value); }
+    private bool _canHangUp;
+    /// <summary>A Discord call: the island can hang up (red phone).</summary>
+    public bool CanHangUp { get => _canHangUp; set => Set(ref _canHangUp, value); }
     public bool IsDiscord => ExePath?.EndsWith("Discord.exe", StringComparison.OrdinalIgnoreCase) == true || Name == "Discord";
     public DateTime Since { get => _since; internal set => Set(ref _since, value); }
     public string Elapsed { get => _elapsed; internal set => Set(ref _elapsed, value); }
@@ -581,7 +584,24 @@ public sealed class PrivacyService : ObservableObject
     /// Ends screen sharing by pressing the app's own "Stop sharing" button (Chrome/Edge sharing bar, Discord, Zoom,
     /// Teams, …) via UI Automation. Small windows (sharing bars) are searched first. False if no such button exists.
     /// </summary>
-    public Task<bool> StopSharingAsync(LiveApp app) => Task.Run(() =>
+    public Task<bool> StopSharingAsync(LiveApp app) => PressAsync(app, StopNames);
+
+    /// <summary>Discord's red "hang up" button (voice panel and DM calls) – whole names only, "Server verlassen" must never match.</summary>
+    private static readonly Regex HangUpNames = new(
+        @"^(disconnect|leave call|hang up|end call|verbindung trennen|auflegen|anruf beenden|anruf verlassen|anruf trennen)$",
+        RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
+    /// <summary>Discord's "share your screen" button – opens its Go-Live picker.</summary>
+    private static readonly Regex ShareNames = new(
+        @"^(share your screen|share screen|screen share|go live|bildschirm teilen|teile deinen bildschirm|bildschirm übertragen)$",
+        RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
+    public Task<bool> HangUpAsync(LiveApp app) => PressAsync(app, HangUpNames);
+
+    public Task<bool> OpenSharePickerAsync(LiveApp app) => PressAsync(app, ShareNames);
+
+    /// <summary>Presses the first button of the app whose name matches (UI Automation). False if there is none.</summary>
+    private Task<bool> PressAsync(LiveApp app, Regex names) => Task.Run(() =>
     {
         var wins = Windows(app).Where(w => w.Visible).OrderBy(w => w.Area).ToList();
         var deadline = DateTime.Now.AddSeconds(6);
@@ -596,7 +616,7 @@ public sealed class PrivacyService : ObservableObject
                 {
                     string name;
                     try { name = b.Current.Name; } catch { continue; }
-                    if (string.IsNullOrEmpty(name) || !StopNames.IsMatch(name)) continue;
+                    if (string.IsNullOrEmpty(name) || !names.IsMatch(name.Trim())) continue;
                     if (b.TryGetCurrentPattern(InvokePattern.Pattern, out var p)) { ((InvokePattern)p).Invoke(); return true; }
                 }
             }

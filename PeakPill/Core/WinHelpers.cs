@@ -220,6 +220,50 @@ public static class PasteHelper
         Native.SendInput((uint)inputs.Length, inputs, Marshal.SizeOf<Native.INPUT>());
     }
 
+    /// <summary>
+    /// Presses a shortcut like a person does: modifiers first, the key held for a moment, then released – each with
+    /// its hardware scan code. Apps that watch keys globally (Discord's keybinds) ignore the instant, scan-code-less
+    /// burst of <see cref="SendCombo"/> (user report 2026-11-17: "Streamen" did nothing).
+    /// </summary>
+    public static Task SendComboHeldAsync(HotkeyGesture g) => Task.Run(() =>
+    {
+        var mods = new List<ushort>();
+        if (g.Modifiers.HasFlag(System.Windows.Input.ModifierKeys.Control)) mods.Add(0xA2); // left Ctrl
+        if (g.Modifiers.HasFlag(System.Windows.Input.ModifierKeys.Alt)) mods.Add(0xA4);
+        if (g.Modifiers.HasFlag(System.Windows.Input.ModifierKeys.Shift)) mods.Add(0xA0);
+        if (g.Modifiers.HasFlag(System.Windows.Input.ModifierKeys.Windows)) mods.Add(0x5B);
+        var vk = (ushort)System.Windows.Input.KeyInterop.VirtualKeyFromKey(g.Key);
+        void Send(ushort k, bool up)
+        {
+            var i = new[] { ScanKey(k, up) };
+            Native.SendInput(1, i, Marshal.SizeOf<Native.INPUT>());
+        }
+        foreach (var m in mods) { Send(m, false); Thread.Sleep(25); }
+        Send(vk, false);
+        Thread.Sleep(70);
+        Send(vk, true);
+        Thread.Sleep(25);
+        foreach (var m in Enumerable.Reverse(mods)) { Send(m, true); Thread.Sleep(15); }
+    });
+
+    [DllImport("user32.dll")] private static extern uint MapVirtualKey(uint code, uint mapType);
+
+    private static readonly ushort[] ExtendedKeys = { 0x21, 0x22, 0x23, 0x24, 0x25, 0x26, 0x27, 0x28, 0x2D, 0x2E, 0x5B, 0x5C, 0x6F, 0x90, 0xA3, 0xA5 };
+
+    private static Native.INPUT ScanKey(ushort vk, bool up) => new()
+    {
+        type = Native.INPUT_KEYBOARD,
+        U = new Native.InputUnion
+        {
+            ki = new Native.KEYBDINPUT
+            {
+                wVk = vk,
+                wScan = (ushort)MapVirtualKey(vk, 0 /* MAPVK_VK_TO_VSC */),
+                dwFlags = (up ? Native.KEYEVENTF_KEYUP : 0) | (ExtendedKeys.Contains(vk) ? 0x0001u /* EXTENDEDKEY */ : 0),
+            }
+        }
+    };
+
     private static Native.INPUT Key(ushort vk, bool up) => new()
     {
         type = Native.INPUT_KEYBOARD,

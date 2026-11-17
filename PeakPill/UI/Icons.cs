@@ -76,6 +76,10 @@ public static class Icons
         S("screen.share", "M4.5,4 H19.5 A1.5,1.5 0 0 1 21,5.5 V15.5 A1.5,1.5 0 0 1 19.5,17 H4.5 A1.5,1.5 0 0 1 3,15.5 V5.5 A1.5,1.5 0 0 1 4.5,4 Z M9,21 H15 M12,13.5 V7.5 M9.5,10 L12,7.5 L14.5,10");
         // in a call (approved 2026-11-14: green phone in the bubble)
         S("phone", "M6.6,3.5 H9 L10.5,7.5 L8.6,9 A11,11 0 0 0 15,15.4 L16.5,13.5 L20.5,15 V17.4 A2,2 0 0 1 18.4,19.5 A15.5,15.5 0 0 1 4.5,5.6 A2,2 0 0 1 6.6,3.5 Z");
+        // hang up: the same handset turned down (2026-11-17)
+        var down = Geometry.Parse("M6.6,3.5 H9 L10.5,7.5 L8.6,9 A11,11 0 0 0 15,15.4 L16.5,13.5 L20.5,15 V17.4 A2,2 0 0 1 18.4,19.5 A15.5,15.5 0 0 1 4.5,5.6 A2,2 0 0 1 6.6,3.5 Z").Clone();
+        down.Transform = new RotateTransform(135, 12, 12.6);
+        S("phone.down", down);
         S("arrow.up.right", "M7,17 L17,7 M9,7 H17 V15");
         S("shield", "M12,3 L19.5,6 V11.5 C19.5,16 16.3,19.6 12,21 C7.7,19.6 4.5,16 4.5,11.5 V6 Z M9.5,12 L11.3,13.8 L14.8,10.2");
         S("code","M8,7 L3,12 L8,17 M16,7 L21,12 L16,17 M13.5,5 L10.5,19");
