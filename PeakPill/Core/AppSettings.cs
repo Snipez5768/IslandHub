@@ -71,6 +71,9 @@ public sealed class AppSettings
     public List<string> TabOrder { get; set; } = new();
     /// <summary>Tabs switched off in Settings.</summary>
     public List<string> HiddenTabs { get; set; } = new();
+    /// <summary>Minimal-Modus: the tabs in <see cref="MinimalTabs"/> hide while there is nothing on them.</summary>
+    public bool MinimalMode { get; set; }
+    public List<string> MinimalTabs { get; set; } = new() { "Clip", "Ai", "Agent", "Send", "Music", "Notify" };
     public AnimationLevel Animations { get; set; } = AnimationLevel.An;
 
     // Behaviour

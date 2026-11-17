@@ -192,7 +192,7 @@
                                     <ui:HintPic Kind="smart" />
                                     <StackPanel Margin="0,0,14,0" VerticalAlignment="Center">
                                         <TextBlock Text="Passende Seite öffnen" />
-                                        <TextBlock Style="{StaticResource Desc}" Text="Was gerade passiert ist, öffnet sich: neuer Song → Musik, kopiert → Zwischenablage, Claude fertig → Agent, im Anruf → Live. Aus: immer die zuletzt benutzte Seite." />
+                                        <TextBlock Style="{StaticResource Desc}" Text="Beim Öffnen siehst du, was gerade passiert ist, z. B. nach einem neuen Song die Musik." />
                                     </StackPanel>
                                 </DockPanel>
                             </Border>
@@ -228,7 +228,7 @@
                                     <ui:HintPic Kind="headphones" />
                                     <StackPanel Margin="0,0,12,0" VerticalAlignment="Center">
                                         <TextBlock Text="Kopfhörer verbunden" />
-                                        <TextBlock Style="{StaticResource Desc}" Text="Werden Kopfhörer zur Tonausgabe, zeigt die Insel ihren Namen – bei Bluetooth mit Akku-Ring." />
+                                        <TextBlock Style="{StaticResource Desc}" Text="Zeigt ihren Namen, bei Bluetooth mit Akkustand." />
                                     </StackPanel>
                                 </DockPanel>
                             </Border>
@@ -238,7 +238,8 @@
                                     <ui:HintPic Kind="reply" />
                                     <StackPanel Margin="0,0,12,0" VerticalAlignment="Center">
                                         <TextBlock Text="Antwort gleich senden" />
-                                        <TextBlock Style="{StaticResource Desc}" Text="Antworten aus der Insel: die Insel öffnet den Chat über die Suche der App und fügt den Text ein. Aus: du drückst selbst Enter (sicherer – bei gleichen Namen kann die Suche einen anderen Chat treffen). An: sie sendet gleich." />
+                                        <TextBlock Style="{StaticResource Desc}" Text="Eine Antwort aus der Insel wird eingefügt und gleich abgeschickt. Aus: Enter drückst du selbst." />
+                                        <TextBlock Style="{StaticResource Desc}" Tag="Guide" Text="Die Insel findet den Chat über die Suche der App. Bei gleichen Namen kann sie einen anderen Chat treffen – deshalb ist Aus sicherer." />
                                     </StackPanel>
                                 </DockPanel>
                             </Border>
@@ -260,7 +261,7 @@
                         <Border Style="{StaticResource LastRow}" Padding="12,10,12,12">
                             <StackPanel>
                                 <TextBlock Text="Bei Spielen und Videos" />
-                                <TextBlock Style="{StaticResource Desc}" Text="Gilt für randloses Vollbild." Margin="0,2,0,10" />
+                                <TextBlock Style="{StaticResource Desc}" Text="Was die Insel macht, solange ein Spiel oder Video den ganzen Bildschirm füllt." Margin="0,2,0,10" />
                                 <StackPanel Orientation="Horizontal">
                                     <RadioButton x:Name="FsBar" Style="{StaticResource OptionRadio}" GroupName="Fs" Tag="Leiste mit PC-Werten" Checked="Fullscreen_Checked"><ui:HintPic Kind="fs.bar" /></RadioButton>
                                     <RadioButton x:Name="FsHide" Style="{StaticResource OptionRadio}" GroupName="Fs" Tag="Insel ausblenden" Checked="Fullscreen_Checked"><ui:HintPic Kind="fs.hide" /></RadioButton>
@@ -321,6 +322,18 @@
                     <TextBlock Text="Verbindungen" Style="{StaticResource GroupHeader}" />
                     <Border Style="{StaticResource SettingCard}">
                         <StackPanel>
+                            <!-- LocalSend: on/off and the name the others see (was missing before 2026-11-17) -->
+                            <Border Style="{StaticResource Row}">
+                                <DockPanel>
+                                    <ToggleButton x:Name="OptLocalSend" DockPanel.Dock="Right" Style="{StaticResource Switch}" Click="LocalSend_Changed" VerticalAlignment="Center" Margin="10,0,0,0" />
+                                    <TextBox x:Name="OptLocalSendName" DockPanel.Dock="Right" Style="{StaticResource MacTextBox}" Width="140" VerticalAlignment="Center" LostFocus="LocalSend_Changed" />
+                                    <Border Style="{StaticResource AppTile}" Background="#FF0A84FF"><ui:SfIcon Kind="share" Size="16" Foreground="White" /></Border>
+                                    <StackPanel VerticalAlignment="Center" Margin="0,0,10,0">
+                                        <TextBlock Text="LocalSend" />
+                                        <TextBlock Style="{StaticResource Desc}" Text="Unter diesem Namen sehen dich Handy und PCs in der Nähe." />
+                                    </StackPanel>
+                                </DockPanel>
+                            </Border>
                             <!-- Discord -->
                             <Border Style="{StaticResource Row}">
                                 <DockPanel>
@@ -329,7 +342,7 @@
                                     <Border Style="{StaticResource AppTile}" Background="#FF5865F2"><ui:SfIcon Kind="mic" Size="16" Foreground="White" /></Border>
                                     <StackPanel VerticalAlignment="Center">
                                         <TextBlock Text="Discord" />
-                                        <TextBlock Style="{StaticResource Desc}" Text="Stumm in Discord, Mitglieder, Stream-Taste." />
+                                        <TextBlock Style="{StaticResource Desc}" Text="Stumm schalten, wer im Anruf ist, Stream." />
                                     </StackPanel>
                                 </DockPanel>
                             </Border>
@@ -337,7 +350,9 @@
                                 <Border Style="{StaticResource Row}" Padding="54,9,12,9">
                                     <StackPanel>
                                         <TextBlock Style="{StaticResource Desc}" Margin="0"
-                                                   Text="Mit deiner eigenen Discord-App schaltet die Insel dich in Discord stumm (die anderen hören dich nicht, dein Mikro bleibt an) und zeigt, wenn du in Discord stumm bist. So geht's: discord.com/developers → New Application → bei OAuth2 die Redirect-URL http://127.0.0.1 eintragen → Client-ID und Client-Secret hier einfügen." />
+                                                   Text="Mit einer eigenen Discord-App schaltet dich die Insel direkt in Discord stumm." />
+                                        <TextBlock Style="{StaticResource Desc}" Tag="Guide"
+                                                   Text="discord.com/developers → New Application → unter OAuth2 die Redirect-URL http://127.0.0.1 eintragen → Client-ID und Client-Secret unten einfügen → Verbinden." />
                                         <TextBlock Margin="0,4,0,0"><Hyperlink NavigateUri="https://discord.com/developers/applications" RequestNavigate="Link_RequestNavigate">Discord Developer Portal öffnen</Hyperlink></TextBlock>
                                     </StackPanel>
                                 </Border>
@@ -371,7 +386,9 @@
                                             <TextBlock Text="Stream starten / beenden" VerticalAlignment="Center" />
                                         </DockPanel>
                                         <TextBlock Style="{StaticResource Desc}" Margin="0,4,0,0"
-                                                   Text="Discord bietet dafür keine Schnittstelle, aber ein Tastenkürzel: Lege in Discord unter Einstellungen → Tastenkombinationen eine Aktion zum Umschalten der Bildschirmübertragung (Go Live) an und trage hier dieselbe Kombination ein, z. B. Strg + Shift + Alt + F9. Die Insel drückt sie dann für dich." />
+                                                   Text="Nur als Ersatz nötig, falls die Insel den Stream nicht selbst starten kann." />
+                                        <TextBlock Style="{StaticResource Desc}" Tag="Guide"
+                                                   Text="In Discord unter Einstellungen → Tastenkombinationen eine Aktion „Bildschirmübertragung umschalten“ anlegen und hier dieselbe Kombination eintragen, z. B. Strg + Shift + Alt + F9." />
                                     </StackPanel>
                                 </Border>
                                 <Border Style="{StaticResource Row}" Padding="54,9,12,9">
@@ -390,7 +407,7 @@
                                     <Border Style="{StaticResource AppTile}" Background="#FF1DB954"><ui:SfIcon Kind="music" Size="16" Foreground="White" /></Border>
                                     <StackPanel VerticalAlignment="Center">
                                         <TextBlock Text="Spotify" />
-                                        <TextBlock Style="{StaticResource Desc}" Text="„Als Nächstes“ im Musik-Tab." />
+                                        <TextBlock Style="{StaticResource Desc}" Text="Zeigt im Musik-Tab, was als Nächstes läuft." />
                                     </StackPanel>
                                 </DockPanel>
                             </Border>
@@ -398,7 +415,9 @@
                                 <Border Style="{StaticResource Row}" Padding="54,9,12,9">
                                     <StackPanel>
                                         <TextBlock Style="{StaticResource Desc}" Margin="0"
-                                                   Text="So geht's: developer.spotify.com → Dashboard → Create app → bei Redirect URI http://127.0.0.1:47824/callback eintragen, „Web API“ anhaken → die Client-ID hier einfügen. Ein Secret ist nicht nötig." />
+                                                   Text="Braucht eine eigene, kostenlose Spotify-App." />
+                                        <TextBlock Style="{StaticResource Desc}" Tag="Guide"
+                                                   Text="developer.spotify.com → Dashboard → Create app → als Redirect URI http://127.0.0.1:47824/callback eintragen, „Web API“ anhaken → Client-ID unten einfügen → Verbinden. Ein Secret brauchst du nicht." />
                                         <TextBlock Margin="0,4,0,0"><Hyperlink NavigateUri="https://developer.spotify.com/dashboard" RequestNavigate="Link_RequestNavigate">Spotify Developer Dashboard öffnen</Hyperlink></TextBlock>
                                     </StackPanel>
                                 </Border>
@@ -454,7 +473,7 @@
                                     <ui:HintPic Kind="sportpic" />
                                     <StackPanel>
                                         <TextBlock Text="Fußball live" />
-                                        <TextBlock Style="{StaticResource Desc}" Text="Anpfiff, Tore und Abpfiff deines Vereins (OpenLigaDB, ohne Anmeldung). Liga: bl1, bl2, bl3, dfb …" Margin="0,0,0,6" />
+                                        <TextBlock Style="{StaticResource Desc}" Text="Anpfiff, Tore und Abpfiff deines Vereins. Liga: bl1, bl2, bl3 oder dfb." Margin="0,0,0,6" />
                                         <DockPanel>
                                             <TextBox x:Name="OptSportLeague" Style="{StaticResource MacTextBox}" Width="70" Tag="bl1" LostFocus="Feeds_LostFocus" Margin="0,0,8,0" />
                                             <TextBox x:Name="OptSportTeam" Style="{StaticResource MacTextBox}" Tag="Verein, z. B. Dortmund" LostFocus="Feeds_LostFocus" />
@@ -467,7 +486,9 @@
                                     <ui:HintPic Kind="twitch" />
                                     <StackPanel>
                                         <TextBlock Text="Twitch – Kanal geht live" />
-                                        <TextBlock Style="{StaticResource Desc}" Text="Braucht eine eigene kostenlose App auf dev.twitch.tv (Client-ID und Secret, das Secret wird verschlüsselt gespeichert). Kanäle mit Komma getrennt." Margin="0,0,0,6" />
+                                        <TextBlock Style="{StaticResource Desc}" Text="Meldet, wenn ein Kanal live geht. Kanäle mit Komma trennen." />
+                                        <TextBlock Style="{StaticResource Desc}" Tag="Guide" Text="Auf dev.twitch.tv eine kostenlose App anlegen und Client-ID und Secret hier eintragen. Das Secret wird verschlüsselt gespeichert." />
+                                        <Border Height="6" />
                                         <DockPanel Margin="0,0,0,6">
                                             <PasswordBox x:Name="OptTwitchSecret" DockPanel.Dock="Right" Width="150" Margin="8,0,0,0" LostFocus="Feeds_LostFocus" ToolTip="Client-Secret" />
                                             <TextBox x:Name="OptTwitchId" Style="{StaticResource MacTextBox}" Tag="Client-ID" LostFocus="Feeds_LostFocus" />
@@ -481,7 +502,7 @@
                                     <ui:HintPic Kind="youtube" />
                                     <StackPanel>
                                         <TextBlock Text="YouTube – Kanal geht live" />
-                                        <TextBlock Style="{StaticResource Desc}" Text="Ohne Anmeldung: alle 5 Minuten wird die öffentliche Live-Seite des Kanals angesehen. @Name oder Kanal-ID, mit Komma getrennt." Margin="0,0,0,6" />
+                                        <TextBlock Style="{StaticResource Desc}" Text="@Name oder Kanal-ID, mit Komma getrennt. Ohne Anmeldung, alle 5 Minuten geprüft." Margin="0,0,0,6" />
                                         <TextBox x:Name="OptYouTube" Style="{StaticResource MacTextBox}" Tag="@kanal, @nochEiner" LostFocus="Feeds_LostFocus" />
                                     </StackPanel>
                                 </DockPanel>
@@ -491,7 +512,9 @@
                                     <ui:HintPic Kind="parcel" />
                                     <StackPanel>
                                         <TextBlock Text="Pakete (DHL)" />
-                                        <TextBlock Style="{StaticResource Desc}" Text="Braucht einen kostenlosen Schlüssel von developer.dhl.com (verschlüsselt gespeichert). Ein Paket pro Zeile: „Name: Sendungsnummer“. Die Insel meldet jede neue Station." Margin="0,0,0,6" />
+                                        <TextBlock Style="{StaticResource Desc}" Text="Meldet jede neue Station. Ein Paket pro Zeile: „Name: Sendungsnummer“." />
+                                        <TextBlock Style="{StaticResource Desc}" Tag="Guide" Text="Auf developer.dhl.com einen kostenlosen API-Schlüssel holen und unten einfügen. Er wird verschlüsselt gespeichert." />
+                                        <Border Height="6" />
                                         <PasswordBox x:Name="OptDhlKey" Margin="0,0,0,6" LostFocus="Feeds_LostFocus" ToolTip="DHL-API-Key" />
                                         <TextBox x:Name="OptParcels" Style="{StaticResource MacTextBox}" AcceptsReturn="True" MinHeight="44" Tag="Schuhe: 00340434161094000000" LostFocus="Feeds_LostFocus" />
                                     </StackPanel>
@@ -509,7 +532,7 @@
                                     <ui:HintPic Kind="code" />
                                     <StackPanel Margin="0,0,12,0" VerticalAlignment="Center">
                                         <TextBlock Text="E-Mails öffnen, wenn ein Code verlangt wird" />
-                                        <TextBlock Style="{StaticResource Desc}" Text="Fragt eine Seite im Browser nach einem Bestätigungscode, öffnet die Insel deinen E-Mail-Tab. Ein Code aus einer Mitteilung erscheint mit „Kopieren“." />
+                                        <TextBlock Style="{StaticResource Desc}" Text="Will eine Website einen Code, öffnet die Insel dein Postfach." />
                                     </StackPanel>
                                 </DockPanel>
                             </Border>
@@ -593,7 +616,7 @@
                                     <ui:HintPic Kind="eyes" />
                                     <StackPanel Margin="0,0,12,0" VerticalAlignment="Center">
                                         <TextBlock Text="Augen in der Insel" />
-                                        <TextBlock Style="{StaticResource Desc}" Text="Zwei kleine Augen links in der ruhenden Insel – sie schauen dem Mauszeiger nach und blinzeln ab und zu." />
+                                        <TextBlock Style="{StaticResource Desc}" Text="Schauen dem Mauszeiger nach und blinzeln ab und zu." />
                                     </StackPanel>
                                 </DockPanel>
                             </Border>
@@ -616,7 +639,7 @@
                                     <ui:HintPic Kind="screen" />
                                     <StackPanel Margin="0,0,12,0" VerticalAlignment="Center">
                                         <TextBlock Text="Mit der Auflösung mitwachsen" />
-                                        <TextBlock Style="{StaticResource Desc}" Text="Auf jedem Bildschirm so groß wie auf einem 1920 × 1080 – auf 2560 × 1440 z. B. ein Drittel größer." />
+                                        <TextBlock Style="{StaticResource Desc}" Text="Auf großen Bildschirmen wächst die Insel mit, bei 2560 × 1440 um ein Drittel." />
                                     </StackPanel>
                                 </DockPanel>
                             </Border>
@@ -740,6 +763,84 @@
                             </Border>
                         </StackPanel>
                     </Border>
+
+                    <!-- Minimal-Modus (user wish 2026-11-17): chosen tabs hide while there is nothing on them -->
+                    <TextBlock Text="Minimal-Modus" Style="{StaticResource GroupHeader}" />
+                    <Border Style="{StaticResource SettingCard}">
+                        <StackPanel>
+                            <Border x:Name="MinimalMasterRow" Style="{StaticResource LastRow}">
+                                <DockPanel>
+                                    <ToggleButton x:Name="OptMinimal" DockPanel.Dock="Right" Style="{StaticResource Switch}" Click="Minimal_Click" VerticalAlignment="Center" />
+                                    <StackPanel Margin="0,0,12,0" VerticalAlignment="Center">
+                                        <TextBlock Text="Leere Tabs ausblenden" />
+                                        <TextBlock Style="{StaticResource Desc}" Text="Sobald dort etwas ist, sind sie wieder da." />
+                                    </StackPanel>
+                                </DockPanel>
+                            </Border>
+                            <StackPanel x:Name="MinimalTabsPanel" Visibility="Collapsed">
+                                <Border Style="{StaticResource Row}">
+                                    <DockPanel>
+                                        <ToggleButton x:Name="OptMinClip" Tag="Clip" DockPanel.Dock="Right" Style="{StaticResource Switch}" Click="Minimal_Click" VerticalAlignment="Center" />
+                                        <ui:SfIcon Kind="clipboard" Size="15" Foreground="White" Margin="0,0,12,0" VerticalAlignment="Center" />
+                                        <StackPanel Margin="0,0,12,0" VerticalAlignment="Center">
+                                            <TextBlock Text="Zwischenablage" />
+                                            <TextBlock Style="{StaticResource Desc}" Text="Solange der Verlauf leer ist." />
+                                        </StackPanel>
+                                    </DockPanel>
+                                </Border>
+                                <Border Style="{StaticResource Row}">
+                                    <DockPanel>
+                                        <ToggleButton x:Name="OptMinAi" Tag="Ai" DockPanel.Dock="Right" Style="{StaticResource Switch}" Click="Minimal_Click" VerticalAlignment="Center" />
+                                        <ui:SfIcon Kind="bubble" Size="15" Foreground="White" Margin="0,0,12,0" VerticalAlignment="Center" />
+                                        <StackPanel Margin="0,0,12,0" VerticalAlignment="Center">
+                                            <TextBlock Text="KI" />
+                                            <TextBlock Style="{StaticResource Desc}" Text="Solange kein API-Schlüssel hinterlegt ist." />
+                                        </StackPanel>
+                                    </DockPanel>
+                                </Border>
+                                <Border Style="{StaticResource Row}">
+                                    <DockPanel>
+                                        <ToggleButton x:Name="OptMinAgent" Tag="Agent" DockPanel.Dock="Right" Style="{StaticResource Switch}" Click="Minimal_Click" VerticalAlignment="Center" />
+                                        <ui:SfIcon Kind="sparkles" Size="15" Foreground="White" Margin="0,0,12,0" VerticalAlignment="Center" />
+                                        <StackPanel Margin="0,0,12,0" VerticalAlignment="Center">
+                                            <TextBlock Text="Agent" />
+                                            <TextBlock Style="{StaticResource Desc}" Text="Solange keine Claude-Code-Sitzung läuft." />
+                                        </StackPanel>
+                                    </DockPanel>
+                                </Border>
+                                <Border Style="{StaticResource Row}">
+                                    <DockPanel>
+                                        <ToggleButton x:Name="OptMinSend" Tag="Send" DockPanel.Dock="Right" Style="{StaticResource Switch}" Click="Minimal_Click" VerticalAlignment="Center" />
+                                        <ui:SfIcon Kind="share" Size="15" Foreground="White" Margin="0,0,12,0" VerticalAlignment="Center" />
+                                        <StackPanel Margin="0,0,12,0" VerticalAlignment="Center">
+                                            <TextBlock Text="LocalSend" />
+                                            <TextBlock Style="{StaticResource Desc}" Text="Solange kein Gerät in der Nähe ist." />
+                                        </StackPanel>
+                                    </DockPanel>
+                                </Border>
+                                <Border Style="{StaticResource Row}">
+                                    <DockPanel>
+                                        <ToggleButton x:Name="OptMinMusic" Tag="Music" DockPanel.Dock="Right" Style="{StaticResource Switch}" Click="Minimal_Click" VerticalAlignment="Center" />
+                                        <ui:SfIcon Kind="music" Size="15" Foreground="White" Margin="0,0,12,0" VerticalAlignment="Center" />
+                                        <StackPanel Margin="0,0,12,0" VerticalAlignment="Center">
+                                            <TextBlock Text="Musik" />
+                                            <TextBlock Style="{StaticResource Desc}" Text="Solange kein Player offen ist." />
+                                        </StackPanel>
+                                    </DockPanel>
+                                </Border>
+                                <Border Style="{StaticResource LastRow}">
+                                    <DockPanel>
+                                        <ToggleButton x:Name="OptMinNotify" Tag="Notify" DockPanel.Dock="Right" Style="{StaticResource Switch}" Click="Minimal_Click" VerticalAlignment="Center" />
+                                        <ui:SfIcon Kind="bell.badge" Size="15" Foreground="White" Margin="0,0,12,0" VerticalAlignment="Center" />
+                                        <StackPanel Margin="0,0,12,0" VerticalAlignment="Center">
+                                            <TextBlock Text="Mitteilungen" />
+                                            <TextBlock Style="{StaticResource Desc}" Text="Solange keine neuen da sind." />
+                                        </StackPanel>
+                                    </DockPanel>
+                                </Border>
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
                 </StackPanel>
 
                 <!-- ======== ANIMATIONS ======== -->
@@ -795,8 +896,10 @@
                     <DockPanel>
                         <Button DockPanel.Dock="Right" Style="{StaticResource MacButton}" Content="Standard wiederherstellen" Click="ResetKeys_Click" VerticalAlignment="Top" />
                         <TextBlock Style="{StaticResource Desc}" Margin="2,0,16,0"
-                                   Text="Feld anklicken und Kombination aus Win, Strg, Alt und Shift drücken. Entf entfernt, Esc bricht ab. Strg+Alt entspricht auf deutschen Tastaturen AltGr – Q, E, M, 2, 3 und 7–0 meiden." />
+                                   Text="Feld anklicken und Kombination drücken. Entf entfernt, Esc bricht ab." />
                     </DockPanel>
+                    <TextBlock Style="{StaticResource Desc}" Tag="Guide" Margin="2,0,16,0"
+                               Text="Strg+Alt ist auf deutschen Tastaturen AltGr. Kürzel mit Q, E, M, 2, 3 oder 7 bis 0 blockieren dort Zeichen wie @, € oder { }." />
                     <TextBlock x:Name="KeysStatus" Style="{StaticResource Desc}" Margin="2,10,0,0" Foreground="{StaticResource Orange}" />
                 </StackPanel>
 
@@ -868,7 +971,10 @@
                                 <DockPanel>
                                     <ToggleButton x:Name="OptPersist" DockPanel.Dock="Right" Style="{StaticResource Switch}" Click="Opt_Click" VerticalAlignment="Center" />
                                     <ui:HintPic Kind="history" />
-                                    <TextBlock Text="Nach Neustart behalten" VerticalAlignment="Center" />
+                                    <StackPanel Margin="0,0,12,0" VerticalAlignment="Center">
+                                        <TextBlock Text="Nach Neustart behalten" />
+                                        <TextBlock Style="{StaticResource Desc}" Text="Aus: der Verlauf beginnt nach jedem PC-Neustart leer." />
+                                    </StackPanel>
                                 </DockPanel>
                             </Border>
                             <Border Style="{StaticResource Row}">
@@ -991,7 +1097,7 @@
                         </StackPanel>
                     </Border>
                     <TextBlock Style="{StaticResource Desc}" Margin="2,0,0,0" TextWrapping="Wrap"
-                               Text="Der Schlüssel liegt verschlüsselt auf diesem PC, nur dein Windows-Konto kann ihn lesen. Deine Fragen gehen direkt an den gewählten Dienst und kosten Guthaben auf deinem Konto dort. Der Chatverlauf bleibt auf diesem PC. Tipp: Unter Tastatur kannst du ein Kürzel für „KI-Chat öffnen“ setzen." />
+                               Text="Der Schlüssel liegt verschlüsselt auf diesem PC. Fragen gehen direkt an den Dienst und kosten dort Guthaben. Unter Tastatur gibt es ein Kürzel für den KI-Chat." />
                 </StackPanel>
 
                 <!-- ======== WIDGETS ======== -->

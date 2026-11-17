@@ -114,6 +114,11 @@ public partial class IslandWindow : Window
         // Claude's own Windows notices ("fertig", "wartet") are no notifications here – they lead to the Agent page
         H.Notifications.AgentNotice += _ => Ui.Run(() => Note("Agent", 180));
         H.Shelf.Items.CollectionChanged += (_, _) => Ui.Run(UpdateShelfTab);
+        // Minimal-Modus: tabs come back as soon as there is something on them
+        H.Clipboard.Items.CollectionChanged += (_, _) => Ui.Run(UpdateMinimalTabs);
+        H.LocalSend.Devices.CollectionChanged += (_, _) => Ui.Run(UpdateMinimalTabs);
+        H.Agents.Sessions.CollectionChanged += (_, _) => Ui.Run(UpdateMinimalTabs);
+        H.Media.PropertyChanged += (_, e) => { if (e.PropertyName == nameof(MediaService.HasMedia)) Ui.Run(UpdateMinimalTabs); };
         H.Privacy.Started += (_, _) => Ui.Run(() => Note("Live", 60));
         H.Timer.Completed += () => Ui.Run(() => Note(L.T("Timer"), 60));
         H.Reminders.Due += _ => Ui.Run(() => Note("Remind", 120));
@@ -408,7 +413,8 @@ public partial class IslandWindow : Window
         // a page that was just emptied (everything deleted) is not worth opening again – something alive instead
         if (TabEmpty(t) && (S.SmartTab || t == "Shelf")) t = FallbackTab() ?? "Music"; // an empty Ablage has no icon at all
 
-        if (IsTabHidden(t)) t = VisibleTabButtons().Select(r => (string)r.Tag).FirstOrDefault() ?? t;
+        if (IsTabHidden(t) || MinimalAway(t))
+            t = VisibleTabButtons().Select(r => (string)r.Tag).FirstOrDefault(x => !MinimalAway(x)) ?? t;
         return t;
     }
 
@@ -4560,6 +4566,7 @@ public partial class IslandWindow : Window
         int n = _unreadNotif;
         Ext.SetBadge(_tabBtns["Notify"], n > 0 ? RedBadge : null);
         Ext.SetBadgeText(_tabBtns["Notify"], n > 0 && S.TabBar == TabBarStyle.Gruppen ? (n > 9 ? "9+" : n.ToString()) : "");
+        UpdateMinimalTabs(); // agents and unread notifications change here
     }
 
     private void UpdateHeaderFade(bool instant = false)
@@ -5431,6 +5438,41 @@ public partial class IslandWindow : Window
         bool show = !IsTabHidden("Shelf") && (H.Shelf.Items.Count > 0 || _state == State.Expanded && _tab == "Shelf");
         var vis = show ? Visibility.Visible : Visibility.Collapsed;
         if (ShelfTabBtn.Visibility != vis) { ShelfTabBtn.Visibility = vis; UpdateTabDots(); }
+        UpdateMinimalTabs();
+    }
+
+    // ---------- Minimal-Modus (user wish 2026-11-17): chosen tabs stay away while there is nothing on them ----------
+
+    /// <summary>The tabs the Minimal-Modus can hide, in the order of the settings page.</summary>
+    public static readonly string[] MinimalCandidates = { "Clip", "Ai", "Agent", "Send", "Music", "Notify" };
+
+    private bool HasContent(string tab) => tab switch
+    {
+        "Clip" => H.Clipboard.Items.Count > 0,
+        "Ai" => AiService.HasKey(S.AiProvider),
+        "Agent" => H.Agents.Any,
+        "Send" => H.LocalSend.Devices.Count > 0,
+        "Music" => H.Media.HasMedia,
+        "Notify" => _unreadNotif > 0,
+        _ => true,
+    };
+
+    /// <summary>Empty and chosen in Settings › Minimal-Modus.</summary>
+    private bool MinimalAway(string tab) => S.MinimalMode && S.MinimalTabs.Contains(tab) && !HasContent(tab);
+
+    private void UpdateMinimalTabs()
+    {
+        if (_tabBtns == null) return;
+        bool changed = false;
+        foreach (var t in MinimalCandidates)
+        {
+            if (!_tabBtns.TryGetValue(t, out var b)) continue;
+            // the page you are looking at stays until you leave it
+            bool show = !IsTabHidden(t) && (!MinimalAway(t) || _state == State.Expanded && _tab == t);
+            var vis = show ? Visibility.Visible : Visibility.Collapsed;
+            if (b.Visibility != vis) { b.Visibility = vis; changed = true; }
+        }
+        if (changed) UpdateTabDots();
     }
 
     private void UpdateShelfUi()

@@ -1090,6 +1090,60 @@ public partial class IslandWindow
                     Root.IsHitTestVisible = true;
                     break;
                 }
+                case "minimal":
+                {
+                    // Minimal-Modus on: the settings section (open) + which tabs the island shows; "So geht's" folded and one opened
+                    Root.IsHitTestVisible = false;
+                    static IEnumerable<T> FindKids<T>(DependencyObject d) where T : DependencyObject
+                    {
+                        foreach (var c in LogicalTreeHelper.GetChildren(d).OfType<DependencyObject>())
+                        {
+                            if (c is T t) yield return t;
+                            foreach (var k in FindKids<T>(c)) yield return k;
+                        }
+                    }
+                    bool keepMin = S.MinimalMode;
+                    S.MinimalMode = true;
+                    var w = new SettingsWindow { ShowActivated = false, WindowStartupLocation = WindowStartupLocation.Manual, Left = -4000, Top = 0 };
+                    w.Show();
+                    foreach (var page in new[] { "General", "Look", "Keys" })
+                    {
+                        w.ShowPage(page);
+                        await Task.Delay(700);
+                        if (page == "General")
+                            foreach (var link in FindKids<System.Windows.Controls.TextBlock>((DependencyObject)w.Content).Where(t => t.Cursor == System.Windows.Input.Cursors.Hand && t.Text.Contains("▾")).Take(1).ToList())
+                                link.RaiseEvent(new System.Windows.Input.MouseButtonEventArgs(System.Windows.Input.Mouse.PrimaryDevice, 0, System.Windows.Input.MouseButton.Left) { RoutedEvent = UIElement.MouseLeftButtonUpEvent });
+                        await Task.Delay(200);
+                        var el = (FrameworkElement)w.Content;
+                        var dpi2 = VisualTreeHelper.GetDpi(w);
+                        var scroll = (System.Windows.Controls.ScrollViewer)w.FindName("PageScroll");
+                        var content = (FrameworkElement)scroll.Content;
+                        content.Measure(new Size(scroll.ActualWidth, double.PositiveInfinity));
+                        double hgt = Math.Max(el.ActualHeight, content.DesiredSize.Height + 40);
+                        var rtb2 = new RenderTargetBitmap((int)(scroll.ActualWidth * dpi2.DpiScaleX), (int)(hgt * dpi2.DpiScaleY), dpi2.PixelsPerInchX, dpi2.PixelsPerInchY, PixelFormats.Pbgra32);
+                        content.Arrange(new Rect(0, 0, scroll.ActualWidth, hgt));
+                        rtb2.Render(content);
+                        var enc2 = new PngBitmapEncoder();
+                        enc2.Frames.Add(BitmapFrame.Create(rtb2));
+                        using (var fs = File.Create(Path.Combine(dir, $"settings_{page}.png"))) enc2.Save(fs);
+                        scroll.InvalidateMeasure();
+                    }
+                    w.Close();
+                    App.NotifySettingsChanged();
+                    fh = 120;
+                    Expand("Timer", false);
+                    _sticky = true;
+                    await Task.Delay(900);
+                    Frame();
+                    Save("island_minimal");
+                    File.WriteAllLines(Path.Combine(dir, "tabs.txt"), MinimalCandidates.Select(t =>
+                        $"{t}: content={HasContent(t)} visible={_tabBtns[t].Visibility == Visibility.Visible}"));
+                    Collapse();
+                    S.MinimalMode = keepMin;
+                    App.NotifySettingsChanged();
+                    Root.IsHitTestVisible = true;
+                    break;
+                }
                 case "aisettings":
                 {
                     var w = new SettingsWindow { ShowActivated = false, WindowStartupLocation = WindowStartupLocation.Manual, Left = -4000, Top = 0 };

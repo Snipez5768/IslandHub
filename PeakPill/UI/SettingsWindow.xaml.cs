@@ -36,6 +36,7 @@ public partial class SettingsWindow : Window
     {
         InitializeComponent();
         L.TranslateTree(this);
+        WireGuides(this);
         Loaded += (_, _) => L.TranslateTree(this);
         Icon = IconFactory.CreateWindowIcon();
         VersionText.Text = L.T("Version ") + (typeof(App).Assembly.GetName().Version?.ToString(3) ?? "0.1.0");
@@ -338,6 +339,10 @@ public partial class SettingsWindow : Window
         TabStyleC.IsChecked = S.TabBar == TabBarStyle.Titel;
         OptTabAutoHide.IsChecked = S.TabBarAutoHide;
         BuildTabOrder();
+        LoadMinimal();
+        OptLocalSend.IsChecked = S.LocalSendOn;
+        OptLocalSendName.Text = S.LocalSendName;
+        OptLocalSendName.Tag = Environment.MachineName; // the placeholder: what the others see without a name
         (S.Animations switch { AnimationLevel.Aus => AnimOff, AnimationLevel.Reduziert => AnimReduced, _ => AnimOn }).IsChecked = true;
         ClipLayoutA.IsChecked = S.ClipLayout == ClipLayout.Liste;
         ClipLayoutB.IsChecked = S.ClipLayout == ClipLayout.Kacheln;
@@ -670,6 +675,76 @@ public partial class SettingsWindow : Window
     {
         S.TabOrder = _tabEntries.Select(t => t.Key).ToList();
         S.HiddenTabs = _tabEntries.Where(t => !t.Visible).Select(t => t.Key).ToList();
+        App.NotifySettingsChanged();
+    }
+
+    private void LocalSend_Changed(object sender, RoutedEventArgs e)
+    {
+        if (_loading) return;
+        var ls = App.Hub.LocalSend;
+        bool on = OptLocalSend.IsChecked == true, renamed = OptLocalSendName.Text.Trim() != S.LocalSendName;
+        S.LocalSendName = OptLocalSendName.Text.Trim();
+        if (on != S.LocalSendOn) { S.LocalSendOn = on; if (on) ls.Start(); else ls.Stop(); }
+        else if (renamed && on) _ = ls.Announce(); // the others pick up the new name
+        App.NotifySettingsChanged();
+    }
+
+    // ---------------- "So geht's": setup steps (Tag="Guide") stay folded until you want them ----------------
+
+    private void WireGuides(DependencyObject root)
+    {
+        foreach (var child in LogicalTreeHelper.GetChildren(root).OfType<DependencyObject>().ToList())
+        {
+            if (child is TextBlock { Tag: "Guide" } guide && guide.Parent is Panel panel)
+            {
+                Brush accent;
+                try { accent = new SolidColorBrush((Color)ColorConverter.ConvertFromString(S.Accent)); } catch { accent = Brushes.DodgerBlue; }
+                string label = L.T("So geht's");
+                var link = new TextBlock
+                {
+                    Text = label + "  ▾", FontSize = 11.5, Foreground = accent, Cursor = Cursors.Hand,
+                    Margin = new Thickness(guide.Margin.Left, 3, 0, 0), HorizontalAlignment = HorizontalAlignment.Left,
+                };
+                guide.Visibility = Visibility.Collapsed;
+                guide.Margin = new Thickness(guide.Margin.Left, 3, guide.Margin.Right, 2);
+                link.MouseLeftButtonUp += (_, ev) =>
+                {
+                    ev.Handled = true;
+                    bool open = guide.Visibility != Visibility.Visible;
+                    guide.Visibility = open ? Visibility.Visible : Visibility.Collapsed;
+                    link.Text = label + (open ? "  ▴" : "  ▾");
+                };
+                panel.Children.Insert(panel.Children.IndexOf(guide), link);
+                continue;
+            }
+            WireGuides(child);
+        }
+    }
+
+    // ---------------- Minimal-Modus: which tabs hide while empty ----------------
+
+    private ToggleButton[] MinimalSwitches => new[] { OptMinClip, OptMinAi, OptMinAgent, OptMinSend, OptMinMusic, OptMinNotify };
+
+    private void LoadMinimal()
+    {
+        OptMinimal.IsChecked = S.MinimalMode;
+        foreach (var b in MinimalSwitches) b.IsChecked = S.MinimalTabs.Contains((string)b.Tag);
+        ShowMinimalTabs();
+    }
+
+    private void ShowMinimalTabs()
+    {
+        bool on = OptMinimal.IsChecked == true;
+        MinimalTabsPanel.Visibility = on ? Visibility.Visible : Visibility.Collapsed;
+        MinimalMasterRow.Style = (Style)FindResource(on ? "Row" : "LastRow");
+    }
+
+    private void Minimal_Click(object sender, RoutedEventArgs e)
+    {
+        if (_loading) return;
+        S.MinimalMode = OptMinimal.IsChecked == true;
+        S.MinimalTabs = MinimalSwitches.Where(b => b.IsChecked == true).Select(b => (string)b.Tag).ToList();
+        ShowMinimalTabs();
         App.NotifySettingsChanged();
     }
 

@@ -34,7 +34,7 @@ public static class L
         English = !string.Equals(language, "de", StringComparison.OrdinalIgnoreCase);
         _exact = new Dictionary<string, string>(StringComparer.Ordinal);
         var patterns = new List<(Regex, string, int)>();
-        foreach (var (de, en) in LangEn.Pairs)
+        foreach (var (de, en) in LangEn.Pairs.Concat(LangEnSettings.Pairs))
         {
             if (!Hole.IsMatch(de)) { _exact[de] = en; continue; }
             // a template: the fixed parts must match exactly, the holes take anything
