@@ -649,7 +649,7 @@ public partial class SettingsWindow : Window
     public static readonly (string Key, string Name, string Icon, string Note)[] AllTabs =
     {
         ("Live", "Live", "dot.radiowaves", L.T("nur wenn etwas läuft")), ("Obs", "OBS", "record", L.T("nur wenn verbunden")),
-        ("Music", L.T("Musik"), "music", ""), ("Clip", L.T("Zwischenablage"), "clipboard", ""), ("Shelf", L.T("Ablage"), "folder", ""), ("Send", "LocalSend", "share", L.T("Dateien mit Handy und PC teilen")),
+        ("Music", L.T("Musik"), "music", ""), ("Clip", L.T("Zwischenablage"), "clipboard", ""), ("Shelf", L.T("Ablage"), "folder", ""), ("Send", "LocalSend", "share", L.T("Dateien mit Handy und PC teilen")), ("Notes", L.T("Notizen"), "square.pencil", L.T("Schnellnotizen")),
         ("Agent", "Agent", "sparkles", ""), ("Ai", L.T("KI"), "bubble", L.T("Chat mit deinem API-Schlüssel")), ("Games", L.T("Spiele"), "gamecontroller", ""), ("Notify", L.T("Mitteilungen"), "bell.badge", ""),
         (L.T("Timer"), L.T("Timer"), "timer", ""), ("Today", L.T("Heute"), "calendar", L.T("Wetter und Termine")), ("Remind", L.T("Erinnerungen"), "checklist", ""), ("Controls", L.T("Steuerung"), "sliders", "")
     };

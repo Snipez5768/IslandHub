@@ -242,7 +242,7 @@ public sealed class BrowserDownloadService : ObservableObject, IDownload
         Stalled = p.IsStalled;
         Where = !string.IsNullOrEmpty(p.App) ? L.T($"in {p.App}") : L.T("im Browser");
         Speed = p.Rate > 0 && !Stalled ? Bytes((long)p.Rate) + "/s" : "";
-        Eta = Stalled ? "hängt" : HasTotal && p.Rate > 1000 ? FormatEta((p.Total - p.Size) / p.Rate) : HasTotal ? "" : "geladen";
+        Eta = Stalled ? L.T("hängt") : HasTotal && p.Rate > 1000 ? FormatEta((p.Total - p.Size) / p.Rate) : HasTotal ? "" : L.T("geladen");
         Downloading = true;
         Raise(nameof(HasTotal));
     }
@@ -334,7 +334,7 @@ public sealed class BrowserDownloadService : ObservableObject, IDownload
 
     // ---------- the user's Downloads folder (it can be moved) ----------
 
-    private static string DownloadsFolder()
+    internal static string DownloadsFolder()
     {
         try
         {

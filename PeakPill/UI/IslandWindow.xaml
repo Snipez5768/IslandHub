@@ -698,6 +698,7 @@
                                 <RadioButton Style="{StaticResource TabButton}" Tag="Clip" Content="Zwischenablage" ui:Ext.Icon="clipboard" Checked="Tab_Checked" ToolTip="Zwischenablage" />
                                 <RadioButton x:Name="ShelfTabBtn" Style="{StaticResource TabButton}" Tag="Shelf" Content="Ablage" ui:Ext.Icon="folder" Checked="Tab_Checked" ToolTip="Ablage" Visibility="Collapsed" />
                                 <RadioButton Style="{StaticResource TabButton}" Tag="Send" Content="LocalSend" ui:Ext.Icon="share" Checked="Tab_Checked" ToolTip="LocalSend – Dateien mit Handy und PC teilen" />
+                                <RadioButton Style="{StaticResource TabButton}" Tag="Notes" Content="Notizen" ui:Ext.Icon="square.pencil" Checked="Tab_Checked" ToolTip="Schnellnotizen" />
                                 <RadioButton Style="{StaticResource TabButton}" Tag="Agent" Content="Agent" ui:Ext.Icon="sparkles" Checked="Tab_Checked" ToolTip="KI-Agenten" />
                                 <RadioButton Style="{StaticResource TabButton}" Tag="Ai" Content="KI" ui:Ext.Icon="bubble" Checked="Tab_Checked" ToolTip="KI – mit Claude, ChatGPT oder Gemini schreiben" />
                                 <RadioButton Style="{StaticResource TabButton}" Tag="Games" Content="Spiele" ui:Ext.Icon="gamecontroller" Checked="Tab_Checked" ToolTip="Spiele und Programme" />
@@ -2202,6 +2203,30 @@
                                                HorizontalAlignment="Center" Margin="0,2,0,0" />
                                 </StackPanel>
                             </Grid>
+                        </Grid>
+
+                        <!-- ===== QUICK NOTES (user wish 2026-11-17): Enter keeps it, the list below; built in IslandWindow.Notes.cs ===== -->
+                        <Grid x:Name="TabNotes" Visibility="Collapsed">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="*" />
+                            </Grid.RowDefinitions>
+                            <Border x:Name="NoteInputBox" CornerRadius="13" Background="#1AFFFFFF" BorderBrush="#14FFFFFF" BorderThickness="0.5" Padding="11,2,4,2" MinHeight="28">
+                                <DockPanel>
+                                    <Button x:Name="NoteSaveBtn" DockPanel.Dock="Right" Style="{StaticResource BareIconButton}" Width="24" Height="24" ui:Ext.Icon="check" ui:Ext.IconSize="13"
+                                            Foreground="#FF8E8E93" ui:Ext.Hover="White" ToolTip="Speichern (Enter)" Click="NoteSave_Click" VerticalAlignment="Bottom" />
+                                    <TextBox x:Name="NoteInput" Style="{StaticResource BareBox}" Tag="Notiz schreiben … (Enter speichert)" FontSize="12.5" MinHeight="24" MaxHeight="58"
+                                             TextWrapping="Wrap" AcceptsReturn="True" VerticalScrollBarVisibility="Auto" PreviewKeyDown="NoteInput_PreviewKeyDown" />
+                                </DockPanel>
+                            </Border>
+                            <ScrollViewer x:Name="NotesScroll" Grid.Row="1" Margin="0,6,0,0" VerticalScrollBarVisibility="Auto">
+                                <StackPanel x:Name="NotesList" Margin="0,0,2,0" />
+                            </ScrollViewer>
+                            <StackPanel x:Name="NotesEmpty" Grid.Row="1" HorizontalAlignment="Center" VerticalAlignment="Center" IsHitTestVisible="False">
+                                <TextBlock Text="Noch keine Notizen" FontSize="12.5" FontWeight="SemiBold" HorizontalAlignment="Center" />
+                                <TextBlock x:Name="NotesEmptyText" Text="Schreib oben los – überall mit Strg+Alt+N" FontSize="10.5" Foreground="{StaticResource SubText}"
+                                           HorizontalAlignment="Center" Margin="0,2,0,0" />
+                            </StackPanel>
                         </Grid>
 
                         <!-- ===== CONTROL CENTER ===== -->

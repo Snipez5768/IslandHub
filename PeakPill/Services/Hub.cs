@@ -40,6 +40,7 @@ public sealed class Hub
     public ClockModel Clock { get; private set; }
     public AiService Ai { get; private set; }
     public LocalSendService LocalSend { get; private set; }
+    public NotesService Notes { get; private set; }
 
     public void Init()
     {
@@ -86,6 +87,8 @@ public sealed class Hub
         Reminders = new ReminderService();
         Reminders.Load();
         Reminders.Start();
+        Notes = new NotesService();
+        Notes.Load();
         Todos = new TodoService();
         Todos.Load();
         Timer = new FocusTimerService();
@@ -132,6 +135,6 @@ public sealed class Hub
         try { Clipboard?.Shutdown(); } catch { }
         try { Hotkeys?.UnregisterAll(); } catch { }
         try { Foreground?.Dispose(); } catch { }
-        try { Reminders?.Save(); Todos?.Save(); Shelf?.Save(); } catch { }
+        try { Reminders?.Save(); Todos?.Save(); Shelf?.Save(); Notes?.Save(); } catch { }
     }
 }

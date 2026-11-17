@@ -1145,6 +1145,98 @@ public partial class IslandWindow
                     Root.IsHitTestVisible = true;
                     break;
                 }
+                case "trio":
+                {
+                    // quick notes (demo text only), the settings search, and a made-up browser download end to end
+                    Root.IsHitTestVisible = false;
+                    fh = 240;
+                    var demo = new[] { H.Notes.Add("Milch, Eier und Brot kaufen"), H.Notes.Add("Idee: Wetter-Widget in Blau ausprobieren\nmit runden Ecken") };
+                    H.Notes.TogglePin(demo[1]);
+                    Expand("Notes", false);
+                    _sticky = true;
+                    await Task.Delay(900);
+                    Frame();
+                    NoteInput.Text = "Neue Notiz …";
+                    await Task.Delay(200);
+                    Frame();
+                    NoteInput.Clear();
+                    foreach (var n in demo) H.Notes.Remove(n);
+                    Save("notes");
+
+                    // settings search: "spotify", then Enter = the best match, opened and lit up
+                    var w = new SettingsWindow { ShowActivated = false, WindowStartupLocation = WindowStartupLocation.Manual, Left = -4000, Top = 0 };
+                    w.Show();
+                    await Task.Delay(600);
+                    var box = (System.Windows.Controls.TextBox)w.FindName("SettingsSearch");
+                    void Shot(string name)
+                    {
+                        var el = (FrameworkElement)w.Content;
+                        var dpi2 = VisualTreeHelper.GetDpi(w);
+                        var rtb2 = new RenderTargetBitmap((int)(el.ActualWidth * dpi2.DpiScaleX), (int)(el.ActualHeight * dpi2.DpiScaleY), dpi2.PixelsPerInchX, dpi2.PixelsPerInchY, PixelFormats.Pbgra32);
+                        rtb2.Render(el);
+                        var enc2 = new PngBitmapEncoder();
+                        enc2.Frames.Add(BitmapFrame.Create(rtb2));
+                        using var fs = File.Create(Path.Combine(dir, name + ".png"));
+                        enc2.Save(fs);
+                    }
+                    var lines = new List<string>();
+                    foreach (var q in new[] { "spotify", "minimal", "kürzel", "redirect", "xyzzy" })
+                    {
+                        box.Text = q;
+                        await Task.Delay(250);
+                        var res = (System.Windows.Controls.StackPanel)w.FindName("SearchResults");
+                        lines.Add($"{q}: " + string.Join(" | ", res.Children.OfType<System.Windows.Controls.Border>()
+                            .Select(b => string.Join(" / ", ((System.Windows.Controls.StackPanel)b.Child).Children.OfType<System.Windows.Controls.TextBlock>().Select(t => t.Text)))));
+                    }
+                    box.Text = "spotify";
+                    await Task.Delay(300);
+                    Shot("search_list");
+                    var firstHit = ((System.Windows.Controls.StackPanel)w.FindName("SearchResults")).Children.OfType<System.Windows.Controls.Border>().First();
+                    firstHit.RaiseEvent(new System.Windows.Input.MouseButtonEventArgs(System.Windows.Input.Mouse.PrimaryDevice, 0, System.Windows.Input.MouseButton.Left) { RoutedEvent = UIElement.MouseLeftButtonUpEvent });
+                    await Task.Delay(700);
+                    Shot("search_goto");
+                    box.Text = "minimal";
+                    await Task.Delay(300);
+                    var hit2 = ((System.Windows.Controls.StackPanel)w.FindName("SearchResults")).Children.OfType<System.Windows.Controls.Border>().First();
+                    hit2.RaiseEvent(new System.Windows.Input.MouseButtonEventArgs(System.Windows.Input.Mouse.PrimaryDevice, 0, System.Windows.Input.MouseButton.Left) { RoutedEvent = UIElement.MouseLeftButtonUpEvent });
+                    await Task.Delay(700);
+                    Shot("search_goto2");
+                    w.Close();
+                    File.WriteAllLines(Path.Combine(dir, "search.txt"), lines);
+
+                    // a browser download: a growing ".crdownload" in the Downloads folder, then renamed = finished
+                    Collapse();
+                    await Task.Delay(500);
+                    var dlDir = BrowserDownloadService.DownloadsFolder();
+                    var tmp = Path.Combine(dlDir, "PeakPill-Testdownload.zip.crdownload");
+                    var fin = Path.Combine(dlDir, "PeakPill-Testdownload.zip");
+                    var dlLog = new List<string>();
+                    try
+                    {
+                        var chunk = new byte[3 * 1024 * 1024];
+                        using (var f = new FileStream(tmp, FileMode.Create, FileAccess.Write, FileShare.ReadWrite))
+                            for (int i = 0; i < 6; i++)
+                            {
+                                f.Write(chunk); f.Flush(true);
+                                await Task.Delay(900);
+                                dlLog.Add($"{i}: downloading={H.Downloads.Downloading} name={H.Downloads.Name} pct={H.Downloads.Percent} speed={H.Downloads.Speed}");
+                                if (i == 3) { Expand("Live", false); _sticky = true; await Task.Delay(500); Frame(); Collapse(); await Task.Delay(400); Frame(); }
+                            }
+                        File.Move(tmp, fin);
+                        for (int i = 0; i < 8; i++) { await Task.Delay(500); Frame(); }
+                        dlLog.Add($"after: downloading={H.Downloads.Downloading}");
+                    }
+                    finally
+                    {
+                        try { File.Delete(tmp); } catch { }
+                        try { File.Delete(fin); } catch { }
+                    }
+                    File.WriteAllLines(Path.Combine(dir, "download.txt"), dlLog);
+                    Save("download");
+                    Collapse();
+                    Root.IsHitTestVisible = true;
+                    break;
+                }
                 case "minimal":
                 {
                     // Minimal-Modus on: the settings section (open) + which tabs the island shows; "So geht's" folded and one opened

@@ -16,7 +16,7 @@ public enum AiProvider { Claude, ChatGpt, Gemini }
 public enum HotkeyAction
 {
     ToggleIsland, Clipboard, Screenshot, ScreenshotOcr, Shelf, Music, Widgets, Reminders, Controls,
-    MicMute, QueueMode, PlayPause, NextTrack, PrevTrack, FocusTimer, Settings, AiChat
+    MicMute, QueueMode, PlayPause, NextTrack, PrevTrack, FocusTimer, Settings, AiChat, QuickNote
 }
 
 public sealed record HotkeyDef(HotkeyAction Action, string Label, string Default);
@@ -43,6 +43,7 @@ public static class HotkeyInfo
         new(HotkeyAction.FocusTimer,    L.T("Timer starten / pausieren"),       ""),
         new(HotkeyAction.Settings,      L.T("Einstellungen öffnen"),            "Ctrl+Alt+O"),
         new(HotkeyAction.AiChat,        L.T("KI-Chat öffnen"),                  ""),
+        new(HotkeyAction.QuickNote,     L.T("Schnellnotiz schreiben"),          "Ctrl+Alt+N"),
     };
 }
 

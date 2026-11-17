@@ -25,7 +25,7 @@ public partial class IslandWindow : Window
     private enum State { Collapsed, Hint, Peek, Expanded }
     private enum Act { Live, Agent, Obs, Steam, Timer, Music, MicMuted, Queue, Recording, Alarm }
 
-    private static readonly string[] TabOrder = { "Live", "Obs", "Music", "Clip", "Shelf", "Send", "Agent", "Ai", "Games", "Notify", L.T("Timer"), "Today", "Remind", "Controls" };
+    private static readonly string[] TabOrder = { "Live", "Obs", "Music", "Clip", "Shelf", "Send", "Notes", "Agent", "Ai", "Games", "Notify", L.T("Timer"), "Today", "Remind", "Controls" };
     // one fixed size for every tab – the island never jumps when switching tabs
     private const double ExpW = 380, ExpH = 128, PeekW = 340, PillH = 32, IdleW = 176, ExpRadius = 24;
 
@@ -64,6 +64,7 @@ public partial class IslandWindow : Window
     private double TabHeight(string tab) => tab == "Clip" ? ClipHeight()
         : tab == "Ai" ? AiHeight()
         : tab == "Send" ? SendHeight()
+        : tab == "Notes" ? NotesHeight()
         : tab == "Notify" ? NotifyHeight()
         : tab == "Music" && (_queueOpen || _lyricsOpen) ? 300
         : tab == "Live" && _livePick ? LivePickH
@@ -124,6 +125,7 @@ public partial class IslandWindow : Window
         H.Reminders.Due += _ => Ui.Run(() => Note("Remind", 120));
         WireAi();
         WireSend();
+        WireNotes();
 
         // timer wheels start at the last used duration
         var secs = H.Timer.DurationSeconds;
@@ -2937,6 +2939,7 @@ public partial class IslandWindow : Window
             case HotkeyAction.Widgets: ToggleTab(L.T("Timer")); break;
             case HotkeyAction.Reminders: ToggleTab("Remind"); break;
             case HotkeyAction.AiChat: ToggleTab("Ai"); break;
+            case HotkeyAction.QuickNote: ToggleTab("Notes"); break;
             case HotkeyAction.Controls: ToggleTab("Controls"); break;
             case HotkeyAction.Screenshot: TakeScreenshot(false); break;
             case HotkeyAction.ScreenshotOcr: TakeScreenshot(true); break;
@@ -4331,6 +4334,7 @@ public partial class IslandWindow : Window
         TabGames.Visibility = tab == "Games" ? Visibility.Visible : Visibility.Collapsed;
         TabTimer.Visibility = tab == "Timer" ? Visibility.Visible : Visibility.Collapsed;
         TabRemind.Visibility = tab == "Remind" ? Visibility.Visible : Visibility.Collapsed;
+        TabNotes.Visibility = tab == "Notes" ? Visibility.Visible : Visibility.Collapsed;
         TabToday.Visibility = tab == "Today" ? Visibility.Visible : Visibility.Collapsed;
         TabControls.Visibility = tab == "Controls" ? Visibility.Visible : Visibility.Collapsed;
         if (!_autoOpening) S.LastTab = tab;
@@ -4368,6 +4372,7 @@ public partial class IslandWindow : Window
             case "Agent": UpdateAgentUi(); break;
             case "Ai": UpdateAiUi(); break;
             case "Send": UpdateSendUi(); _ = H.LocalSend.Announce(); break;
+            case "Notes": UpdateNotesUi(); break;
             case "Games": UpdateGamesUi(); break;
             case "Obs": UpdateObsUi(); break;
             case "Notify": UpdateNotifyUi(); break;
@@ -4380,8 +4385,8 @@ public partial class IslandWindow : Window
     //  optional "D" for all of them: fades to page dots while the pointer is not on the bar
     // =====================================================================
 
-    private static readonly string[] FlatTabOrder = { "Live", "Obs", "Music", "Clip", "Shelf", "Send", "Agent", "Ai", "Games", "Notify", L.T("Timer"), "Today", "Remind", "Controls" };
-    private static readonly string[] GroupTabOrder = { "Live", "Obs", "Music", "|", "Clip", "Shelf", "Send", "Games", L.T("Timer"), "Today", "Remind", "|", "Agent", "Ai", "Notify", "Controls" };
+    private static readonly string[] FlatTabOrder = { "Live", "Obs", "Music", "Clip", "Shelf", "Send", "Notes", "Agent", "Ai", "Games", "Notify", L.T("Timer"), "Today", "Remind", "Controls" };
+    private static readonly string[] GroupTabOrder = { "Live", "Obs", "Music", "|", "Clip", "Shelf", "Send", "Notes", "Games", L.T("Timer"), "Today", "Remind", "|", "Agent", "Ai", "Notify", "Controls" };
     private static readonly SolidColorBrush LiveBadge = Frozen(Color.FromRgb(0x30, 0xD1, 0x58));
     private static readonly SolidColorBrush RedBadge = Frozen(Color.FromRgb(0xFF, 0x45, 0x3A));
     private static readonly SolidColorBrush DotBrush = Frozen(Color.FromRgb(0x48, 0x48, 0x4A));
@@ -4397,7 +4402,7 @@ public partial class IslandWindow : Window
 
     private static readonly Dictionary<string, int> TabGroup = new()
     {
-        ["Live"] = 0, ["Obs"] = 0, ["Music"] = 0, ["Clip"] = 1, ["Shelf"] = 1, ["Send"] = 1, ["Games"] = 1, ["Timer"] = 1, ["Today"] = 1, ["Remind"] = 1,
+        ["Live"] = 0, ["Obs"] = 0, ["Music"] = 0, ["Clip"] = 1, ["Shelf"] = 1, ["Send"] = 1, ["Notes"] = 1, ["Games"] = 1, ["Timer"] = 1, ["Today"] = 1, ["Remind"] = 1,
         ["Agent"] = 2, ["Ai"] = 2, ["Notify"] = 2, ["Controls"] = 2
     };
 
@@ -4674,6 +4679,7 @@ public partial class IslandWindow : Window
                 }
                 break;
             case "Remind": RemindText.Focus(); break;
+            case "Notes": NoteInput.Focus(); NoteInput.CaretIndex = NoteInput.Text.Length; break;
             case "Ai": AiInput.Focus(); AiInput.CaretIndex = AiInput.Text.Length; break;
             default: Focus(); break;
         }

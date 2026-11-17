@@ -115,6 +115,24 @@ public static class AiTools
                 return Json(new { ok = true, due = due.ToString("yyyy-MM-dd HH:mm") });
             })),
 
+        new("add_note",
+            "Save a quick note on the island's Notes page (the user can pin, copy or send it later).",
+            Schema(("text", "string", "The note", null, true)),
+            a => Ui0(() =>
+            {
+                var n = H.Notes.Add(Str(a, "text"));
+                return Json(new { ok = n != null, notes = H.Notes.Items.Count });
+            })),
+
+        new("get_notes",
+            "Read the user's quick notes (pinned first, then newest).",
+            Schema(("count", "integer", "How many, 1 to 20 (default 10)", null, false)),
+            a => Ui0(() =>
+            {
+                int k = Math.Clamp((int)(Num(a, "count") ?? 10), 1, 20);
+                return Json(H.Notes.Items.Take(k).Select(n => new { text = Cut(n.Text, 1500), pinned = n.Pinned, created = n.Created.ToString("yyyy-MM-dd HH:mm") }).ToList());
+            })),
+
         new("media",
             "Control the music that is playing (Spotify, browser, any player).",
             Schema(("action", "string", "What to do", new[] { "play_pause", "next", "previous" }, true)),
@@ -131,7 +149,7 @@ public static class AiTools
 
         new("open_page",
             "Open a page of the island for the user.",
-            Schema(("page", "string", "Which page", new[] { "Music", "Clip", "Send", "Timer", "Today", "Remind", "Controls", "Notify", "Agent", "Games", "Shelf" }, true)),
+            Schema(("page", "string", "Which page", new[] { "Music", "Clip", "Send", "Notes", "Timer", "Today", "Remind", "Controls", "Notify", "Agent", "Games", "Shelf" }, true)),
             a => Ui0(() => { host.OpenPage(Str(a, "page")); return Json(new { ok = true }); })),
     };
 

@@ -277,6 +277,8 @@ public sealed class AiService : ObservableObject, IAiHost
         "add_reminder" => L.T("Legt eine Erinnerung an"),
         "media" => L.T("Steuert die Musik"),
         "open_page" => L.T("Öffnet eine Seite"),
+        "add_note" => L.T("Schreibt eine Notiz"),
+        "get_notes" => L.T("Liest deine Notizen"),
         _ => tool,
     };
 

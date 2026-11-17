@@ -48,5 +48,32 @@ public static class LangEnSettings
         ("Aus: der Verlauf beginnt nach jedem PC-Neustart leer.", "Off: the history starts empty after every PC restart."),
         ("Der Schlüssel liegt verschlüsselt auf diesem PC. Fragen gehen direkt an den Dienst und kosten dort Guthaben. Unter Tastatur gibt es ein Kürzel für den KI-Chat.", "The key is stored encrypted on this PC. Questions go straight to the service and use credit there. Keyboard has a shortcut for the AI chat."),
         ("Unter diesem Namen sehen dich Handy und PCs in der Nähe.", "Phones and PCs nearby see you under this name."),
+
+        // ---------- quick notes ----------
+        ("Notizen", "Notes"),
+        ("Schnellnotizen", "Quick notes"),
+        ("Schnellnotiz schreiben", "Write a quick note"),
+        ("Notiz schreiben … (Enter speichert)", "Write a note … (Enter saves)"),
+        ("Notiz bearbeiten … (Enter speichert, Esc bricht ab)", "Edit note … (Enter saves, Esc cancels)"),
+        ("Speichern (Enter)", "Save (Enter)"),
+        ("Noch keine Notizen", "No notes yet"),
+        ("Schreib oben los – Enter speichert", "Start typing above – Enter saves"),
+        ("Schreib oben los – überall mit {0}", "Start typing above – anywhere with {0}"),
+        ("Klicken zum Bearbeiten", "Click to edit"),
+        ("Anheften", "Pin"),
+        ("Lösen", "Unpin"),
+        ("Mit LocalSend senden", "Send with LocalSend"),
+        ("gestern", "yesterday"),
+        ("Schreibt eine Notiz", "Writes a note"),
+        ("Liest deine Notizen", "Reads your notes"),
+
+        // ---------- downloads (the status after the MB so far) ----------
+        ("geladen", "so far"),
+        ("hängt", "stuck"),
+
+        // ---------- settings search ----------
+        ("Suchen", "Search"),
+        ("Suche leeren", "Clear search"),
+        ("Nichts gefunden", "Nothing found"),
     };
 }
