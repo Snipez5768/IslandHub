@@ -2977,7 +2977,7 @@ public partial class IslandWindow : Window
             // "Claude hört zu" with the orange wave – then the wave lives on as the small bubble next to it
             // (a Discord call no longer hides it – that another app listens matters most during a call; 2026-11-16)
             if (kind == 'm' && !app.IsDiscord) { ShowListening(app); return; }
-            GlowBubble(Act.Live, kind == 'm' ? (Brush)FindResource("Orange") : (Brush)FindResource("Green"));
+            // a known call / camera: no glow at all (user decision 2026-11-17 – it lit up the whole island's outline)
             return;
         }
         var orange = (Brush)FindResource("Orange");
