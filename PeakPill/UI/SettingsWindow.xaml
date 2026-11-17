@@ -225,6 +225,26 @@
                     <TextBlock Text="In der Insel zeigen" Style="{StaticResource GroupHeader}" />
                     <Border Style="{StaticResource SettingCard}">
                         <StackPanel>
+                            <!-- the clock (user's pick 2026-11-18, mockup B): in the middle of the quiet island -->
+                            <Border Style="{StaticResource Row}">
+                                <DockPanel>
+                                    <ToggleButton x:Name="OptClock" DockPanel.Dock="Right" Style="{StaticResource Switch}" Click="Opt_Click" VerticalAlignment="Center" />
+                                    <ui:HintPic Kind="autostart" />
+                                    <StackPanel Margin="0,0,12,0" VerticalAlignment="Center">
+                                        <TextBlock Text="Uhrzeit" />
+                                        <TextBlock Style="{StaticResource Desc}" Text="Läuft sonst nichts, steht die Uhrzeit mittig in der Insel." />
+                                    </StackPanel>
+                                </DockPanel>
+                            </Border>
+                            <Border x:Name="ClockSecondsRow" Style="{StaticResource Row}">
+                                <DockPanel>
+                                    <ToggleButton x:Name="OptSeconds" DockPanel.Dock="Right" Style="{StaticResource Switch}" Click="Opt_Click" VerticalAlignment="Center" />
+                                    <StackPanel Margin="54,0,12,0" VerticalAlignment="Center">
+                                        <TextBlock Text="Mit Sekunden" />
+                                        <TextBlock Style="{StaticResource Desc}" Text="Die Ziffern rollen jede Sekunde weiter." />
+                                    </StackPanel>
+                                </DockPanel>
+                            </Border>
                             <Border Style="{StaticResource Row}">
                                 <DockPanel>
                                     <ToggleButton x:Name="OptLevel" DockPanel.Dock="Right" Style="{StaticResource Switch}" Click="Opt_Click" VerticalAlignment="Center" />
@@ -592,7 +612,6 @@
                             </Border>
                         </StackPanel>
                     </Border>
-                    <ToggleButton x:Name="OptSeconds" Visibility="Collapsed" />
                 </StackPanel>
 
                 <!-- ======== LOOK ======== -->

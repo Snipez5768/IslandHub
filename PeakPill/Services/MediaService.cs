@@ -207,6 +207,9 @@ public sealed class MediaService : ObservableObject
     /// <summary>Test only: playing / paused as the player would report it.</summary>
     public void FakePlaying(bool playing) => IsPlaying = playing;
 
+    /// <summary>Render test only: no music at all (the quiet island).</summary>
+    public void FakeNone() { HasMedia = false; IsPlaying = false; Title = Artist = AppName = null; Cover = null; }
+
     public void Fake(string title, string artist, BitmapSource cover, bool track)
     {
         bool changed = title != Title;

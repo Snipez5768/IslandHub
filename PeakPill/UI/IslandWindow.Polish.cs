@@ -1218,6 +1218,37 @@ public partial class IslandWindow
                     Root.IsHitTestVisible = true;
                     break;
                 }
+                case "clockb":
+                {
+                    // mockup B: the time in the middle of the quiet island; with seconds the digits roll; a timer takes over
+                    fh = 60;
+                    var log = new List<string>();
+                    _sticky = false;
+                    Collapse();
+                    H.Agents.EndDemo();
+                    H.Timer.Reset();
+                    H.Media.FakeNone();
+                    bool secBefore = S.ShowSeconds;
+                    S.ShowSeconds = false;
+                    UpdatePill(true);
+                    await Task.Delay(900);
+                    Frame();
+                    log.Add($"quiet: clock={IdleClock.Visibility} text={IdleClock.Text} island={Island.ActualWidth:0}");
+                    S.ShowSeconds = true;
+                    await Film(10, 110);
+                    log.Add($"seconds: text={IdleClock.Text}");
+                    H.Timer.Reset(); H.Timer.SetDurationSeconds(120); H.Timer.Start();
+                    UpdatePill(true);
+                    await Film(6, 60);
+                    log.Add($"timer: clock={IdleClock.Visibility}");
+                    H.Timer.Reset();
+                    UpdatePill(true);
+                    await Film(4, 80);
+                    S.ShowSeconds = secBefore;
+                    Save("clockb");
+                    File.WriteAllLines(Path.Combine(dir, "clockb.txt"), log);
+                    break;
+                }
                 case "qol":
                 {
                     // the round of 2026-11-18, one after another (demo content only)

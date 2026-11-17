@@ -1756,6 +1756,9 @@ public partial class IslandWindow : Window
         bool coverWasShown = LeadCover.IsVisible, iconWasShown = LeadIcon.IsVisible;
         LeadCover.Visibility = LeadIcon.Visibility = LeadText.Visibility = Visibility.Collapsed;
         Equalizer.Visibility = TrailText.Visibility = TrailLive.Visibility = Visibility.Collapsed;
+        bool clock = !game && acts.Count == 0 && S.ClockInIsland; // nothing going on: the time in the middle (mockup B)
+        if (clock && IdleClock.Visibility != Visibility.Visible) { IdleClock.Roll = false; IdleClock.Text = ClockText(); IdleClock.Roll = true; }
+        IdleClock.Visibility = clock ? Visibility.Visible : Visibility.Collapsed;
         Lead.ToolTip = null;
 
         var musicColor = MusicTint();

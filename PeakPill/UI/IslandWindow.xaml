@@ -434,6 +434,9 @@
                         <ColumnDefinition Width="*" />
                         <ColumnDefinition Width="Auto" />
                     </Grid.ColumnDefinitions>
+                    <!-- the clock in the quiet island (2026-11-18, mockup B) – its digits roll -->
+                    <ui:RollingText x:Name="IdleClock" Grid.ColumnSpan="3" FontSize="14" FontWeight="SemiBold" Foreground="White" HorizontalAlignment="Center"
+                                    VerticalAlignment="Center" Visibility="Collapsed" IsHitTestVisible="False" Margin="5,0,0,0" />
                     <StackPanel x:Name="Lead" Orientation="Horizontal" VerticalAlignment="Center">
                         <Grid>
                             <!-- new song: the old cover slides out to the left while the new one comes in from the right -->

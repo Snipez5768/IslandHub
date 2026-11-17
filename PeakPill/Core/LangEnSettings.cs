@@ -114,6 +114,10 @@ public static class LangEnSettings
 
         // ---------- 2026-11-18 ----------
         ("Als Notiz", "As a note"),
+        ("Uhrzeit", "Time"),
+        ("Läuft sonst nichts, steht die Uhrzeit mittig in der Insel.", "When nothing else is going on, the time sits in the middle of the island."),
+        ("Mit Sekunden", "With seconds"),
+        ("Die Ziffern rollen jede Sekunde weiter.", "The digits roll on every second."),
         ("Als Notiz gespeichert", "Saved as a note"),
         ("Mikro stumm – klicken zum Einschalten", "Mic muted – click to turn it on"),
         ("Beim Tippen zurücktreten", "Step back while typing"),

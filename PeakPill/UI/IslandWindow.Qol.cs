@@ -32,8 +32,17 @@ public partial class IslandWindow
         // a click into the open page keeps the tab bar on screen for a moment (it faded while you deleted something)
         Pages.PreviewMouseDown += (_, _) => { _headerPinUntil = DateTime.Now.AddSeconds(3); UpdateHeaderFade(); };
         H.Agents.Finished += _ => Ui.Run(() => After(250, () => RimRun((Brush)FindResource("Green"))));
+        // the clock in the quiet island: once a second; only the digits that change roll
+        _clockTimer.Tick += (_, _) => { if (IdleClock.IsVisible) IdleClock.Text = ClockText(); };
+        _clockTimer.Start();
         H.Timer.Completed += () => Ui.Run(() => RimRun((Brush)FindResource("Orange"), full: true));
     }
+
+    // ---------- the clock (mockup B, 2026-11-18): in the middle of the quiet island, switchable ----------
+
+    private readonly DispatcherTimer _clockTimer = new() { Interval = TimeSpan.FromMilliseconds(250) };
+
+    private static string ClockText() => DateTime.Now.ToString(S.ShowSeconds ? "HH:mm:ss" : "HH:mm");
 
     // ---------- 15: while you type in another window the island steps back (half see-through) ----------
 

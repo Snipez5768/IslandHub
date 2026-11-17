@@ -307,6 +307,8 @@ public partial class SettingsWindow : Window
         OptHoverDelay.Value = S.HoverDelayMs;
         HoverDelayText.Text = $"{S.HoverDelayMs} ms";
         OptSeconds.IsChecked = S.ShowSeconds;
+        OptClock.IsChecked = S.ClockInIsland;
+        ClockSecondsRow.Visibility = S.ClockInIsland ? Visibility.Visible : Visibility.Collapsed;
         OptTrackPeek.IsChecked = S.TrackPeek;
         OptLevel.IsChecked = S.LevelInIsland;
         OptEyes.IsChecked = S.IslandEyes;
@@ -581,6 +583,8 @@ public partial class SettingsWindow : Window
         S.SmartTab = OptSmartTab.IsChecked == true;
         App.Hub.Clipboard.RefreshHook(); // noticing Ctrl+V is only needed for the queue or for this
         S.ShowSeconds = OptSeconds.IsChecked == true;
+        S.ClockInIsland = OptClock.IsChecked == true;
+        ClockSecondsRow.Visibility = S.ClockInIsland ? Visibility.Visible : Visibility.Collapsed;
         S.TrackPeek = OptTrackPeek.IsChecked == true;
         S.LevelInIsland = OptLevel.IsChecked == true;
         S.IslandEyes = OptEyes.IsChecked == true;
