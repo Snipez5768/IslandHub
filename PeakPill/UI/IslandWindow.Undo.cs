@@ -47,6 +47,9 @@ public partial class IslandWindow
         _undoCommit = commit;
         _undoText.Text = text;
         _undoBar.Visibility = Visibility.Visible;
+        SetUndoRoom(true); // the island grows by the bar – it covers nothing
+        _headerPinUntil = DateTime.Now.AddSeconds(5); // and the tab bar stays while you act on the page
+        UpdateHeaderFade();
         if (S.Animations != AnimationLevel.Aus)
         {
             ((TranslateTransform)_undoBar.RenderTransform).BeginAnimation(TranslateTransform.YProperty,
@@ -80,7 +83,7 @@ public partial class IslandWindow
     {
         if (_undoBar == null || _undoBar.Visibility != Visibility.Visible) return;
         var a = new DoubleAnimation(0, TimeSpan.FromMilliseconds(160));
-        a.Completed += (_, _) => { if (_undo == null) _undoBar.Visibility = Visibility.Collapsed; };
+        a.Completed += (_, _) => { if (_undo == null) { _undoBar.Visibility = Visibility.Collapsed; SetUndoRoom(false); } };
         _undoBar.BeginAnimation(OpacityProperty, a);
     }
 

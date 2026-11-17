@@ -53,7 +53,7 @@ public partial class IslandWindow
     {
         if (_timerRim == null) return;
         bool on = _timerLead && _state == State.Collapsed && H.Timer.Active && Island.IsVisible;
-        if (!on) { if (_timerRim.Visibility != Visibility.Collapsed) _timerRim.Visibility = Visibility.Collapsed; return; }
+        if (!on) { if (_timerRim.Visibility != Visibility.Collapsed) _timerRim.Visibility = Visibility.Collapsed; RimLastMinute(false); return; }
         double w = double.IsNaN(Island.Width) ? Island.ActualWidth : Island.Width;
         double h = double.IsNaN(Island.Height) ? Island.ActualHeight : Island.Height;
         double r = Island.CornerRadius.TopLeft;
@@ -73,6 +73,22 @@ public partial class IslandWindow
         _timerRim.StrokeDashArray = new DoubleCollection { dash, Math.Max(0.001, period - dash) };
         _timerRim.StrokeDashOffset = -start / t;
         _timerRim.Visibility = Visibility.Visible;
+        // the last minute: the line turns red and breathes slowly (2026-11-18)
+        double remaining = H.Timer.DurationSeconds * H.Timer.RemainingPercent / 100;
+        RimLastMinute(H.Timer.Running && remaining <= 60.5);
+    }
+
+    private bool _rimLastMinute;
+
+    private void RimLastMinute(bool on)
+    {
+        if (on == _rimLastMinute) return;
+        _rimLastMinute = on;
+        _timerRim.SetResourceReference(Shape.StrokeProperty, on ? "Danger" : "Orange");
+        if (on && S.Animations != AnimationLevel.Aus)
+            _timerRim.BeginAnimation(OpacityProperty, new DoubleAnimation(1, 0.35, TimeSpan.FromMilliseconds(900))
+                { AutoReverse = true, RepeatBehavior = RepeatBehavior.Forever, EasingFunction = new SineEase { EasingMode = EasingMode.EaseInOut } });
+        else { _timerRim.BeginAnimation(OpacityProperty, null); _timerRim.Opacity = 1; }
     }
 
     private static double Length(Geometry g)

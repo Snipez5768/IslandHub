@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
@@ -30,12 +31,72 @@ public partial class IslandWindow
         bool banner = _state == State.Peek && _peek is { Key: "notif" } && _peekNotif != null;
         if (unread.Count == 0 && !banner) return;
         var app = AppKeys(h);
-        if (app.Length == 0) return;
+        var aumid = WindowAppId(h);
+        if (app.Length == 0 && aumid == null) return;
 
         bool any = false;
-        foreach (var n in unread.Where(n => FromApp(n, app))) { n.Unread = false; any = true; }
+        foreach (var n in unread.Where(n => FromApp(n, app, aumid))) { n.Unread = false; any = true; }
         if (any) UpdateNotifyUi();
-        if (banner && FromApp(_peekNotif, app)) DetachPeek();
+        if (banner && FromApp(_peekNotif, app, aumid)) DetachPeek();
+    }
+
+    // ---------- the window's own app id (2026-11-18): the same id Windows files its notifications under ----------
+
+    [ComImport, Guid("886D8EEB-8CF2-4446-8D02-CDBA1DBDCF99"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+    private interface IPropertyStore
+    {
+        int GetCount(out uint count);
+        int GetAt(uint index, out PropKey key);
+        int GetValue(ref PropKey key, out PropVariant value);
+        int SetValue(ref PropKey key, ref PropVariant value);
+        int Commit();
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct PropKey { public Guid Fmt; public uint Pid; }
+
+    [StructLayout(LayoutKind.Explicit)]
+    private struct PropVariant { [FieldOffset(0)] public ushort Vt; [FieldOffset(8)] public IntPtr Ptr; }
+
+    [DllImport("shell32.dll")]
+    private static extern int SHGetPropertyStoreForWindow(IntPtr hwnd, ref Guid iid, [MarshalAs(UnmanagedType.Interface)] out IPropertyStore store);
+
+    [DllImport("ole32.dll")]
+    private static extern int PropVariantClear(ref PropVariant pv);
+
+    [DllImport("kernel32.dll", CharSet = CharSet.Unicode)]
+    private static extern int GetApplicationUserModelId(IntPtr process, ref uint length, System.Text.StringBuilder id);
+
+    /// <summary>The window's AppUserModelID (set by the app, by the UWP frame, or the packaged process's), else null.</summary>
+    private static string WindowAppId(IntPtr h)
+    {
+        try
+        {
+            var iid = new Guid("886D8EEB-8CF2-4446-8D02-CDBA1DBDCF99");
+            if (SHGetPropertyStoreForWindow(h, ref iid, out var store) == 0 && store != null)
+            {
+                var key = new PropKey { Fmt = new Guid("9F4C2855-9F79-4B39-A8D0-E1D42DE1D5F3"), Pid = 5 };
+                if (store.GetValue(ref key, out var v) == 0)
+                {
+                    string s = v.Vt == 31 ? Marshal.PtrToStringUni(v.Ptr) : null; // VT_LPWSTR
+                    PropVariantClear(ref v);
+                    Marshal.ReleaseComObject(store);
+                    if (!string.IsNullOrEmpty(s)) return s;
+                }
+                else Marshal.ReleaseComObject(store);
+            }
+        }
+        catch { }
+        try
+        {
+            Native.GetWindowThreadProcessId(h, out var pid);
+            using var p = Process.GetProcessById((int)pid);
+            uint len = 512;
+            var sb = new System.Text.StringBuilder((int)len);
+            if (GetApplicationUserModelId(p.Handle, ref len, sb) == 0) return sb.ToString(); // packaged apps (WhatsApp, Teams …)
+        }
+        catch { }
+        return null;
     }
 
     /// <summary>Names the foreground app goes by: its process name and its description ("WhatsApp", "Discord").</summary>
@@ -48,8 +109,10 @@ public partial class IslandWindow
             .Where(k => k.Length >= 3 && k is not ("applicationframehost" or "explorer" or "peakpill")).Distinct().ToArray();
     }
 
-    private static bool FromApp(IslandNotification n, string[] keys)
+    private static bool FromApp(IslandNotification n, string[] keys, string aumid = null)
     {
+        // the exact id first – reliable for every app; the names are the fallback
+        if (aumid != null && !string.IsNullOrEmpty(n.AppId) && string.Equals(n.AppId, aumid, StringComparison.OrdinalIgnoreCase)) return true;
         var name = Norm(n.AppName);
         var hay = name + "|" + Norm(n.AppId);
         return keys.Any(k => hay.Contains(k) || name.Length >= 3 && k.Contains(name));

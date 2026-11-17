@@ -190,6 +190,7 @@ public partial class IslandWindow
     /// </summary>
     private void DropEyesNow()
     {
+        TypingFadeOff(); // opening / a card: fully there at once
         double ext = EyesExt;
         if (ext > 0)
         {

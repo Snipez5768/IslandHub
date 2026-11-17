@@ -39,6 +39,8 @@
                     <Grid Grid.Column="2" VerticalAlignment="Center" Margin="8,0,0,0" MinWidth="40">
                         <TextBlock x:Name="AgoText" Text="{Binding Ago}" FontSize="10.5" Foreground="{StaticResource FaintText}" HorizontalAlignment="Right" VerticalAlignment="Center" />
                         <StackPanel x:Name="Actions" Orientation="Horizontal" VerticalAlignment="Center" HorizontalAlignment="Right" Visibility="Collapsed">
+                            <Button Style="{StaticResource SmallIconButton}" Width="22" Height="22" ui:Ext.IconSize="13" ui:Ext.Icon="square.pencil" ToolTip="Als Notiz"
+                                    Click="ClipToNote_Click" Visibility="{Binding IsImage, Converter={StaticResource InvBoolVis}}" />
                             <Button Style="{StaticResource SmallIconButton}" Width="22" Height="22" ui:Ext.IconSize="13" ui:Ext.Icon="pin" ui:Ext.Hover="{StaticResource Orange}" ToolTip="Anheften" Click="ClipPin_Click" />
                             <Button Style="{StaticResource SmallIconButton}" Width="22" Height="22" ui:Ext.IconSize="13" ui:Ext.Icon="trash" ui:Ext.Hover="{StaticResource Danger}" ToolTip="Löschen" Click="ClipDelete_Click" />
                             <Button x:Name="ExpandBtn" Style="{StaticResource SmallIconButton}" Width="22" Height="22" ui:Ext.IconSize="13" ui:Ext.Icon="chevron.down"
@@ -158,6 +160,8 @@
                                 Click="ClipQuickLook_Click" Visibility="Collapsed" />
                         <Button x:Name="AskBtn" Style="{StaticResource SmallIconButton}" Width="22" Height="22" ui:Ext.IconSize="12" ui:Ext.Icon="bubble" ui:Ext.Hover="{StaticResource Blue}" ToolTip="KI fragen"
                                 Click="ClipAskAi_Click" Visibility="Collapsed" />
+                        <Button Style="{StaticResource SmallIconButton}" Width="22" Height="22" ui:Ext.IconSize="12" ui:Ext.Icon="square.pencil" ToolTip="Als Notiz"
+                                Click="ClipToNote_Click" Visibility="{Binding IsImage, Converter={StaticResource InvBoolVis}}" />
                         <Button Style="{StaticResource SmallIconButton}" Width="22" Height="22" ui:Ext.IconSize="12" ui:Ext.Icon="pin" ui:Ext.Hover="{StaticResource Orange}" ToolTip="Anheften" Click="ClipPin_Click" />
                         <Button Style="{StaticResource SmallIconButton}" Width="22" Height="22" ui:Ext.IconSize="12" ui:Ext.Icon="trash" ui:Ext.Hover="{StaticResource Danger}" ToolTip="Löschen" Click="ClipDelete_Click" />
                     </StackPanel>

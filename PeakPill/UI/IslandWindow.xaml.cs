@@ -61,7 +61,10 @@ public partial class IslandWindow : Window
     public bool IsHiddenByUser => _tucked;
 
     private bool _queueOpen;
-    private double TabHeight(string tab) => tab == "Clip" ? ClipHeight()
+    /// <summary>The page's height – plus the room of the "Rückgängig" bar while it shows (2026-11-18).</summary>
+    private double TabHeight(string tab) => TabHeightCore(tab) + (_undoRoom ? UndoRoomH : 0);
+
+    private double TabHeightCore(string tab) => tab == "Clip" ? ClipHeight()
         : tab == "Ai" ? AiHeight()
         : tab == "Send" ? SendHeight()
         : tab == "Notes" ? NotesHeight()
@@ -88,6 +91,7 @@ public partial class IslandWindow : Window
         _activePanel = PillPanel;
         InitRoom();
         InitFlair(); // the animation round of 2026-11-17 (IslandWindow.Flair.cs)
+        InitQol();   // and the one of 2026-11-18 (IslandWindow.Qol.cs)
         // game tiles: drag left/right only, they snap into place (user wish 2026-11-14)
         _gamesReorder = new AxisReorder(GamesList, horizontal: true, (from, to) => H.Launcher.Move(H.Launcher.Items[from], to));
         // banners that open something on click get a small × to just dismiss them
@@ -1638,6 +1642,7 @@ public partial class IslandWindow : Window
             // polish 2026-11-15: the island first shrinks into the strip, then it is gone
             HideBubbleNow(Bubble); HideBubbleNow(Bubble2);
             AnimateSize(64, 6 + NotchExtra, 3, true);
+            RollUp(); // it rolls up into the top edge
             After(240, () => { _tuckShrinking = false; UpdateVisibility(); });
             After(140, TuckIntro);
             return;
@@ -1657,6 +1662,7 @@ public partial class IslandWindow : Window
         TuckStrip.Visibility = Visibility.Collapsed;
         UpdateVisibility();
         Expand(null, true);
+        RollDown(); // and unrolls from it
     }
 
     private void CheckNearStrip()
@@ -1743,6 +1749,8 @@ public partial class IslandWindow : Window
         // the alarm shows itself in its last hour (a small bell with the time) – not all night long
         if (alarmSoon) side.Add(Act.Alarm);
         acts.InsertRange(Math.Min(1, acts.Count), side);
+        // pause / play, a new lead, Claude done – before the bars are stopped below (IslandWindow.Qol.cs)
+        PillMoments(game || acts.Count == 0 ? null : acts[0], playing);
 
         // what the pill showed before this rebuild (the song moment needs it – after the next line it is always hidden)
         bool coverWasShown = LeadCover.IsVisible, iconWasShown = LeadIcon.IsVisible;
@@ -1784,7 +1792,8 @@ public partial class IslandWindow : Window
                     if (H.Media.Cover != null || _songPending) LeadCover.Visibility = Visibility.Visible;
                     else ShowLeadIcon("music", musicColor);
                     // paused / nothing playing: no visualizer (user wish 2026-11-16) – the cover stays
-                    Equalizer.Visibility = H.Media.IsPlaying ? Visibility.Visible : Visibility.Collapsed;
+                    // (just paused: the bars stay a moment longer while they fall down)
+                    Equalizer.Visibility = H.Media.IsPlaying || DateTime.Now < _eqFallingUntil ? Visibility.Visible : Visibility.Collapsed;
                     break;
                 case Act.Recording:
                     ShowLeadIcon("record", color);
@@ -2476,6 +2485,7 @@ public partial class IslandWindow : Window
         HintWave.Visibility = Visibility.Collapsed;
         HintLevel.Visibility = Visibility.Collapsed; // only ShowLevel (volume / brightness) turns the bar on
         HintRoll.Visibility = Visibility.Collapsed;  // … and its rolling number
+        TypingFadeOff(); // a notice is fully there, even while you type
         LiquidBoltOff();
         HintText.MinWidth = 0;
         HintText.TextAlignment = TextAlignment.Left;
@@ -4296,6 +4306,13 @@ public partial class IslandWindow : Window
             e.Handled = true;
             return;
         }
+        // Strg+Z: back with what was just deleted (outside of text fields – those undo their own typing)
+        if (key == Key.Z && Keyboard.Modifiers == ModifierKeys.Control && _undo != null && Keyboard.FocusedElement is not TextBox)
+        {
+            DoUndo();
+            e.Handled = true;
+            return;
+        }
         if (key == Key.Tab && Keyboard.Modifiers.HasFlag(ModifierKeys.Control))
         {
             StepTab(Keyboard.Modifiers.HasFlag(ModifierKeys.Shift) ? -1 : 1, true);
@@ -4392,7 +4409,9 @@ public partial class IslandWindow : Window
         // page switch with a direction: a picture of the old page, taken before it is hidden
         int slideDir = 0;
         System.Windows.Media.Imaging.BitmapSource oldPage = null;
-        if (changed && _state == State.Expanded && S.Animations != AnimationLevel.Aus)
+        // fast wheel over several tabs: while a slide still runs no new picture is taken – the moving page just becomes
+        // the newest one and glides on to its place (2026-11-18)
+        if (changed && _state == State.Expanded && S.Animations != AnimationLevel.Aus && !_sliding)
         {
             var order = VisibleTabButtons().Select(r => (string)r.Tag).ToList();
             slideDir = Math.Sign(order.IndexOf(tab) - order.IndexOf(_tab));
@@ -4431,7 +4450,7 @@ public partial class IslandWindow : Window
             // only the clipboard is taller – every other tab keeps the same size
             AnimateSize(ExpW, TabHeight(tab) + NotchExtra, ExpRadius, true);
             if (oldPage != null && slideDir != 0) PageSlide(slideDir, oldPage);
-            else Pages.BeginAnimation(OpacityProperty, new DoubleAnimation(0, 1, TimeSpan.FromMilliseconds(220)) { EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut } });
+            else if (!_sliding) Pages.BeginAnimation(OpacityProperty, new DoubleAnimation(0, 1, TimeSpan.FromMilliseconds(220)) { EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut } });
             OnTabShown();
         }
     }

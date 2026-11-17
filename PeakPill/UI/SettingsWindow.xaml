@@ -690,6 +690,17 @@
                                     </StackPanel>
                                 </DockPanel>
                             </Border>
+                            <!-- typing elsewhere: the island steps back (2026-11-18) -->
+                            <Border Style="{StaticResource Row}">
+                                <DockPanel>
+                                    <ToggleButton x:Name="OptFadeTyping" DockPanel.Dock="Right" Style="{StaticResource Switch}" Click="Opt_Click" VerticalAlignment="Center" />
+                                    <ui:HintPic Kind="screen" />
+                                    <StackPanel Margin="0,0,12,0" VerticalAlignment="Center">
+                                        <TextBlock Text="Beim Tippen zurücktreten" />
+                                        <TextBlock Style="{StaticResource Desc}" Text="Während du woanders schreibst, wird die Insel fast durchsichtig." />
+                                    </StackPanel>
+                                </DockPanel>
+                            </Border>
                             <!-- several screens (2026-11-17): off by default -->
                             <Border Style="{StaticResource Row}">
                                 <DockPanel>

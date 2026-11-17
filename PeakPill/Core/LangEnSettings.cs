@@ -112,6 +112,13 @@ public static class LangEnSettings
         ("Das ist keine PeakPill-Sicherung.", "That isn't a PeakPill backup."),
         ("Die Datei lässt sich nicht lesen.", "The file can't be read."),
 
+        // ---------- 2026-11-18 ----------
+        ("Als Notiz", "As a note"),
+        ("Als Notiz gespeichert", "Saved as a note"),
+        ("Mikro stumm – klicken zum Einschalten", "Mic muted – click to turn it on"),
+        ("Beim Tippen zurücktreten", "Step back while typing"),
+        ("Während du woanders schreibst, wird die Insel fast durchsichtig.", "While you write elsewhere, the island becomes almost see-through."),
+
         // ---------- settings search ----------
         ("Suchen", "Search"),
         ("Suche leeren", "Clear search"),

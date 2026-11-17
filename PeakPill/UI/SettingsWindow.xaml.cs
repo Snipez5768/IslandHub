@@ -313,6 +313,7 @@ public partial class SettingsWindow : Window
         OptReplySend.IsChecked = S.ReplyAutoSend;
         OptScaleScreen.IsChecked = S.ScaleWithScreen;
         OptFollowScreen.IsChecked = S.FollowActiveScreen;
+        OptFadeTyping.IsChecked = S.FadeWhileTyping;
         OptIslandSize.Value = Math.Round(S.IslandSize * 100);
         IslandSizeText.Text = $"{Math.Round(S.IslandSize * 100)} %";
         OptDevice.IsChecked = S.DeviceInIsland;
@@ -586,6 +587,7 @@ public partial class SettingsWindow : Window
         S.ReplyAutoSend = OptReplySend.IsChecked == true;
         S.ScaleWithScreen = OptScaleScreen.IsChecked == true;
         S.FollowActiveScreen = OptFollowScreen.IsChecked == true;
+        S.FadeWhileTyping = OptFadeTyping.IsChecked == true;
         S.DeviceInIsland = OptDevice.IsChecked == true;
         S.PowerInIsland = OptPower.IsChecked == true;
         S.MusicGlow = OptGlow.IsChecked == true;
