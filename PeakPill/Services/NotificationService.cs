@@ -289,6 +289,16 @@ public sealed class NotificationService : ObservableObject
         Raise(nameof(UnreadCount));
     }
 
+    /// <summary>"Rückgängig" after dismissing (2026-11-17): back in its place, no longer hidden.</summary>
+    public void Restore(IslandNotification n, int at)
+    {
+        if (Items.Contains(n)) return;
+        Items.Insert(Math.Clamp(at, 0, Items.Count), n);
+        if (n.Id > 0 && _dismissed.Remove(n.Id)) SaveDismissed();
+        Raise(nameof(Count));
+        Raise(nameof(UnreadCount));
+    }
+
     public void ClearAll()
     {
         foreach (var n in Items.Where(n => n.Id > 0)) _dismissed.Add(n.Id);

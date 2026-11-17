@@ -247,6 +247,7 @@ public partial class IslandWindow
         {
             HintIcon.Kind = icon;
             HintText.Text = pct;
+            HintRoll.Text = pct; // rolls digit by digit (2026-11-17)
             int gen = ++_hintGen;
             _ = RunHint(gen, false);
         }
@@ -257,6 +258,13 @@ public partial class IslandWindow
             HintLevel.Visibility = Visibility.Visible;
             HintText.MinWidth = 38; // "100 %" – the bar does not jump when the number gets a digit
             HintText.TextAlignment = TextAlignment.Right;
+            // the number is drawn by HintRoll from now on; HintText keeps only the room
+            HintRoll.Roll = false;
+            HintRoll.Text = pct;
+            HintRoll.Roll = true;
+            HintRoll.Visibility = Visibility.Visible;
+            HintText.BeginAnimation(OpacityProperty, null);
+            HintText.Opacity = 0;
             AnimateSize(250, PillH + NotchExtra, PillH / 2, true);
             HintLevelScale.ScaleX = value;
         }
@@ -297,12 +305,17 @@ public partial class IslandWindow
         var green = (Brush)FindResource("Green");
         ShowHint(plugged ? "bolt" : "battery", plugged ? $"Lädt · {Math.Round(level * 100)} %" : $"{Math.Round(level * 100)} %", plugged ? green : Brushes.White);
         if (_state != State.Hint) return;
+        if (plugged) LiquidBolt(level, green); // the bolt fills like a liquid up to the level
         HintRing(level, plugged ? green : level <= 0.2 ? (Brush)FindResource("Danger") : Brushes.White);
     }
+
+    private bool _lowYawned;
 
     private void OnBatteryLow(double level)
     {
         if (!S.PowerInIsland) return;
+        // the eyes yawn first (tired like the battery), then the warning comes
+        if (!_lowYawned && _state == State.Collapsed && EyesYawn()) { _lowYawned = true; After(1400, () => { OnBatteryLow(level); _lowYawned = false; }); return; }
         _hintHoldMs = 3000;
         var red = (Brush)FindResource("Danger");
         ShowHint("battery", $"Akku {Math.Round(level * 100)} %", red);
@@ -370,8 +383,21 @@ public partial class IslandWindow
         _pageShift.BeginAnimation(TranslateTransform.XProperty, null);
         _ghostShift.X = 0;
         _pageShift.X = dir * way;
-        _ghostShift.BeginAnimation(TranslateTransform.XProperty, outAnim);
-        _pageShift.BeginAnimation(TranslateTransform.XProperty, new DoubleAnimation(dir * way, 0, t) { EasingFunction = ease });
+        if (full)
+        {
+            // the slide rides the island's own spring (2026-11-17) – a taller page and the slide are one move
+            _slideDir = dir;
+            _slideWay = way;
+            _slide.Snap(1);
+            _slide.Target = 0;
+            _sliding = true;
+            StartMotion();
+        }
+        else
+        {
+            _ghostShift.BeginAnimation(TranslateTransform.XProperty, outAnim);
+            _pageShift.BeginAnimation(TranslateTransform.XProperty, new DoubleAnimation(dir * way, 0, t) { EasingFunction = ease });
+        }
         Pages.BeginAnimation(OpacityProperty, full ? null : new DoubleAnimation(0, 1, TimeSpan.FromMilliseconds(200)) { FillBehavior = FillBehavior.Stop });
         Pages.Opacity = 1;
         // the picture of the old page must be there in the very next frame – else the island flashes empty once
@@ -1189,6 +1215,117 @@ public partial class IslandWindow
                     }
                     Save("island_tabs");
                     Collapse();
+                    Root.IsHitTestVisible = true;
+                    break;
+                }
+                case "forget":
+                {
+                    // closed ≥ 1 min → what runs wins (KI first); closed 20 s → the last page as before
+                    var log = new List<string> { $"running now: ai={H.Ai.Busy} agent={H.Agents.AnyRunning || H.Agents.AnyWaiting} call={H.Privacy.InUse} music={H.Media.IsPlaying} timer={H.Timer.Running}" };
+                    H.Agents.Demo("Demo-Aufgabe", "Liest", 1, 3, 20, AgentState.Running, "demo-forget");
+                    _moments.Clear();
+                    S.LastTab = "Remind";
+                    _closedTab = "Remind";
+                    _closedAt = DateTime.Now.AddSeconds(-90);
+                    log.Add($"closed 90 s, agent runs → {ContextTab()} (expected Agent)");
+                    _closedAt = DateTime.Now.AddSeconds(-20);
+                    log.Add($"closed 20 s, agent runs → {ContextTab()} (expected Remind; hidden={IsTabHidden("Remind")} minimal={MinimalAway("Remind")} smart={S.SmartTab})");
+                    H.Agents.EndDemo();
+                    _closedAt = DateTime.Now.AddSeconds(-90);
+                    log.Add($"closed 90 s, no agent → {ContextTab()} (music={H.Media.IsPlaying}: expected Music if it plays, else Remind)");
+                    File.WriteAllLines(Path.Combine(dir, "forget.txt"), log);
+                    break;
+                }
+                case "flair":
+                {
+                    // the animation round of 2026-11-17, one after another (demo content only)
+                    var log = new List<string>();
+                    Root.IsHitTestVisible = false;
+                    _sticky = false;
+                    Collapse();
+                    await Task.Delay(600);
+                    fh = 70;
+                    // timer: rim + rolling digits
+                    H.Timer.Reset();
+                    H.Timer.SetDurationSeconds(125);
+                    H.Timer.Start();
+                    await Task.Delay(900);
+                    log.Add($"timer rim visible={_timerRim.Visibility} lead={_timerLead}");
+                    for (int i = 0; i < 14; i++) { Frame(); await Task.Delay(90); }
+                    Save("timer");
+                    // reminder wobble
+                    Wobble();
+                    await Film(12, 80);
+                    Save("wobble");
+                    H.Timer.Reset();
+                    UpdatePill(true);
+                    await Task.Delay(500);
+                    // magnet + gulp
+                    MagnetBulge(20);
+                    await Film(6, 40);
+                    IslandGulp();
+                    await Film(8, 45);
+                    Save("magnet_gulp");
+                    // charging bolt
+                    OnCharger(true, 0.62);
+                    await Film(12, 90);
+                    Save("bolt");
+                    await Task.Delay(2500);
+                    // the page slide on the spring: Timer → Today, then a taller page (Clip)
+                    fh = 260;
+                    Expand(L.T("Timer"), false);
+                    _sticky = true;
+                    await Task.Delay(900);
+                    _tabBtns["Today"].IsChecked = true;
+                    await Film(12, 45);
+                    _tabBtns["Clip"].IsChecked = true;
+                    await Film(12, 45);
+                    Save("slide");
+                    // a new clipboard entry grows in; deleting it folds away and offers "Rückgängig"
+                    var demo = H.Clipboard.AddText("Demo: Einkaufsliste Milch, Brot", "Demo");
+                    await Film(8, 45);
+                    var item = H.Clipboard.Items.FirstOrDefault(i => i.Text?.StartsWith("Demo: Einkaufsliste") == true);
+                    if (item != null) DeleteClip(item);
+                    await Film(10, 60);
+                    log.Add($"undo bar visible={_undoBar?.Visibility} after delete: in list={H.Clipboard.Items.Contains(item)}");
+                    DoUndo();
+                    await Task.Delay(400);
+                    log.Add($"after undo: in list={H.Clipboard.Items.Contains(item)}");
+                    if (item != null) H.Clipboard.Remove(item);
+                    Save("list_undo");
+                    // keyboard: → walks to the next tab
+                    var before = _tab;
+                    Window_PreviewKeyDown(this, new System.Windows.Input.KeyEventArgs(System.Windows.Input.Keyboard.PrimaryDevice, PresentationSource.FromVisual(this), 0, System.Windows.Input.Key.Right) { RoutedEvent = System.Windows.Input.Keyboard.PreviewKeyDownEvent });
+                    log.Add($"keyboard → : {before} → {_tab}");
+                    Collapse();
+                    // copy flight (separate window – only checked for errors here)
+                    try { FlyCopy("Demo-Text zum Kopieren"); log.Add("fly copy ok"); } catch (Exception ex) { log.Add("fly copy: " + ex.Message); }
+                    await Task.Delay(900);
+                    // settings: carousel page switch + a switch springing
+                    var w = new SettingsWindow { ShowActivated = false, WindowStartupLocation = WindowStartupLocation.Manual, Left = -4000, Top = 0 };
+                    w.Show();
+                    await Task.Delay(600);
+                    var shots = new List<BitmapSource>();
+                    void ShotW()
+                    {
+                        var el = (FrameworkElement)w.Content;
+                        var d2 = VisualTreeHelper.GetDpi(w);
+                        var r = new RenderTargetBitmap((int)(el.ActualWidth * d2.DpiScaleX), (int)(el.ActualHeight * d2.DpiScaleY), d2.PixelsPerInchX, d2.PixelsPerInchY, PixelFormats.Pbgra32);
+                        r.Render(el); r.Freeze(); shots.Add(r);
+                    }
+                    w.ShowPage("Anim");
+                    for (int i = 0; i < 4; i++) { await Task.Delay(70); ShotW(); }
+                    var enc = new PngBitmapEncoder();
+                    foreach (var s in shots) enc.Frames.Add(BitmapFrame.Create(s));
+                    for (int i = 0; i < shots.Count; i++)
+                    {
+                        var e1 = new PngBitmapEncoder();
+                        e1.Frames.Add(BitmapFrame.Create(shots[i]));
+                        using var fs = File.Create(Path.Combine(dir, $"settings_slide_{i}.png"));
+                        e1.Save(fs);
+                    }
+                    w.Close();
+                    File.WriteAllLines(Path.Combine(dir, "flair.txt"), log);
                     Root.IsHitTestVisible = true;
                     break;
                 }

@@ -87,6 +87,7 @@ public partial class IslandWindow : Window
         Loaded += (_, _) => L.TranslateTree(this);
         _activePanel = PillPanel;
         InitRoom();
+        InitFlair(); // the animation round of 2026-11-17 (IslandWindow.Flair.cs)
         // game tiles: drag left/right only, they snap into place (user wish 2026-11-14)
         _gamesReorder = new AxisReorder(GamesList, horizontal: true, (from, to) => H.Launcher.Move(H.Launcher.Items[from], to));
         // banners that open something on click get a small × to just dismiss them
@@ -379,6 +380,7 @@ public partial class IslandWindow : Window
     public void Collapse()
     {
         if (_state == State.Collapsed) return;
+        FlyHomeOnCollapse(); // the timer's digits / the download bar fly into the pill (needs the page still there)
         if (_state == State.Expanded)
         {
             _closedAt = DateTime.Now;
@@ -472,10 +474,36 @@ public partial class IslandWindow : Window
         if (_closedTab != null && now - _closedAt < CloseMoment) all.Add(new Moment(_closedTab, _closedAt, CloseMoment));
         foreach (var m in all.OrderByDescending(m => m.At))
             if (TabAvailable(m.Tab) && !TabEmpty(m.Tab)) return _autoTab = m.Tab;
+        // closed for a minute or longer (user wish 2026-11-17): the last page is forgotten – what runs right now wins
+        if (now - _closedAt >= ForgetLastTab && RunningTab() is { } running) return _autoTab = running;
         // nothing fresh: whatever is still going on
         if (H.Agents.AnyWaiting) return _autoTab = "Agent";
         if (H.Privacy.InUse) return _autoTab = "Live";
         _autoTab = null;
+        return null;
+    }
+
+    /// <summary>After this long closed the island no longer goes back to the last page by itself.</summary>
+    private static readonly TimeSpan ForgetLastTab = TimeSpan.FromMinutes(1);
+
+    /// <summary>
+    /// What is going on right now, most important first: the KI (chat answering, Claude working or waiting) ranks
+    /// above everything (user: "die KI hat eine höhere Priorität"), then a call, music that plays, a running timer,
+    /// a download. Null when nothing runs – then the last page as before.
+    /// </summary>
+    private string RunningTab()
+    {
+        var order = new (bool On, string Tab)[]
+        {
+            (H.Ai.Busy, "Ai"),
+            (H.Agents.AnyRunning || H.Agents.AnyWaiting, "Agent"),
+            (H.Privacy.InUse, "Live"),
+            (H.Media.IsPlaying, "Music"),
+            (H.Timer.Running, L.T("Timer")),
+            (AnyDl, "Live"),
+        };
+        foreach (var (on, tab) in order)
+            if (on && TabAvailable(tab) && !MinimalAway(tab)) return tab;
         return null;
     }
 
@@ -1161,6 +1189,7 @@ public partial class IslandWindow : Window
         Island.Clip = SmoothCorners.Make(w, h, r);
         IslandRim.Data = SmoothCorners.Make(w, h, r, inset: 0.25);
         IslandRim.Margin = new Thickness(0, -IslandContent.Margin.Top, 0, 0); // notch: the content sits lower, the rim does not
+        if (_timerRim?.Visibility == Visibility.Visible) UpdateTimerRim(); // the line follows the moving shape
     }
 
     private void Remember(FrameworkElement p)
@@ -1306,6 +1335,7 @@ public partial class IslandWindow : Window
             }
         }
 
+        StepSlide(dt); // the page slide rides the same spring as the shape
         StepBubble(Bubble, _bm1, dt);
         StepBubble(Bubble2, _bm2, dt);
         PlaceBubbles();
@@ -1316,7 +1346,7 @@ public partial class IslandWindow : Window
         UpdateGhost();
         StepCoverFlight(dt);
 
-        bool done = !_flying && EyesSettled && _sw.Settled && _sh.Settled && _sr.Settled && _panelFade.Count == 0 && _centre.Settled
+        bool done = !_flying && !_sliding && EyesSettled && _sw.Settled && _sh.Settled && _sr.Settled && _panelFade.Count == 0 && _centre.Settled
                     && _bm1.Gap.Settled && _bm1.Fade.Settled && _bm1.Size.Settled && _bm1.Birth < 0
                     && _bm2.Gap.Settled && _bm2.Fade.Settled && _bm2.Size.Settled && _bm2.Birth < 0;
         if (!done) return;
@@ -1688,6 +1718,7 @@ public partial class IslandWindow : Window
         bool playing = music && H.Media.IsPlaying;
 
         var acts = new List<Act>();
+        _timerLead = false;
         if (_recordingText != null) acts.Add(Act.Recording);
         // music keeps the island (user rule) – a running timer then becomes a bubble with its ring
         if (H.Timer.Active && !music) acts.Add(Act.Timer);
@@ -1783,6 +1814,7 @@ public partial class IslandWindow : Window
                 case Act.Timer:
                     ShowLeadIcon("timer", color);
                     ShowTrail(H.Timer.RemainingText, color);
+                    _timerLead = true; // the progress runs around the rim (UpdateTimerRim)
                     break;
                 case Act.Obs:
                 {
@@ -1863,6 +1895,7 @@ public partial class IslandWindow : Window
 
         if (force || Math.Abs(w - _targetW) > 1.5 || Math.Abs(h - _targetH) > 0.5)
             AnimateSize(w, h, (game ? 26 : PillH) / 2.0, force);
+        UpdateTimerRim();
     }
 
     // ---------- bar chart in the closed island: follows the player's real loudness ----------
@@ -1899,6 +1932,7 @@ public partial class IslandWindow : Window
         if (_spectrum.Running)
         {
             var lv = _spectrum.Levels();
+            CoverBeat(lv[0]); // the small cover breathes with the bass
             for (int i = 0; i < 5; i++)
             {
                 double target = Math.Max(0.14, Math.Pow(lv[i], 1.4));
@@ -1959,6 +1993,7 @@ public partial class IslandWindow : Window
         _meterAt = DateTime.MinValue;
         foreach (var s in new[] { Eq1, Eq2, Eq3, Eq4, Eq5 }) s.ScaleY = 0.2; // paused: low and still
         for (int i = 0; i < 5; i++) _bars[i] = 0.2;
+        CoverBeatStop();
     }
 
     private void ShowLeadIcon(string icon, Brush color)
@@ -2434,6 +2469,8 @@ public partial class IslandWindow : Window
         HintIcon.Visibility = Visibility.Visible;
         HintWave.Visibility = Visibility.Collapsed;
         HintLevel.Visibility = Visibility.Collapsed; // only ShowLevel (volume / brightness) turns the bar on
+        HintRoll.Visibility = Visibility.Collapsed;  // … and its rolling number
+        LiquidBoltOff();
         HintText.MinWidth = 0;
         HintText.TextAlignment = TextAlignment.Left;
         HintActions.Margin = new Thickness(8, 0, -6, 0);
@@ -2553,6 +2590,8 @@ public partial class IslandWindow : Window
             ShowPeek(new PeekInfo { Key = "shot", Shot = shot, TimeoutMs = 0 });
             return;
         }
+        // the copied words fly from the pointer into the island (2026-11-17)
+        if (byUser && item.Kind is ClipKind.Text or ClipKind.Link) FlyCopy(item.Text);
         if (!byUser || !S.ConfirmCopy) return;
         if (H.Clipboard.QueueMode)
             ShowHint("stack", $"{H.Clipboard.QueueCount} im Stapel", (Brush)FindResource("Accent"), key: "queue");
@@ -3767,6 +3806,7 @@ public partial class IslandWindow : Window
 
     private void OnNotificationArrived(IslandNotification n)
     {
+        EyesNotice(); // the eyes look over to the bell
         UpdateNotifyUi(); // unread dot; read after a moment if the page is open
         if (n.IsCall)
         {
@@ -3876,7 +3916,7 @@ public partial class IslandWindow : Window
                 Click = () => { H.Notifications.Open(n); n.Unread = false; },
                 Reply = person ? text => { n.Unread = false; _ = ReplyService.SendAsync(n, text, S.ReplyAutoSend); } : null
             }
-            .Button("check", L.T("Gelesen"), () => { n.Unread = false; UpdateNotifyUi(); })
+            .Button("check", L.T("Gelesen"), () => { SuckPeekUp(); n.Unread = false; UpdateNotifyUi(); })
             .Button("open", "Öffnen", () => { H.Notifications.Open(n); n.Unread = false; }, (Brush)FindResource("Green"), darkGlyph: true));
     }
 
@@ -3901,7 +3941,7 @@ public partial class IslandWindow : Window
 
     private void NotifDismiss_Click(object sender, RoutedEventArgs e)
     {
-        if ((sender as FrameworkElement)?.DataContext is IslandNotification n) H.Notifications.Dismiss(n);
+        if ((sender as FrameworkElement)?.DataContext is IslandNotification n) DismissNotification(n, sender);
     }
 
     private void NotifClearAll_Click(object sender, RoutedEventArgs e) => H.Notifications.ClearAll();
@@ -4071,6 +4111,7 @@ public partial class IslandWindow : Window
     /// <summary>A browser download is done: the same moment as Steam's, then a banner to open the file or its folder.</summary>
     private void OnFileDownloaded(string name, string path, long size)
     {
+        DropToTaskbar(path); // its icon drops out of the island towards the taskbar
         _lastDl = H.Downloads;
         _steamLastProgress = 1;
         OnDownloadDone(() => ShowPeek(new PeekInfo
@@ -4269,7 +4310,7 @@ public partial class IslandWindow : Window
                 return;
             }
             if (key == Key.Enter && ClipList.SelectedItem is ClipItem sel) { _ = UseClip(sel, S.ClickPastes); e.Handled = true; return; }
-            if (key == Key.Delete && ClipList.SelectedItem is ClipItem del) { H.Clipboard.Remove(del); e.Handled = true; return; }
+            if (key == Key.Delete && ClipList.SelectedItem is ClipItem del) { DeleteClip(del); e.Handled = true; return; }
             if (key == Key.P && Keyboard.Modifiers == ModifierKeys.None && ClipList.SelectedItem is ClipItem pin) { H.Clipboard.TogglePin(pin); RefreshClipView(); e.Handled = true; return; }
             if (key is >= Key.A and <= Key.Z && Keyboard.Modifiers is ModifierKeys.None or ModifierKeys.Shift) { ClipSearch.Focus(); return; }
         }
@@ -4278,6 +4319,31 @@ public partial class IslandWindow : Window
             if (key == Key.Space) { H.Media.PlayPause(); e.Handled = true; }
             else if (key == Key.Left) { Skip(-1); e.Handled = true; }
             else if (key == Key.Right) { Skip(+1); e.Handled = true; }
+            return;
+        }
+
+        // everything with the keyboard (2026-11-17)
+        if (inText || Keyboard.Modifiers != ModifierKeys.None) return;
+        // the clipboard list uses ← → itself (strip / tiles); vertical lists don't
+        bool inList = Keyboard.FocusedElement is DependencyObject fd && (fd == ClipList || ItemsControl.ItemsControlFromItemContainer(fd) == ClipList);
+        if ((key == Key.Left || key == Key.Right) && !inList)
+        {
+            // ← → walk through the tabs (on Musik they skip songs, as before)
+            StepTab(key == Key.Left ? -1 : 1, false);
+            FocusForTab();
+            e.Handled = true;
+            return;
+        }
+        if (_tab == "Notify" && NotifList.SelectedItem is IslandNotification ns)
+        {
+            if (key == Key.Enter) { H.Notifications.Open(ns); ns.Unread = false; e.Handled = true; return; }
+            if (key == Key.Delete) { DismissNotification(ns); e.Handled = true; return; }
+        }
+        // typing starts writing where the page has a field (the key itself lands in it)
+        if (key is >= Key.A and <= Key.Z or >= Key.D0 and <= Key.D9)
+        {
+            TextBox box = _tab switch { "Notes" => NoteInput, "Ai" => AiInput, "Remind" => RemindText, _ => null };
+            if (box != null) { box.Focus(); box.CaretIndex = box.Text.Length; }
         }
     }
 
@@ -4575,6 +4641,7 @@ public partial class IslandWindow : Window
         Ext.SetBadge(_tabBtns["Live"], H.Privacy.InUse ? LiveBadge : null);
         Ext.SetBadge(_tabBtns["Obs"], H.Obs.Recording ? RedBadge : null);
         int n = _unreadNotif;
+        BadgeHop(n); // the tab hops when the count goes up
         Ext.SetBadge(_tabBtns["Notify"], n > 0 ? RedBadge : null);
         Ext.SetBadgeText(_tabBtns["Notify"], n > 0 && S.TabBar == TabBarStyle.Gruppen ? (n > 9 ? "9+" : n.ToString()) : "");
         UpdateMinimalTabs(); // agents and unread notifications change here
@@ -4686,6 +4753,15 @@ public partial class IslandWindow : Window
                 break;
             case "Remind": RemindText.Focus(); break;
             case "Notes": NoteInput.Focus(); NoteInput.CaretIndex = NoteInput.Text.Length; break;
+            case "Notify":
+                // ↑ ↓ pick a message, Enter opens it, Entf removes it
+                if (NotifList.Items.Count > 0)
+                {
+                    NotifList.Focus();
+                    if (NotifList.SelectedIndex < 0) NotifList.SelectedIndex = 0;
+                    Dispatcher.BeginInvoke(new Action(() => (NotifList.ItemContainerGenerator.ContainerFromIndex(NotifList.SelectedIndex) as ListBoxItem)?.Focus()), DispatcherPriority.Loaded);
+                }
+                break;
             case "Ai": AiInput.Focus(); AiInput.CaretIndex = AiInput.Text.Length; break;
             default: Focus(); break;
         }
@@ -5278,7 +5354,7 @@ public partial class IslandWindow : Window
 
     private void ClipCopy_Click(object sender, RoutedEventArgs e) { if (ItemOf(sender) is ClipItem i) _ = UseClip(i, false); }
     private void ClipPin_Click(object sender, RoutedEventArgs e) { if (ItemOf(sender) is ClipItem i) { H.Clipboard.TogglePin(i); RefreshClipView(); } }
-    private void ClipDelete_Click(object sender, RoutedEventArgs e) { if (ItemOf(sender) is ClipItem i) H.Clipboard.Remove(i); }
+    private void ClipDelete_Click(object sender, RoutedEventArgs e) { if (ItemOf(sender) is ClipItem i) DeleteClip(i, sender); }
     private void ClipSave_Click(object sender, RoutedEventArgs e) { if (ItemOf(sender) is ClipItem i) SaveImageItem(i); }
 
     /// <summary>Click on the big picture of an opened entry → Quick-Look view almost up to the monitor edges.</summary>
@@ -5514,6 +5590,7 @@ public partial class IslandWindow : Window
         if (_internalDrag || !e.Data.GetDataPresent(DataFormats.FileDrop) && !link) { e.Effects = DragDropEffects.None; e.Handled = true; return; }
         e.Effects = link ? DragDropEffects.Link : DragDropEffects.Copy;
         e.Handled = true;
+        if (_state == State.Collapsed) MagnetBulge(e.GetPosition(Island).X); // it reaches for the file first
         if (link)
         {
             if (_state != State.Expanded || _tab != "Games") Expand("Games", false);
@@ -5556,6 +5633,7 @@ public partial class IslandWindow : Window
             H.Shelf.Add(files);
             if (_tab != "Shelf") SelectTab("Shelf", true);
         }
+        IslandGulp(); // and swallows it
         e.Handled = true;
     }
 
@@ -6027,6 +6105,7 @@ public partial class IslandWindow : Window
     private void OnReminderDue(Reminder r)
     {
         SystemSounds.Asterisk.Play();
+        Wobble(); // rings like an alarm clock
         if (_state == State.Expanded && !IsActive) Collapse();
         ShowPeek(new PeekInfo { Key = "rem:" + r.Id, Important = true, Icon = "bell.ring", GlyphBrush = (Brush)FindResource("Orange"), Title = r.Text, Text = "Erinnerung · jetzt", TimeoutMs = 0 }
             .Action(L.T("Später"), () => H.Reminders.Snooze(r, 10))

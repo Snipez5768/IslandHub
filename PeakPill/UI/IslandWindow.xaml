@@ -478,7 +478,8 @@
                                 <Rectangle.RenderTransform><ScaleTransform x:Name="Eq5" ScaleY="0.2" /></Rectangle.RenderTransform>
                             </Rectangle>
                         </StackPanel>
-                        <TextBlock x:Name="TrailText" FontSize="13" FontWeight="SemiBold" VerticalAlignment="Center" Visibility="Collapsed" />
+                        <!-- digits roll like a counter (timer, percent) – 2026-11-17 -->
+                        <ui:RollingText x:Name="TrailText" FontSize="13" FontWeight="SemiBold" VerticalAlignment="Center" Visibility="Collapsed" />
                         <!-- a notification arrives: the trail steps aside, this bell rings left/right, then the island opens downwards -->
                         <ui:SfIcon x:Name="TrailBell" Kind="bell" Size="15" Foreground="White" HorizontalAlignment="Right" VerticalAlignment="Center"
                                    Visibility="Collapsed" Opacity="0" IsHitTestVisible="False" RenderTransformOrigin="0.5,0.12">
@@ -541,6 +542,9 @@
                                 <ScaleTransform x:Name="HintTextScale" />
                             </TextBlock.RenderTransform>
                         </TextBlock>
+                        <!-- volume / brightness: the number rolls (HintText keeps the width, invisible meanwhile) -->
+                        <ui:RollingText x:Name="HintRoll" FontSize="13" FontWeight="SemiBold" Foreground="White" HorizontalAlignment="Right" VerticalAlignment="Center"
+                                        Visibility="Collapsed" IsHitTestVisible="False" />
                         <Path x:Name="HintCheck" Data="M5,12.5 L10,17.5 L19,7" Width="24" Height="24" Stroke="{StaticResource Green}" StrokeThickness="2.6"
                               StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" StrokeDashArray="8 8" StrokeDashOffset="8"
                               HorizontalAlignment="Right" VerticalAlignment="Center" Opacity="0" RenderTransformOrigin="0.5,0.5" Margin="0,-5,-3,-5">
@@ -2080,7 +2084,7 @@
                                 </Grid.ColumnDefinitions>
                                 <Grid Width="74" Height="74" Margin="8,0,0,0">
                                     <ui:Ring Thickness="5" Value="{Binding Timer.RemainingPercent, Mode=OneWay}" Stroke="{StaticResource Orange}" />
-                                    <TextBlock Text="{Binding Timer.RemainingText}" FontSize="15" FontWeight="SemiBold" Foreground="{StaticResource Orange}"
+                                    <TextBlock x:Name="TimerBigText" Text="{Binding Timer.RemainingText}" FontSize="15" FontWeight="SemiBold" Foreground="{StaticResource Orange}"
                                                HorizontalAlignment="Center" VerticalAlignment="Center" />
                                 </Grid>
                                 <TextBlock Grid.Column="1" Text="{Binding Timer.ModeText}" FontSize="12" Foreground="{StaticResource SubText}" VerticalAlignment="Center" Margin="14,0,0,0" />

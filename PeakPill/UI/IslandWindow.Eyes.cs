@@ -41,7 +41,65 @@ public partial class IslandWindow
     private double EyesAge => (DateTime.Now - _eyesSince).TotalSeconds;
     private bool Blinking => (DateTime.Now - _blinkAt).TotalSeconds < BlinkLength;
     // still choreographing: waking up (until the wake blink is over) or falling asleep (until the lids are down)
-    private bool EyesBusy => _eyesShown ? EyesAge < WakeBlink + BlinkLength : _eyesPop.Value > 0.01 && EyesAge < DroopHold + 0.05;
+    private bool EyesBusy => _fx != 0 || (_eyesShown ? EyesAge < WakeBlink + BlinkLength : _eyesPop.Value > 0.01 && EyesAge < DroopHold + 0.05);
+
+    // ---------- personality (2026-11-17): tired at night (22–7 h, user's choice), yawning, startled, looking up ----------
+
+    private static bool Night => DateTime.Now.Hour >= 22 || DateTime.Now.Hour < 7;
+    private int _fx; // 0 none · 1 yawn · 2 startle · 3 notice
+    private DateTime _fxAt, _nextYawn = DateTime.MaxValue;
+
+    private bool EyesFx(int kind)
+    {
+        if (!_eyesShown || _state != State.Collapsed || S.Animations == AnimationLevel.Aus || EyesAge < OpenDelay + 0.2) return false;
+        _fx = kind;
+        _fxAt = DateTime.Now;
+        StartMotion();
+        return true;
+    }
+
+    /// <summary>A big slow yawn: the eyes squeeze, the lids sink, then they open again (night, low battery).</summary>
+    private bool EyesYawn() => EyesFx(1);
+
+    /// <summary>Something went wrong: wide open for a moment, looking straight ahead.</summary>
+    private bool EyesStartle()
+    {
+        if (!EyesFx(2)) return false;
+        Glance(0, 0, 60);
+        return true;
+    }
+
+    /// <summary>A notification arrives: they look over to where the bell rings and widen a little.</summary>
+    private void EyesNotice()
+    {
+        if (EyesFx(3)) Glance(1.3, -0.5, 120);
+    }
+
+    /// <summary>The effect's share right now: scale of the eyes and a cap (or floor) for the lids.</summary>
+    private (double X, double Y, double LidCap, double LidFloor) FxNow()
+    {
+        double t = (DateTime.Now - _fxAt).TotalSeconds;
+        switch (_fx)
+        {
+            case 1 when t < 1.6:
+            {
+                double s = Math.Sin(Math.PI * t / 1.6);
+                return (1 + 0.14 * s, 1 - 0.3 * s, 1 - 0.8 * s, 0);
+            }
+            case 2 when t < 0.75:
+            {
+                double k = 1 - t / 0.75;
+                return (1 + 0.32 * k * k, 1 + 0.32 * k * k, 1.2, 1);
+            }
+            case 3 when t < 0.55:
+            {
+                double q = Math.Sin(Math.PI * t / 0.55);
+                return (1 + 0.14 * q, 1 + 0.14 * q, 1.2, 0);
+            }
+        }
+        _fx = 0;
+        return (1, 1, 1.2, 0);
+    }
     private bool EyesSettled => _eyesExt.Settled && _eyesPop.Settled && _eyesOpen.Settled && !Blinking && !EyesBusy;
 
     /// <summary>Called by the pill and when the setting changes – the pointer watch runs only while eyes are wanted.</summary>
@@ -71,6 +129,8 @@ public partial class IslandWindow
         if (want && !_eyesShown) ShowEyes();
         else if (!want && _eyesShown) HideEyes();
         if (!_eyesShown || EyesAge <= OpenDelay + 0.12) return; // the lids are still opening – they look up first
+        // tired at night: now and then a big yawn
+        if (Night && _fx == 0 && DateTime.Now >= _nextYawn) { _nextYawn = DateTime.Now.AddSeconds(40 + _eyeRnd.Next(50)); EyesYawn(); }
         if (thinking) Ponder();
         else if (moved || _pondering) { _pondering = false; LookAt(p); } // awake: follow the pointer
     }
@@ -114,6 +174,7 @@ public partial class IslandWindow
         {
             _eyesOpen.Snap(ShutSliver);
             Glance(0, 1.6, 0); // asleep, looking down
+            _nextYawn = DateTime.Now.AddSeconds(8 + _eyeRnd.Next(12)); // at night the first yawn comes soon
         }
         _eyesExt.Target = EyesRoom;
         if (S.Animations == AnimationLevel.Aus) { _eyesExt.Snap(EyesRoom); _eyesPop.Snap(1); _eyesOpen.Snap(1); _wakeBlinked = true; LookAt(_eyeLast); }
@@ -138,6 +199,7 @@ public partial class IslandWindow
         _eyesShown = false;
         _eyesUntil = DateTime.MinValue;
         _pondering = false;
+        _fx = 0;
         _blinkTimer.Stop();
         _eyesExt.Snap(0);
         _eyesPop.Snap(0);
@@ -165,7 +227,8 @@ public partial class IslandWindow
         {
             // wake up: the room opens · the shut eyes pop out of it · the lids open · one blink · awake
             if (age >= PopDelay) _eyesPop.Target = 1;
-            if (age >= OpenDelay) { _eyesOpen.Response = 0.34; _eyesOpen.Damping = 0.62; _eyesOpen.Target = 1; }
+            // at night they only open half-way – tired (2026-11-17)
+            if (age >= OpenDelay) { _eyesOpen.Response = 0.34; _eyesOpen.Damping = 0.62; _eyesOpen.Target = Night ? 0.6 : 1; }
             if (!_wakeLooked && age >= OpenDelay + 0.12) { _wakeLooked = true; LookAtPointer(); } // eyes open – find the pointer
             if (!_wakeBlinked && age >= WakeBlink) { _wakeBlinked = true; _blinkAt = DateTime.Now; }
         }
@@ -186,10 +249,12 @@ public partial class IslandWindow
         bool any = _eyesShown || pop > 0.02 || EyesExt > 0.3;
         Eyes.Visibility = any ? Visibility.Visible : Visibility.Collapsed;
         // a little stretch as they pop: a touch wider than tall at first, settling round
-        EyesPop.ScaleX = Math.Max(0.01, pop * (1 + 0.10 * (1 - Math.Clamp(pop, 0, 1))));
-        EyesPop.ScaleY = Math.Max(0.01, pop);
+        var fx = FxNow();
+        EyesPop.ScaleX = Math.Max(0.01, pop * (1 + 0.10 * (1 - Math.Clamp(pop, 0, 1))) * fx.X);
+        EyesPop.ScaleY = Math.Max(0.01, pop * fx.Y);
         Eyes.Opacity = Math.Clamp(pop * 1.8, 0, 1);
-        SetLids(Math.Min(Math.Clamp(_eyesOpen.Value, 0, 1.2), BlinkLid()));
+        double lid = Math.Min(Math.Clamp(_eyesOpen.Value, 0, 1.2), BlinkLid());
+        SetLids(Math.Min(Math.Max(lid, fx.LidFloor), fx.LidCap));
         ApplyPillPad();
     }
 
@@ -269,7 +334,7 @@ public partial class IslandWindow
 
     private void Blink()
     {
-        _blinkTimer.Interval = TimeSpan.FromSeconds(3 + _eyeRnd.NextDouble() * 4);
+        _blinkTimer.Interval = TimeSpan.FromSeconds(Night ? 5 + _eyeRnd.NextDouble() * 6 : 3 + _eyeRnd.NextDouble() * 4); // slower when tired
         if (!_eyesShown || S.Animations == AnimationLevel.Aus || EyesAge < WakeBlink + BlinkLength) return;
         _blinkAt = DateTime.Now;
         StartMotion();

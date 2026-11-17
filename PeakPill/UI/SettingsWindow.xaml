@@ -690,6 +690,17 @@
                                     </StackPanel>
                                 </DockPanel>
                             </Border>
+                            <!-- several screens (2026-11-17): off by default -->
+                            <Border Style="{StaticResource Row}">
+                                <DockPanel>
+                                    <ToggleButton x:Name="OptFollowScreen" DockPanel.Dock="Right" Style="{StaticResource Switch}" Click="Opt_Click" VerticalAlignment="Center" />
+                                    <ui:HintPic Kind="screen" />
+                                    <StackPanel Margin="0,0,12,0" VerticalAlignment="Center">
+                                        <TextBlock Text="Dem aktiven Fenster folgen" />
+                                        <TextBlock Style="{StaticResource Desc}" Text="Bei mehreren Bildschirmen wechselt die Insel dorthin, wo du gerade arbeitest." />
+                                    </StackPanel>
+                                </DockPanel>
+                            </Border>
                             <Border Style="{StaticResource LastRow}">
                                 <DockPanel>
                                     <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
@@ -1219,6 +1230,20 @@
                                     <StackPanel Margin="0,0,12,0" VerticalAlignment="Center">
                                         <TextBlock Text="Datenordner" />
                                         <TextBlock x:Name="DataDirText" Style="{StaticResource Desc}" />
+                                    </StackPanel>
+                                </DockPanel>
+                            </Border>
+                            <!-- settings to a file and back (2026-11-17) – e.g. for a second PC -->
+                            <Border Style="{StaticResource Row}">
+                                <DockPanel>
+                                    <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+                                        <Button Style="{StaticResource MacButton}" Content="Laden…" Click="ImportSettings_Click" />
+                                        <Button Style="{StaticResource MacButton}" Content="Sichern…" Margin="8,0,0,0" Click="ExportSettings_Click" />
+                                    </StackPanel>
+                                    <ui:HintPic Kind="data" />
+                                    <StackPanel Margin="0,0,12,0" VerticalAlignment="Center">
+                                        <TextBlock Text="Einstellungen sichern" />
+                                        <TextBlock x:Name="BackupStatus" Style="{StaticResource Desc}" Text="Als Datei, z. B. für einen zweiten PC. Schlüssel und Passwörter bleiben hier." />
                                     </StackPanel>
                                 </DockPanel>
                             </Border>

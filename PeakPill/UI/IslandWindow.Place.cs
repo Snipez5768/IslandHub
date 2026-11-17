@@ -28,7 +28,8 @@ public partial class IslandWindow
     private double PxY => VisualTreeHelper.GetDpi(this).DpiScaleY * _zoom;
 
     private static WF.Screen IslandScreen() =>
-        WF.Screen.AllScreens.FirstOrDefault(s => s.DeviceName == S.IslandScreen) ?? WF.Screen.PrimaryScreen;
+        (S.FollowActiveScreen && _followScreen != null ? WF.Screen.AllScreens.FirstOrDefault(s => s.DeviceName == _followScreen) : null)
+        ?? WF.Screen.AllScreens.FirstOrDefault(s => s.DeviceName == S.IslandScreen) ?? WF.Screen.PrimaryScreen;
 
     private void ApplyZoom()
     {
@@ -145,6 +146,7 @@ public partial class IslandWindow
     /// <summary>A browser download stopped growing: ask – hide it, or open the browser to look.</summary>
     private void OnDownloadStuck(string name, string app)
     {
+        EyesStartle(); // something went wrong – the eyes are startled
         string where = string.IsNullOrEmpty(app) ? L.T("im Browser") : L.T($"in {app}");
         _hintHoldMs = 8000;
         ShowHint("download", $"{name} hängt", (Brush)FindResource("Orange"), key: "dlstuck",

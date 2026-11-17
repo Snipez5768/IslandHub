@@ -74,6 +74,8 @@ public sealed class AppSettings
     public List<string> HiddenTabs { get; set; } = new();
     /// <summary>Minimal-Modus: the tabs in <see cref="MinimalTabs"/> hide while there is nothing on them.</summary>
     public bool MinimalMode { get; set; }
+    /// <summary>Several screens: the island moves to the screen of the window you work in (off by default, 2026-11-17).</summary>
+    public bool FollowActiveScreen { get; set; }
     public List<string> MinimalTabs { get; set; } = new() { "Clip", "Ai", "Agent", "Send", "Music", "Notify" };
     public AnimationLevel Animations { get; set; } = AnimationLevel.An;
 

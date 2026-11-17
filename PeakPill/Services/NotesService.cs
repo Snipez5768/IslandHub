@@ -68,6 +68,14 @@ public sealed class NotesService
         Save();
     }
 
+    /// <summary>"Rückgängig" after deleting.</summary>
+    public void Restore(Note n, int at)
+    {
+        if (n == null || Items.Contains(n)) return;
+        Items.Insert(Math.Clamp(at, 0, Items.Count), n);
+        Save();
+    }
+
     public void TogglePin(Note n)
     {
         if (n == null) return;

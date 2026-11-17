@@ -747,6 +747,31 @@ public sealed class ClipboardService : ObservableObject
         if (item.ImageFile != null && !Items.Any(i => i.ImageFile == item.ImageFile)) TryDelete(item.ImageFile);
     }
 
+    // ---------- deleting with "Rückgängig" (2026-11-17): the picture file waits until the undo time is over ----------
+
+    /// <summary>Takes the entry out but keeps its picture file; returns where it was.</summary>
+    public int RemoveKeepFile(ClipItem item)
+    {
+        int at = Items.IndexOf(item);
+        Items.Remove(item);
+        Queue.Remove(item);
+        _save.Run(Save);
+        return at;
+    }
+
+    public void Restore(ClipItem item, int at)
+    {
+        if (Items.Contains(item)) return;
+        Items.Insert(Math.Clamp(at, 0, Items.Count), item);
+        _save.Run(Save);
+    }
+
+    /// <summary>The undo time is over: now the picture file goes too.</summary>
+    public void ForgetFile(ClipItem item)
+    {
+        if (item.ImageFile != null && !Items.Contains(item) && !Items.Any(i => i.ImageFile == item.ImageFile)) TryDelete(item.ImageFile);
+    }
+
     public void ClearUnpinned()
     {
         foreach (var i in Items.Where(i => !i.Pinned).ToList()) Remove(i);

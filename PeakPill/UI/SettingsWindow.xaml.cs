@@ -37,6 +37,7 @@ public partial class SettingsWindow : Window
         InitializeComponent();
         L.TranslateTree(this);
         WireGuides(this);
+        SwitchSpring.Attach(this); // switches spring over (2026-11-17)
         Loaded += (_, _) => L.TranslateTree(this);
         Icon = IconFactory.CreateWindowIcon();
         VersionText.Text = L.T("Version ") + (typeof(App).Assembly.GetName().Version?.ToString(3) ?? "0.1.0");
@@ -311,6 +312,7 @@ public partial class SettingsWindow : Window
         OptEyes.IsChecked = S.IslandEyes;
         OptReplySend.IsChecked = S.ReplyAutoSend;
         OptScaleScreen.IsChecked = S.ScaleWithScreen;
+        OptFollowScreen.IsChecked = S.FollowActiveScreen;
         OptIslandSize.Value = Math.Round(S.IslandSize * 100);
         IslandSizeText.Text = $"{Math.Round(S.IslandSize * 100)} %";
         OptDevice.IsChecked = S.DeviceInIsland;
@@ -549,6 +551,7 @@ public partial class SettingsWindow : Window
     {
         if (PageGeneral == null) return;
         var tag = (string)((RadioButton)sender).Tag;
+        SnapLeavingPage(); // a picture of the old page – it slides away under the sidebar (SettingsWindow.Motion.cs)
         PageGeneral.Visibility = tag == "General" ? Visibility.Visible : Visibility.Collapsed;
         PageLook.Visibility = tag == "Look" ? Visibility.Visible : Visibility.Collapsed;
         PageAnim.Visibility = tag == "Anim" ? Visibility.Visible : Visibility.Collapsed;
@@ -559,6 +562,7 @@ public partial class SettingsWindow : Window
         PageAbout.Visibility = tag == "About" ? Visibility.Visible : Visibility.Collapsed;
         PageAi.Visibility = tag == "Ai" ? Visibility.Visible : Visibility.Collapsed;
         PageScroll.ScrollToTop();
+        SlideToPage(tag);
         if (tag == "Keys") RefreshKeyStatus(App.ApplyHotkeys());
         // the first time the page opens, every animation plays once, one after another
         if (tag == "Anim" && !_animSeen) { _animSeen = true; Dispatcher.BeginInvoke(new Action(AnimGallery.PlayAll), System.Windows.Threading.DispatcherPriority.Background); }
@@ -581,6 +585,7 @@ public partial class SettingsWindow : Window
         S.IslandEyes = OptEyes.IsChecked == true;
         S.ReplyAutoSend = OptReplySend.IsChecked == true;
         S.ScaleWithScreen = OptScaleScreen.IsChecked == true;
+        S.FollowActiveScreen = OptFollowScreen.IsChecked == true;
         S.DeviceInIsland = OptDevice.IsChecked == true;
         S.PowerInIsland = OptPower.IsChecked == true;
         S.MusicGlow = OptGlow.IsChecked == true;

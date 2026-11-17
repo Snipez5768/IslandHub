@@ -20,10 +20,21 @@ public partial class IslandWindow
         H.Notes.Items.CollectionChanged += (_, _) => Ui.Run(() => { if (_tab == "Notes") UpdateNotesUi(); });
     }
 
+    private readonly HashSet<string> _notesShown = new();
+
     private void UpdateNotesUi()
     {
         NotesList.Children.Clear();
-        foreach (var n in H.Notes.Items) NotesList.Children.Add(NoteCard(n));
+        foreach (var n in H.Notes.Items)
+        {
+            var card = NoteCard(n);
+            NotesList.Children.Add(card);
+            // a note that is new since the last look grows in and pushes the others down
+            if (_notesShown.Count > 0 && !_notesShown.Contains(n.Id) && S.Animations != AnimationLevel.Aus) GrowIn(card);
+        }
+        _notesShown.Clear();
+        foreach (var n in H.Notes.Items) _notesShown.Add(n.Id);
+        if (_notesShown.Count == 0) _notesShown.Add(""); // "looked once" – the first note after an empty list grows in too
         bool empty = H.Notes.Items.Count == 0;
         NotesEmpty.Visibility = empty ? Visibility.Visible : Visibility.Collapsed;
         var key = S.Hotkeys.GetValueOrDefault(nameof(HotkeyAction.QuickNote));
@@ -103,7 +114,7 @@ public partial class IslandWindow
         });
         tools.Children.Add(copy);
         tools.Children.Add(Tool("share", "Mit LocalSend senden", () => SendNote(n)));
-        var del = Tool("trash", "Löschen", () => { if (_editingNote == n) { _editingNote = null; NoteInput.Clear(); } H.Notes.Remove(n); });
+        var del = Tool("trash", "Löschen", () => DeleteNote(n, card)); // folds away, "Rückgängig" for 5 s
         Ext.SetHover(del, (Brush)FindResource("Danger"));
         tools.Children.Add(del);
         dock.Children.Add(tools);

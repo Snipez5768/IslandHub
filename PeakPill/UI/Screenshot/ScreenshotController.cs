@@ -66,9 +66,12 @@ public static class ScreenshotController
 
             App.Settings.LastRegion = $"{result.Region.X},{result.Region.Y},{result.Region.Width},{result.Region.Height}";
             ClipItem item;
-            using (bmp) item = App.Hub.Clipboard.AddImage(ScreenshotService.ToBitmapSource(bmp), true);
+            System.Windows.Media.Imaging.BitmapSource src;
+            using (bmp) { src = ScreenshotService.ToBitmapSource(bmp); item = App.Hub.Clipboard.AddImage(src, true); }
 
             if (liveText) { EditorWindow.Open(item, liveText: true); return; }
+            // the picture shrinks and flies into the island (2026-11-17, no flash) – the preview comes after it landed
+            await App.Island.FlyShot(src, result.Region);
 
             if (App.Settings.ScreenshotAutoSave)
             {

@@ -97,6 +97,21 @@ public static class LangEnSettings
         ("Liest WeatherService.cs", "Reads WeatherService.cs"),
         ("Bearbeitet WeatherWidget.xaml", "Edits WeatherWidget.xaml"),
 
+        // ---------- undo, screens, backup (2026-11-17) ----------
+        ("Rückgängig", "Undo"),
+        ("Eintrag gelöscht", "Entry deleted"),
+        ("Mitteilung entfernt", "Notification removed"),
+        ("Notiz gelöscht", "Note deleted"),
+        ("Dem aktiven Fenster folgen", "Follow the active window"),
+        ("Bei mehreren Bildschirmen wechselt die Insel dorthin, wo du gerade arbeitest.", "With several screens the island moves to where you are working."),
+        ("Einstellungen sichern", "Back up settings"),
+        ("Als Datei, z. B. für einen zweiten PC. Schlüssel und Passwörter bleiben hier.", "As a file, e.g. for a second PC. Keys and passwords stay here."),
+        ("Laden…", "Load…"),
+        ("Sichern…", "Save…"),
+        ("Gesichert.", "Saved."),
+        ("Das ist keine PeakPill-Sicherung.", "That isn't a PeakPill backup."),
+        ("Die Datei lässt sich nicht lesen.", "The file can't be read."),
+
         // ---------- settings search ----------
         ("Suchen", "Search"),
         ("Suche leeren", "Clear search"),
