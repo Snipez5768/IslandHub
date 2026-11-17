@@ -591,17 +591,22 @@ public sealed class PrivacyService : ObservableObject
         @"^(disconnect|leave call|hang up|end call|verbindung trennen|auflegen|anruf beenden|anruf verlassen|anruf trennen)$",
         RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
-    /// <summary>Discord's "share your screen" button – opens its Go-Live picker.</summary>
+    /// <summary>Discord's "share your screen" button – opens its Go-Live picker. Loose on purpose (the German label
+    /// was not known for sure: "Bildschirm teilen", "Teile deinen Bildschirm", "Deinen Bildschirm übertragen" …),
+    /// but never a "stop"/"beenden" button.</summary>
     private static readonly Regex ShareNames = new(
-        @"^(share your screen|share screen|screen share|go live|bildschirm teilen|teile deinen bildschirm|bildschirm übertragen)$",
+        @"^(?!.*(beenden|stopp|stop|end\b)).*((bildschirm|screen).*(teil|share|übertrag|stream)|(teil|share|übertrag|stream).*(bildschirm|screen)|go live|live gehen)",
         RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
     public Task<bool> HangUpAsync(LiveApp app) => PressAsync(app, HangUpNames);
 
-    public Task<bool> OpenSharePickerAsync(LiveApp app) => PressAsync(app, ShareNames);
+    /// <summary>Presses Discord's share button; <paramref name="seen"/> collects nearby button names for the log.</summary>
+    public Task<bool> OpenSharePickerAsync(LiveApp app, List<string> seen = null) => PressAsync(app, ShareNames, seen);
+
+    private static readonly Regex NearShare = new(@"(?i)bildschirm|screen|teil|share|stream|live|übertrag|kamera|camera|aktivit", RegexOptions.Compiled);
 
     /// <summary>Presses the first button of the app whose name matches (UI Automation). False if there is none.</summary>
-    private Task<bool> PressAsync(LiveApp app, Regex names) => Task.Run(() =>
+    private Task<bool> PressAsync(LiveApp app, Regex names, List<string> seen = null) => Task.Run(() =>
     {
         var wins = Windows(app).Where(w => w.Visible).OrderBy(w => w.Area).ToList();
         var deadline = DateTime.Now.AddSeconds(6);
@@ -616,7 +621,9 @@ public sealed class PrivacyService : ObservableObject
                 {
                     string name;
                     try { name = b.Current.Name; } catch { continue; }
-                    if (string.IsNullOrEmpty(name) || !names.IsMatch(name.Trim())) continue;
+                    if (string.IsNullOrEmpty(name)) continue;
+                    if (seen != null && seen.Count < 25 && NearShare.IsMatch(name)) seen.Add(name.Trim());
+                    if (!names.IsMatch(name.Trim())) continue;
                     if (b.TryGetCurrentPattern(InvokePattern.Pattern, out var p)) { ((InvokePattern)p).Invoke(); return true; }
                 }
             }

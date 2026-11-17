@@ -3118,34 +3118,65 @@ public partial class IslandWindow : Window
     private async void LiveStartStream_Click(object sender, RoutedEventArgs e)
     {
         var app = (sender as FrameworkElement)?.Tag as LiveApp ?? H.Privacy.Apps.FirstOrDefault(a => a.IsDiscord);
+        if (app == null) return;
         Collapse();
         ShowHint("display", "Stream wird gestartet …", (Brush)FindResource("Blue"), key: "live");
+        // 1) Discord to the front – its picker opens there, and keys reach Discord only reliably when it has the
+        //    focus (user report 2026-11-17: the held keybind sent while the island was in front did nothing)
+        await Task.Delay(120);
+        bool front = H.Privacy.Open(app);
+        await Task.Delay(700);
+        // 2) Discord's own "share your screen" button
+        var seen = new List<string>();
+        bool picker = await H.Privacy.OpenSharePickerAsync(app, seen);
+        LiveLog($"stream: discord front={front} in-front={IsDiscordInFront()} button={picker} near=[{string.Join(" | ", seen)}]");
+        if (picker) { StreamPicked(); return; }
+        // 3) the user's Discord keybind – now into the Discord window
         if (DiscordStreamKey(out var g))
         {
-            await Task.Delay(150); // the island lets go of the click first
             await PasteHelper.SendComboHeldAsync(g);
-            for (int i = 0; i < 16; i++)
+            for (int i = 0; i < 12; i++)
             {
                 await Task.Delay(250);
-                if (H.Privacy.Apps.Any(a => a.IsDiscord && a.Screen)) return;
-                // the keybind opened Discord's picker: it is in front, the user chooses there
-                if (IsDiscordInFront()) return;
+                if (H.Privacy.Apps.Any(a => a.IsDiscord && a.Screen)) { LiveLog("stream: keybind started it"); return; }
             }
+            LiveLog("stream: keybind sent, no stream seen after 3 s");
         }
-        if (app == null) return;
-        bool picker = await H.Privacy.OpenSharePickerAsync(app);
-        H.Privacy.Open(app);
         ShowPeek(new PeekInfo
         {
             Icon = "display",
             Key = "live",
             GlyphBrush = (Brush)FindResource("Blue"),
-            Title = picker ? "Wähl in Discord, was du teilst" : "Discord geöffnet",
-            Text = picker ? "Fenster oder Bildschirm auswählen, dann „Live gehen“."
-                : DiscordStreamKey(out _) ? "Discord hat das Kürzel nicht angenommen. Prüf es in Discord › Tastenbelegungen (Aktion „Bildschirmübertragung“)."
-                : "Klick dort auf „Bildschirm teilen“. Mit einem Discord-Kürzel geht es direkt.",
+            Title = "Discord ist vorn",
+            Text = DiscordStreamKey(out _)
+                ? "Den Knopf zum Teilen fand die Insel nicht, und Discord hat Strg+F9 nicht angenommen. Klick unten links auf das Bildschirm-Symbol."
+                : "Klick unten links auf das Bildschirm-Symbol, um zu streamen.",
             TimeoutMs = 7000,
-        }.Action("Einstellungen", () => SettingsWindow.ShowSingle("General")));
+        });
+    }
+
+    /// <summary>Discord's picker is open: only the choice is left.</summary>
+    private void StreamPicked() => ShowPeek(new PeekInfo
+    {
+        Icon = "display",
+        Key = "live",
+        GlyphBrush = (Brush)FindResource("Blue"),
+        Title = "Wähl in Discord, was du teilst",
+        Text = "Fenster oder Bildschirm auswählen, dann „Live gehen“.",
+        TimeoutMs = 5000,
+    });
+
+    /// <summary>What the Live buttons did (no content of the call) – %AppData%\PeakPill\live-log.txt, last 200 lines.</summary>
+    private static void LiveLog(string what)
+    {
+        try
+        {
+            var f = Storage.PathOf("live-log.txt");
+            var lines = File.Exists(f) ? File.ReadAllLines(f).TakeLast(199).ToList() : new List<string>();
+            lines.Add($"{DateTime.Now:yyyy-MM-dd HH:mm:ss} {what}");
+            File.WriteAllLines(f, lines);
+        }
+        catch { }
     }
 
     private static bool IsDiscordInFront()
@@ -3190,15 +3221,22 @@ public partial class IslandWindow : Window
     private async Task StopSharing(LiveApp app)
     {
         // Discord has no accessible "stop" button – its own keybind toggles the stream off
-        if (app.IsDiscord && DiscordStreamKey(out var g))
+        if (app.IsDiscord)
         {
+            // Discord's own "stop streaming" button first; the keybind only with Discord in front (it ignores it otherwise)
             Collapse();
             ShowHint("stop", "Stream wird beendet …", (Brush)FindResource("Danger"), key: "live");
-            await Task.Delay(150);
-            await PasteHelper.SendComboHeldAsync(g);
-            await Task.Delay(3000);
-            if (!H.Privacy.Apps.Any(a => a.IsDiscord && a.Screen)) return;
-            // the keybind did not take – Discord's own "stop streaming" button below
+            if (await H.Privacy.StopSharingAsync(app)) { LiveLog("stop: button"); ShowHint("check", "Stream beendet", (Brush)FindResource("Green"), key: "live"); return; }
+            if (DiscordStreamKey(out var g))
+            {
+                H.Privacy.Open(app);
+                await Task.Delay(700);
+                await PasteHelper.SendComboHeldAsync(g);
+                await Task.Delay(3000);
+                bool off = !H.Privacy.Apps.Any(a => a.IsDiscord && a.Screen);
+                LiveLog($"stop: keybind in Discord, stream off={off}");
+                if (off) return;
+            }
         }
         ShowHint("stop", "Wird beendet …", (Brush)FindResource("Danger"), key: "live");
         if (await H.Privacy.StopSharingAsync(app))
