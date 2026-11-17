@@ -1218,6 +1218,48 @@ public partial class IslandWindow
                     Root.IsHitTestVisible = true;
                     break;
                 }
+                case "pausedrule":
+                {
+                    // paused music + timer → the timer in the island (no bubble); playing music + timer → timer bubble
+                    fh = 60;
+                    _sticky = false;
+                    Collapse();
+                    H.Agents.EndDemo();
+                    var cover = Pic(Color.FromRgb(0xFF, 0x7A, 0x3D), Color.FromRgb(0xE0, 0x3A, 0x5A));
+                    var log = new List<string>();
+                    string State0() => $"playing={H.Media.IsPlaying} lead={(LeadCover.IsVisible ? "cover" : LeadIcon.IsVisible ? LeadIcon.Kind : "-")} trail={(TrailText.IsVisible ? TrailText.Text : "-")} bubble={Bubble.Visibility} timerRim={_timerRim.Visibility}";
+                    H.Media.Fake("Nachtlicht", "Lena Ost", cover, false); H.Media.FakePlaying(false);
+                    H.Timer.Reset(); H.Timer.SetDurationSeconds(300); H.Timer.Start();
+                    UpdatePill(true);
+                    await Task.Delay(1200);
+                    log.Add("paused + timer: " + State0());
+                    {
+                        var cell = VisualTreeHelper.GetChildrenCount(TrailText) > 0 ? VisualTreeHelper.GetChild(TrailText, 0) as System.Windows.Controls.StackPanel : null;
+                        var tb = cell?.Children.Count > 0 ? ((System.Windows.Controls.Grid)cell.Children[0]).Children[0] as System.Windows.Controls.TextBlock : null;
+                        log.Add($"  rolling: w={TrailText.ActualWidth:0.0} h={TrailText.ActualHeight:0.0} cells={cell?.Children.Count} fg={tb?.Foreground} font={tb?.FontSize} tbW={tb?.ActualWidth:0.0} opacity={TrailText.Opacity}");
+                    }
+                    Frame();
+                    H.Media.Fake("Nachtlicht", "Lena Ost", cover, true);
+                    UpdatePill(true);
+                    await Task.Delay(1200);
+                    log.Add("playing + timer: " + State0());
+                    Frame();
+                    H.Timer.Reset();
+                    H.Media.Fake("Nachtlicht", "Lena Ost", cover, false); H.Media.FakePlaying(false);
+                    H.Agents.Demo("Demo-Aufgabe", "Liest", 1, 3, 20, AgentState.Running, "demo-paused");
+                    UpdatePill(true);
+                    await Task.Delay(1200);
+                    log.Add("paused + agent: " + State0());
+                    Frame();
+                    H.Agents.EndDemo();
+                    UpdatePill(true);
+                    await Task.Delay(1200);
+                    log.Add("paused alone: " + State0());
+                    Frame();
+                    Save("pausedrule");
+                    File.WriteAllLines(Path.Combine(dir, "pausedrule.txt"), log);
+                    break;
+                }
                 case "coverclip":
                 {
                     // the left end of the closed island while music plays, 4Ã— â€“ with and without eyes

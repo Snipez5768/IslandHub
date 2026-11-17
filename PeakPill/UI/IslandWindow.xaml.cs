@@ -1719,10 +1719,16 @@ public partial class IslandWindow : Window
 
         var acts = new List<Act>();
         _timerLead = false;
+        bool alarmSoon = H.Alarm.At is { } alarmAt && alarmAt - DateTime.Now < TimeSpan.FromHours(1);
+        // music keeps the island only while it PLAYS (user wish 2026-11-17): paused – no bars – it steps back as soon as
+        // anything else is going on, and that fills the island instead of becoming a bubble beside a still cover
+        bool othersGoingOn = _recordingText != null || H.Timer.Active || H.Audio.MicMuted || H.Privacy.InUse && !JustHungUp || H.Obs.Active
+                             || H.Agents.AnyRunning || H.Agents.AnyWaiting || DateTime.Now < _agentDoneUntil || AnyDl || DateTime.Now < _steamDoneUntil || alarmSoon;
+        bool showMusic = music && (playing || !othersGoingOn);
         if (_recordingText != null) acts.Add(Act.Recording);
-        // music keeps the island (user rule) – a running timer then becomes a bubble with its ring
-        if (H.Timer.Active && !music) acts.Add(Act.Timer);
-        if (music) acts.Add(Act.Music);
+        // playing music keeps the island (user rule) – a running timer then becomes a bubble with its ring
+        if (H.Timer.Active && !showMusic) acts.Add(Act.Timer);
+        if (showMusic) acts.Add(Act.Music);
         if (H.Audio.MicMuted) acts.Add(Act.MicMuted);
         // queue mode shows no lasting status (user wish 2026-11-14) – only a short notice when something was pasted
         // mic / camera / screen sharing and Claude: in their own little bubbles next to the island when something
@@ -1730,12 +1736,12 @@ public partial class IslandWindow : Window
         var side = new List<Act>();
         // just hung up: Windows still reports the microphone for a moment – the call must not pop out again
         if (H.Privacy.InUse && !JustHungUp) side.Add(Act.Live);
-        if (H.Timer.Active && music) side.Add(Act.Timer);
+        if (H.Timer.Active && showMusic) side.Add(Act.Timer);
         if (H.Obs.Active) side.Add(Act.Obs);
         if (H.Agents.AnyRunning || H.Agents.AnyWaiting || DateTime.Now < _agentDoneUntil) side.Add(Act.Agent);
         if (AnyDl || DateTime.Now < _steamDoneUntil) side.Add(Act.Steam); // Steam and browser downloads
         // the alarm shows itself in its last hour (a small bell with the time) – not all night long
-        if (H.Alarm.At is { } alarmAt && alarmAt - DateTime.Now < TimeSpan.FromHours(1)) side.Add(Act.Alarm);
+        if (alarmSoon) side.Add(Act.Alarm);
         acts.InsertRange(Math.Min(1, acts.Count), side);
 
         // what the pill showed before this rebuild (the song moment needs it – after the next line it is always hidden)

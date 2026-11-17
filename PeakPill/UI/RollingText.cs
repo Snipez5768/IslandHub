@@ -62,11 +62,22 @@ public sealed class RollingText : Control
         foreach (var ch in text) _row.Children.Add(NewCell(ch));
     }
 
-    private static Grid NewCell(char ch)
+    private Grid NewCell(char ch)
     {
         var g = new Grid { ClipToBounds = true };
-        g.Children.Add(new TextBlock { Text = ch.ToString() });
+        g.Children.Add(Tb(ch));
         return g;
+    }
+
+    /// <summary>One character, drawn in the control's colour and font (bound – inheritance didn't reach them: the
+    /// digits were black on the black island, 2026-11-17).</summary>
+    private TextBlock Tb(char ch)
+    {
+        var t = new TextBlock { Text = ch.ToString() };
+        foreach (var (dp, path) in new[] { (TextBlock.ForegroundProperty, nameof(Foreground)), (TextBlock.FontSizeProperty, nameof(FontSize)),
+                                           (TextBlock.FontWeightProperty, nameof(FontWeight)), (TextBlock.FontFamilyProperty, nameof(FontFamily)) })
+            t.SetBinding(dp, new System.Windows.Data.Binding(path) { Source = this });
+        return t;
     }
 
     private void RollCell(Grid cell, char ch, bool up, int index)
@@ -74,7 +85,7 @@ public sealed class RollingText : Control
         // the leaving digit and the coming one share the cell for the move
         while (cell.Children.Count > 1) cell.Children.RemoveAt(0);
         var outgoing = (TextBlock)cell.Children[0];
-        var incoming = new TextBlock { Text = ch.ToString() };
+        var incoming = Tb(ch);
         cell.Children.Add(incoming);
         double h = Math.Max(10, FontSize * 1.25);
         var dur = TimeSpan.FromMilliseconds(320);
