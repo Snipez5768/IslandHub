@@ -219,10 +219,7 @@ public partial class IslandWindow : Window
         _hoverTimer.Tick += (_, _) =>
         {
             _hoverTimer.Stop();
-            bool closed = _state == State.Collapsed || _state == State.Hint && !_hintHasActions;
-            // over a bubble beside the island: open the page that bubble belongs to (user wish 2026-11-17)
-            if (_hoverBubble != null) { var b = _hoverBubble; _hoverBubble = null; if (closed && b.IsMouseOver) Expand(BubbleTab(b), false); return; }
-            if (IsCursorOverIsland(0) && closed) Expand(null, false);
+            if (IsCursorOverIsland(0) && (_state == State.Collapsed || _state == State.Hint && !_hintHasActions)) Expand(null, false);
         };
         _watchTimer.Tick += (_, _) => WatchCursor();
         _peekTimer.Tick += (_, _) =>
@@ -239,7 +236,7 @@ public partial class IslandWindow : Window
             if (_state == State.Expanded) Collapse();
         }));
 
-        Island.MouseEnter += (_, _) => { _hoverBubble = null; StartHover(); OpenTicker(); StopCardCountdown(); };
+        Island.MouseEnter += (_, _) => { StartHover(); OpenTicker(); StopCardCountdown(); };
         Island.MouseLeave += (_, _) => { _hoverTimer.Stop(); StartCardCountdown(); };
         Island.MouseLeftButtonUp += (_, e) =>
         {
@@ -255,11 +252,9 @@ public partial class IslandWindow : Window
             }
             if (_state == State.Collapsed) { Expand(null, true); e.Handled = true; }
         };
-        Bubble.MouseEnter += (_, _) => StartBubbleHover(Bubble);
-        Bubble.MouseLeave += (_, _) => { if (_hoverBubble == Bubble) _hoverBubble = null; };
+        // bubbles beside the island do nothing on hover (user wish 2026-11-17) – a click opens their page
+        // (the call bubble: a click mutes you, as before)
         Bubble.MouseLeftButtonUp += (_, _) => BubbleClicked(Bubble);
-        Bubble2.MouseEnter += (_, _) => StartBubbleHover(Bubble2);
-        Bubble2.MouseLeave += (_, _) => { if (_hoverBubble == Bubble2) _hoverBubble = null; };
         Bubble2.MouseLeftButtonUp += (_, _) => BubbleClicked(Bubble2);
         // the bubble rings turn only when StyleRing asks for it; the agent spinner only while it is on screen
         Calm.Loop(AgentSpinner, AgentSpin, RotateTransform.AngleProperty, new DoubleAnimation(0, 360, TimeSpan.FromSeconds(1)) { RepeatBehavior = RepeatBehavior.Forever });
@@ -2026,23 +2021,21 @@ public partial class IslandWindow : Window
 
     private void BubbleClicked(Border bubble)
     {
-        if (bubble.Tag is Act.Live && DiscordMuteTarget() is { } app) { MuteLiveApp(app); return; }
-        _hoverBubble = null;
+        // a call (an app on the microphone): the click mutes – it never opens the Live page (user wish 2026-11-17).
+        // Discord connected → muted in Discord, else the Windows microphone. The red "muted" bubble unmutes the same way.
+        if (bubble.Tag is Act.Live or Act.MicMuted)
+        {
+            var app = DiscordMuteTarget() ?? H.Privacy.Apps.FirstOrDefault(a => a.Mic);
+            if (app != null) { MuteLiveApp(app); UpdateLiveUi(); return; }
+            if (bubble.Tag is Act.MicMuted) { ToggleMic(); return; }
+        }
         Expand(BubbleTab(bubble), true);
     }
 
-    private Border _hoverBubble;
-
-    private void StartBubbleHover(Border bubble)
-    {
-        _hoverBubble = bubble;
-        StartHover();
-    }
-
     /// <summary>
-    /// The page a bubble beside the island belongs to (user wish 2026-11-17: hovering or clicking a bubble opens
-    /// its own page – Claude → Agent, a call or app → Live). A new kind of bubble gets its page here; null = the
-    /// usual choice of page. A page that is switched off or not there right now falls back to that as well.
+    /// The page a bubble beside the island belongs to (user wish 2026-11-17: a click on a bubble opens its own
+    /// page – Claude → Agent, an app → Live; hovering does nothing). A new kind of bubble gets its page here;
+    /// null = the usual choice of page. A page that is switched off or not there right now falls back to that.
     /// </summary>
     private string BubbleTab(Border bubble)
     {

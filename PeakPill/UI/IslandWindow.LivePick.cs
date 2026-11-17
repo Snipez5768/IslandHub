@@ -145,16 +145,16 @@ public partial class IslandWindow
         switch (r)
         {
             case PrivacyService.GoLiveResult.Live:
-                for (int i = 0; i < 16; i++)
+                // the tile starts the stream – no card afterwards (user wish 2026-11-17: it works, no "Discord is
+                // open" notice). Only back to the window you came from, as long as Discord is still the one in front.
+                bool seen = false;
+                for (int i = 0; i < 16 && !seen; i++)
                 {
                     await Task.Delay(250);
-                    if (!H.Privacy.Apps.Any(a => a.IsDiscord && a.Screen)) continue;
-                    // live: back to the window you came from (Discord stays in the background)
-                    if (before != IntPtr.Zero) PrivacyService.Focus(before);
-                    return;
+                    seen = H.Privacy.Apps.Any(a => a.IsDiscord && a.Screen);
                 }
-                LiveLog("golive: pressed, but no stream seen after 4 s");
-                StreamPicked();
+                if (!seen) LiveLog("golive: tile pressed, stream not seen within 4 s");
+                if (before != IntPtr.Zero && IsDiscordInFront()) PrivacyService.Focus(before);
                 return;
             case PrivacyService.GoLiveResult.PickerOpen:
                 StreamPicked();
