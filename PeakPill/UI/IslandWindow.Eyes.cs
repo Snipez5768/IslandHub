@@ -122,6 +122,31 @@ public partial class IslandWindow
         StartMotion();
     }
 
+    /// <summary>
+    /// The island opens (page or card): the eyes are gone at once – not one frame of them (user wish 2026-11-17: they
+    /// were drawn half while the island grew, then the island shrank by their room). Their room is handed to the island's
+    /// own size spring, so the outline doesn't jump; it simply grows on to the open size.
+    /// </summary>
+    private void DropEyesNow()
+    {
+        double ext = EyesExt;
+        if (ext > 0)
+        {
+            _sw.Value += ext;          // same width this frame, now without the eyes' share
+            _centre.Value -= ext / 2;  // and the same left edge
+        }
+        _eyesShown = false;
+        _eyesUntil = DateTime.MinValue;
+        _pondering = false;
+        _blinkTimer.Stop();
+        _eyesExt.Snap(0);
+        _eyesPop.Snap(0);
+        _eyesOpen.Snap(ShutSliver);
+        Eyes.Visibility = Visibility.Collapsed;
+        Eyes.Opacity = 0;
+        ApplyPillPad();
+    }
+
     private void HideEyes()
     {
         _eyesShown = false;

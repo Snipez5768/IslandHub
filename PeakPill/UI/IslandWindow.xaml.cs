@@ -351,6 +351,7 @@ public partial class IslandWindow : Window
         if (_state != State.Expanded)
         {
             bool fromPillCover = _state == State.Collapsed && LeadCover.IsVisible;
+            DropEyesNow(); // no eyes inside the opening island, not for a frame
             _state = State.Expanded;
             _peekTimer.Stop();
             if (_peek != null) { _peeks.Insert(0, _peek); _peek = null; }
@@ -2625,6 +2626,7 @@ public partial class IslandWindow : Window
         }
         _peek = _peeks[0];
         _peeks.RemoveAt(0);
+        DropEyesNow(); // a card opens – the eyes go at once, like when the island opens
         _state = State.Peek;
         UpdateVisibility();
         PeekProgressScale.BeginAnimation(ScaleTransform.ScaleXProperty, null);

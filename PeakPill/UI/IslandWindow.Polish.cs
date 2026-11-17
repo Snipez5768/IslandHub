@@ -1192,6 +1192,40 @@ public partial class IslandWindow
                     Root.IsHitTestVisible = true;
                     break;
                 }
+                case "eyesopen":
+                {
+                    // the eyes are awake, then the island opens: no eye in any frame, the width only grows (no shrink after)
+                    fh = 200;
+                    bool eyesBefore = S.IslandEyes;
+                    S.IslandEyes = true;
+                    UpdateEyes();
+                    _sticky = false;
+                    Collapse();
+                    H.Media.Fake("Nachtlicht", "Lena Ost", Pic(Color.FromRgb(0xFF, 0x7A, 0x3D), Color.FromRgb(0xE0, 0x3A, 0x5A)), true);
+                    await Task.Delay(800);
+                    _eyesUntil = DateTime.Now.AddSeconds(30);
+                    await Task.Delay(1800);
+                    Frame();
+                    var log = new List<string> { $"before: eyes visible={Eyes.IsVisible} ext={EyesExt:0.0} w={Island.ActualWidth:0.0}" };
+                    Root.IsHitTestVisible = false;
+                    Expand("Music", false);
+                    _sticky = true;
+                    for (int i = 0; i < 16; i++)
+                    {
+                        await Task.Delay(35);
+                        Frame();
+                        log.Add($"{i}: eyes visible={Eyes.IsVisible} ext={EyesExt:0.0} w={Island.ActualWidth:0.0}");
+                    }
+                    await Task.Delay(600);
+                    log.Add($"end: w={Island.ActualWidth:0.0}");
+                    File.WriteAllLines(Path.Combine(dir, "widths.txt"), log);
+                    Save("eyesopen");
+                    Collapse();
+                    S.IslandEyes = eyesBefore;
+                    UpdateEyes();
+                    Root.IsHitTestVisible = true;
+                    break;
+                }
                 case "carousel":
                 {
                     // "Karussell mit Feder": Timer → Today (forward), then back to Timer; the bar under the tab glides along
