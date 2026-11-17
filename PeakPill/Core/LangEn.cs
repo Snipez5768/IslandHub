@@ -699,6 +699,9 @@ public static class LangEn
         ("Von {0} empfangen", "Received from {0}"),
         ("{0} Dateien von {1} empfangen", "{0} files received from {1}"),
         ("{0} hat abgebrochen", "{0} cancelled"),
+        ("LocalSend auf dem Gerät ist zu – öffne die App und lass sie im Vordergrund", "LocalSend is closed on the device – open the app and keep it in front"),
+        ("Gerät nicht im selben Netzwerk erreichbar", "Device can’t be reached in this network"),
+        ("Verschlüsselung mit dem Gerät klappte nicht", "Encryption with the device didn’t work"),
         ("Bild anhängen (oder Strg+V, hineinziehen)", "Attach a picture (or Ctrl+V, drag it in)"),
 
         // ---------- screenshot, editor, quick look ----------

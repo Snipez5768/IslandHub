@@ -129,6 +129,9 @@ public sealed class EditorWindow : Window
         var right = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right };
         right.Children.Add(_copyText);
         right.Children.Add(Gap());
+        // the picture as it is now (with drawings) to the KI chat – a prompt of your own goes with it (2026-11-17)
+        right.Children.Add(Pill("bubble", L.T("KI fragen"), false, () => { var pic = RenderComposite(); Close(); App.Island.AskAiAbout(pic); }));
+        right.Children.Add(Gap());
         right.Children.Add(GlassIconBtn("copy", L.T("Bild in die Zwischenablage"), "Blue", () => { Commit(); Flash(L.T("Bild kopiert")); }));
         right.Children.Add(GlassIconBtn("save", L.T("Auf dem PC sichern"), "Green", SaveToFolder));
         right.Children.Add(GlassIconBtn("download", L.T("Sichern unter …"), "Green", SaveAs));

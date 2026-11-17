@@ -98,6 +98,22 @@ public sealed class QuickLookWindow : Window
         _viewBar = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Center };
         _viewBar.Children.Add(Btn("copy", L.T("Kopieren"), "Blue", () => { copy?.Invoke(_item); Fade(); }));
         _viewBar.Children.Add(Btn("text.viewfinder", "Text", "Teal", () => { Fade(); liveText?.Invoke(_item); }));
+        // the picture to the KI chat (2026-11-17)
+        _viewBar.Children.Add(Btn("bubble", L.T("KI fragen"), "Blue", () =>
+        {
+            Fade();
+            try
+            {
+                var bi = new System.Windows.Media.Imaging.BitmapImage();
+                bi.BeginInit();
+                bi.CacheOption = System.Windows.Media.Imaging.BitmapCacheOption.OnLoad;
+                bi.UriSource = new Uri(_item.ImageFile);
+                bi.EndInit();
+                bi.Freeze();
+                App.Island.AskAiAbout(bi);
+            }
+            catch { }
+        }));
         _viewBar.Children.Add(Btn("save", L.T("Sichern"), "Green", () => { Fade(); save?.Invoke(_item); }));
         if (edited != null)
         {

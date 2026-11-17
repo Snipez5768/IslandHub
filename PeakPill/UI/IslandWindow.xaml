@@ -156,6 +156,8 @@
                     <StackPanel Orientation="Horizontal">
                         <Button x:Name="LookBtn" Style="{StaticResource SmallIconButton}" Width="22" Height="22" ui:Ext.IconSize="12" ui:Ext.Icon="eye" ToolTip="Groß anzeigen"
                                 Click="ClipQuickLook_Click" Visibility="Collapsed" />
+                        <Button x:Name="AskBtn" Style="{StaticResource SmallIconButton}" Width="22" Height="22" ui:Ext.IconSize="12" ui:Ext.Icon="bubble" ui:Ext.Hover="{StaticResource Blue}" ToolTip="KI fragen"
+                                Click="ClipAskAi_Click" Visibility="Collapsed" />
                         <Button Style="{StaticResource SmallIconButton}" Width="22" Height="22" ui:Ext.IconSize="12" ui:Ext.Icon="pin" ui:Ext.Hover="{StaticResource Orange}" ToolTip="Anheften" Click="ClipPin_Click" />
                         <Button Style="{StaticResource SmallIconButton}" Width="22" Height="22" ui:Ext.IconSize="12" ui:Ext.Icon="trash" ui:Ext.Hover="{StaticResource Danger}" ToolTip="Löschen" Click="ClipDelete_Click" />
                     </StackPanel>
@@ -173,6 +175,7 @@
                     <Setter TargetName="TextCard" Property="Visibility" Value="Collapsed" />
                     <Setter TargetName="ImageCard" Property="Visibility" Value="Visible" />
                     <Setter TargetName="LookBtn" Property="Visibility" Value="Visible" />
+                    <Setter TargetName="AskBtn" Property="Visibility" Value="Visible" />
                 </DataTrigger>
                 <DataTrigger Binding="{Binding IsCode}" Value="True">
                     <Setter TargetName="CardText" Property="FontFamily" Value="Consolas" />

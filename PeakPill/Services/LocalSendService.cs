@@ -65,8 +65,15 @@ public sealed class LocalSendService : ObservableObject
     private UdpClient _udp;
     private CancellationTokenSource _cts;
     private System.Windows.Threading.DispatcherTimer _timer;
-    private static readonly HttpClient Http = new(new HttpClientHandler { ServerCertificateCustomValidationCallback = (_, _, _, _) => true }) { Timeout = TimeSpan.FromSeconds(8) };
-    private static readonly HttpClient Upload = new(new HttpClientHandler { ServerCertificateCustomValidationCallback = (_, _, _, _) => true }) { Timeout = Timeout.InfiniteTimeSpan };
+    private static HttpClientHandler Trusting() => new()
+    {
+        // LocalSend makes its own certificate on every device – there is no authority to check it against
+        ServerCertificateCustomValidationCallback = (_, _, _, _) => true,
+        CheckCertificateRevocationList = false,
+        SslProtocols = System.Security.Authentication.SslProtocols.Tls12 | System.Security.Authentication.SslProtocols.Tls13,
+    };
+    private static readonly HttpClient Http = new(Trusting()) { Timeout = TimeSpan.FromSeconds(8) };
+    private static readonly HttpClient Upload = new(Trusting()) { Timeout = Timeout.InfiniteTimeSpan };
 
     // ---------- start / stop ----------
 
@@ -230,8 +237,11 @@ public sealed class LocalSendService : ObservableObject
         if (files.Count == 0 || Moving) return false;
         Progress = 0;
         Status = L.T($"Warte auf {d.Alias} …");
+        Log($"send {files.Count} file(s) to '{d.Alias}' at {d.Protocol}://{d.Ip}:{d.Port}, last seen {(DateTime.Now - d.LastSeen).TotalSeconds:0} s ago");
         try
         {
+            // not heard of for a while: ask once more who is there (an Android phone only listens while LocalSend is open)
+            if (DateTime.Now - d.LastSeen > TimeSpan.FromSeconds(45)) { await Announce(); await Task.Delay(1500); }
             var map = new JsonObject();
             var ids = new Dictionary<string, string>();
             foreach (var f in files)
@@ -280,8 +290,36 @@ public sealed class LocalSendService : ObservableObject
             Done(files.Count == 1 ? L.T($"An {d.Alias} gesendet") : L.T($"{files.Count} Dateien an {d.Alias} gesendet"));
             return true;
         }
-        catch (TaskCanceledException) { Fail(L.T($"{d.Alias} hat nicht geantwortet")); return false; }
-        catch (Exception) { Fail(L.T($"{d.Alias} nicht erreichbar")); return false; }
+        catch (TaskCanceledException) { Log($"send to {d.Ip}:{d.Port} ({d.Protocol}): timeout"); Fail(L.T($"{d.Alias} hat nicht geantwortet")); return false; }
+        catch (Exception ex)
+        {
+            // say why (user report 2026-11-17: "nicht erreichbar" alone did not help)
+            var root = ex;
+            while (root.InnerException != null) root = root.InnerException;
+            Log($"send to {d.Ip}:{d.Port} ({d.Protocol}): {ex.GetType().Name}: {ex.Message} | {root.GetType().Name}: {root.Message}");
+            string why = root switch
+            {
+                SocketException { SocketErrorCode: SocketError.ConnectionRefused } => L.T("LocalSend auf dem Gerät ist zu – öffne die App und lass sie im Vordergrund"),
+                SocketException { SocketErrorCode: SocketError.TimedOut or SocketError.HostUnreachable or SocketError.NetworkUnreachable } => L.T("Gerät nicht im selben Netzwerk erreichbar"),
+                System.Security.Authentication.AuthenticationException => L.T("Verschlüsselung mit dem Gerät klappte nicht"),
+                _ => root.Message,
+            };
+            Fail($"{d.Alias}: {why}");
+            return false;
+        }
+    }
+
+    /// <summary>What sending did – %AppData%\PeakPill\localsend-log.txt, last 200 lines (no file contents).</summary>
+    private static void Log(string what)
+    {
+        try
+        {
+            var f = Storage.PathOf("localsend-log.txt");
+            var lines = File.Exists(f) ? File.ReadAllLines(f).TakeLast(199).ToList() : new List<string>();
+            lines.Add($"{DateTime.Now:yyyy-MM-dd HH:mm:ss} {what}");
+            File.WriteAllLines(f, lines);
+        }
+        catch { }
     }
 
     private void Done(string msg) => Ui.Run(() => { Progress = -1; Status = msg; Notice?.Invoke(msg, true); });

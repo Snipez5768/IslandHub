@@ -5270,6 +5270,24 @@ public partial class IslandWindow : Window
         OpenQuickLook(item);
     }
 
+    /// <summary>A picture from the clipboard to the KI chat (2026-11-17).</summary>
+    private void ClipAskAi_Click(object sender, RoutedEventArgs e)
+    {
+        if (ItemOf(sender) is not ClipItem item || item.ImageFile == null || !File.Exists(item.ImageFile)) return;
+        e.Handled = true;
+        try
+        {
+            var bi = new System.Windows.Media.Imaging.BitmapImage();
+            bi.BeginInit();
+            bi.CacheOption = System.Windows.Media.Imaging.BitmapCacheOption.OnLoad;
+            bi.UriSource = new Uri(item.ImageFile);
+            bi.EndInit();
+            bi.Freeze();
+            AskAiAbout(bi);
+        }
+        catch { }
+    }
+
     private void ClipQuickLook_Click(object sender, RoutedEventArgs e)
     {
         if (ItemOf(sender) is not ClipItem item) return;
