@@ -1,4 +1,5 @@
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
 using PeakPill.Core;
@@ -104,6 +105,76 @@ public partial class IslandWindow
             });
             i++;
         }
+    }
+
+    // ---------- hung up (user wish 2026-11-17): the phone turns red and tips down, shoots into the island with a
+    //            bounce, then "Anruf beendet" ----------
+
+    private DateTime _hungUpUntil;
+    /// <summary>The phone is turning red – the island's regular refresh must not paint it green again.</summary>
+    private bool _phoneTipping;
+
+    /// <summary>A few seconds after hanging up Windows still reports Discord on the microphone – the call is over anyway.</summary>
+    private bool JustHungUp => DateTime.Now < _hungUpUntil && H.Privacy.Apps.All(a => a.IsDiscord);
+
+    /// <summary>The bubble beside the island that shows the call (null: the call fills the island itself).</summary>
+    private Border CallBubble() =>
+        new[] { Bubble, Bubble2 }.FirstOrDefault(b => b.Visibility == Visibility.Visible && b.Tag is Act.Live);
+
+    /// <summary>Green → red and turned down like a receiver put back (0.3 s).</summary>
+    private Task TipPhone(FrameworkElement icon)
+    {
+        if (S.Animations == AnimationLevel.Aus || icon is not SfIcon sf) return Task.CompletedTask;
+        _phoneTipping = true;
+        After(3000, () => _phoneTipping = false); // safety: never stuck red
+        var from = (sf.Foreground as SolidColorBrush)?.Color ?? Colors.White;
+        var brush = new SolidColorBrush(from);
+        sf.Foreground = brush;
+        brush.BeginAnimation(SolidColorBrush.ColorProperty, new ColorAnimation(((SolidColorBrush)FindResource("Danger")).Color, TimeSpan.FromMilliseconds(180)));
+        var rt = new RotateTransform();
+        var sc = new ScaleTransform();
+        sf.RenderTransformOrigin = new Point(0.5, 0.5);
+        sf.RenderTransform = new TransformGroup { Children = { sc, rt } };
+        rt.BeginAnimation(RotateTransform.AngleProperty, new DoubleAnimation(0, 135, TimeSpan.FromMilliseconds(280)) { EasingFunction = new BackEase { Amplitude = 0.35, EasingMode = EasingMode.EaseOut } });
+        var pop = new DoubleAnimationUsingKeyFrames { Duration = TimeSpan.FromMilliseconds(280), FillBehavior = FillBehavior.Stop };
+        pop.KeyFrames.Add(new EasingDoubleKeyFrame(1, KeyTime.FromPercent(0)));
+        pop.KeyFrames.Add(new EasingDoubleKeyFrame(1.25, KeyTime.FromPercent(0.4), new SineEase()));
+        pop.KeyFrames.Add(new EasingDoubleKeyFrame(1, KeyTime.FromPercent(1), new SineEase()));
+        sc.BeginAnimation(ScaleTransform.ScaleXProperty, pop);
+        sc.BeginAnimation(ScaleTransform.ScaleYProperty, pop);
+        return Task.Delay(320);
+    }
+
+    private void HungUpMoment(Border bubble)
+    {
+        _hungUpUntil = DateTime.Now.AddSeconds(6);
+        bool anim = S.Animations != AnimationLevel.Aus;
+        var m = bubble == null ? null : bubble == Bubble ? _bm1 : _bm2;
+        if (m != null && anim)
+        {
+            // quick and springy into the island (the usual way out is calmer); it stays visible while it slides under
+            // the island's edge instead of fading on the spot
+            var (r, d, fr) = (m.Gap.Response, m.Gap.Damping, m.Fade.Response);
+            m.Gap.Response = 0.34;
+            m.Gap.Damping = 0.5;
+            m.Fade.Response = 0.9;
+            After(1000, () => { m.Gap.Response = r; m.Gap.Damping = d; m.Fade.Response = fr; });
+        }
+        UpdatePill(true); // the call leaves the list – its bubble is swallowed by the island
+        if (bubble != null && (bubble == Bubble ? BubbleIcon : Bubble2Icon) is SfIcon phone)
+        {
+            // the rebuild painted the phone green again – it leaves red and tipped
+            phone.Kind = "phone";
+            phone.Foreground = (Brush)FindResource("Danger");
+        }
+        After(m != null && anim ? 150 : 0, () =>
+        {
+            if (anim) Squash(); // the island takes the hit
+            ShowHint("phone.down", "Anruf beendet", (Brush)FindResource("Danger"), key: "live");
+            if (anim) Pop(HintIcon);
+        });
+        // the bubble's symbol stands upright again for the next time
+        After(1200, () => { _phoneTipping = false; foreach (var i in new FrameworkElement[] { BubbleIcon, Bubble2Icon }) i.RenderTransform = null; UpdatePill(); });
     }
 
     // ---------- muted: the moment stays on the microphone ----------

@@ -1682,7 +1682,8 @@ public partial class IslandWindow : Window
         // mic / camera / screen sharing and Claude: in their own little bubbles next to the island when something
         // else is showing (music keeps the island – like the separate mic dot on the iPhone); alone they fill it
         var side = new List<Act>();
-        if (H.Privacy.InUse) side.Add(Act.Live);
+        // just hung up: Windows still reports the microphone for a moment – the call must not pop out again
+        if (H.Privacy.InUse && !JustHungUp) side.Add(Act.Live);
         if (H.Timer.Active && music) side.Add(Act.Timer);
         if (H.Obs.Active) side.Add(Act.Obs);
         if (H.Agents.AnyRunning || H.Agents.AnyWaiting || DateTime.Now < _agentDoneUntil) side.Add(Act.Agent);
@@ -2223,7 +2224,7 @@ public partial class IslandWindow : Window
         icon.Margin = new Thickness(0);
         icon.Visibility = Visibility.Visible;
         icon.Size = 15;
-        icon.Foreground = ActColor(a.Value);
+        if (!(_phoneTipping && a == Act.Live)) icon.Foreground = ActColor(a.Value); // hanging up: the phone stays red
         Pulse(icon, false);
         SpinSlow(icon, false);
         SetBubbleWant(bubble, true);
@@ -2243,7 +2244,7 @@ public partial class IslandWindow : Window
                     // muted: red mic on a dark red ground · in a call: a green phone like the iPhone call ·
                     // any other app using the mic: an orange mic like Apple's privacy dot
                     icon.Kind = muted ? "mic.slash" : call ? "phone" : "mic";
-                    icon.Foreground = muted ? red : call ? green : orange;
+                    if (!_phoneTipping) icon.Foreground = muted ? red : call ? green : orange; // hanging up: stays red
                     if (muted) bubble.Background = MutedGround;
                     // an app listens (e.g. Claude's voice mode): the orange wave instead of the mic symbol
                     if (!muted && !call && !H.Privacy.AnyScreen)
@@ -3180,14 +3181,19 @@ public partial class IslandWindow : Window
         var app = (sender as FrameworkElement)?.Tag as LiveApp ?? H.Privacy.Apps.FirstOrDefault(a => a.IsDiscord);
         if (app == null) return;
         Collapse();
-        ShowHint("phone", "Wird aufgelegt …", (Brush)FindResource("Danger"), key: "live");
-        bool ok = H.Discord.Connected && await H.Discord.LeaveVoice();
+        // hang up at once – the moment (red phone, into the island, "Anruf beendet") plays meanwhile
+        var leave = H.Discord.Connected ? H.Discord.LeaveVoice() : Task.FromResult(false);
+        await Task.Delay(380); // the island has closed, the call bubble is out again
+        var bubble = CallBubble();
+        var tip = bubble != null ? TipPhone(bubble == Bubble ? BubbleIcon : Bubble2Icon) : Task.CompletedTask;
+        bool ok = await leave;
         if (!ok) ok = await H.Privacy.HangUpAsync(app);
-        if (ok)
-        {
-            ShowHint("phone", "Aufgelegt", (Brush)FindResource("Danger"), key: "live");
-            return;
-        }
+        await tip;
+        if (ok) { HungUpMoment(bubble); return; }
+        // not hung up: the phone turns back
+        _phoneTipping = false;
+        BubbleIcon.RenderTransform = Bubble2Icon.RenderTransform = null;
+        UpdatePill(true);
         H.Privacy.Open(app);
         ShowPeek(new PeekInfo
         {
