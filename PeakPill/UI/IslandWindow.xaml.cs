@@ -1105,7 +1105,7 @@ public partial class IslandWindow : Window
 
     private Grid Inner(Border b) => _bubbleInner.TryGetValue(b, out var g) ? g : (Grid)b.Child;
 
-    private FrameworkElement[] Panels => new FrameworkElement[] { PillPanel, HintPanel, PeekPanel, TickerPanel, ExpandedPanel };
+    private FrameworkElement[] Panels => new FrameworkElement[] { PillPanel, HintPanel, PeekPanel, TickerPanel, ExpandedPanel, AskPanel };
 
     private static Spring NewFade(double from) => new(from, Spring.IslandResponse * 0.55, 1, 0.005);
 
@@ -2728,6 +2728,7 @@ public partial class IslandWindow : Window
         UpdateVisibility();
         PeekProgressScale.BeginAnimation(ScaleTransform.ScaleXProperty, null);
         PeekProgress.Visibility = Visibility.Collapsed;
+        if (_peek.Key == "agentask") { ShowAskCard(); return; } // Claude asks for a permission: its own look (C3)
         if (_peek.Ticker && !_peek.Open) { ShowTicker(); return; }
 
         // screenshot moment: the island opens downwards with the picture, then it shrinks into the island

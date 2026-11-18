@@ -619,6 +619,25 @@
                     </StackPanel>
                 </Grid>
 
+                <!-- ============ CLAUDE ASKS (C3, 2026-11-18, as in the mockup): the sentence, below it two buttons ============ -->
+                <StackPanel x:Name="AskPanel" Margin="14,10,14,12" Visibility="Collapsed" VerticalAlignment="Center">
+                    <TextBlock x:Name="AskText" Foreground="White" FontSize="12.5" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                    <TextBlock x:Name="AskDetail" Foreground="#FFAEAEB2" FontSize="11" Margin="0,2,0,0" TextTrimming="CharacterEllipsis" />
+                    <Grid Margin="0,9,0,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="6" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <Border x:Name="AskAllow" CornerRadius="11" Background="#FF2A2A2A" Padding="0,5" Cursor="Hand">
+                            <TextBlock Text="Erlauben" Foreground="White" FontSize="11.5" HorizontalAlignment="Center" />
+                        </Border>
+                        <Border x:Name="AskDeny" Grid.Column="2" CornerRadius="11" Background="#FF2A2A2A" Padding="0,5" Cursor="Hand">
+                            <TextBlock Text="Ablehnen" Foreground="White" FontSize="11.5" HorizontalAlignment="Center" />
+                        </Border>
+                    </Grid>
+                </StackPanel>
+
                 <!-- ============ ALERT ============ -->
                 <Grid x:Name="PeekPanel" Margin="10,10,10,10" Visibility="Collapsed" VerticalAlignment="Center">
                     <Grid.ColumnDefinitions>

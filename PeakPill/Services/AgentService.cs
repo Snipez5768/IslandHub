@@ -342,13 +342,13 @@ public sealed class AgentService : ObservableObject
         string Short(string t, int n = 70) { t = FirstLine(t ?? ""); return t.Length > n ? t[..(n - 1)] + "…" : t; }
         return a.Tool switch
         {
-            "Bash" or "PowerShell" => (L.T("Befehl ausführen?"), Short(S("command"))),
-            "Edit" or "Write" or "MultiEdit" or "NotebookEdit" => (L.T("Datei ändern?"), Path.GetFileName(S("file_path") ?? S("notebook_path") ?? "")),
-            "Read" => (L.T("Datei lesen?"), Short(S("file_path"))),
-            "Glob" or "Grep" or "LS" => (L.T("Ordner durchsuchen?"), Short(S("path") ?? S("pattern"))),
-            "WebFetch" => (L.T("Webseite öffnen?"), Short(S("url"))),
-            "WebSearch" => (L.T("Im Internet suchen?"), Short(S("query"))),
-            _ => (L.T($"{a.Tool} benutzen?"), ""),
+            "Bash" or "PowerShell" => (L.T("Claude möchte einen Befehl ausführen"), Short(S("command"))),
+            "Edit" or "Write" or "MultiEdit" or "NotebookEdit" => (L.T("Claude möchte eine Datei ändern"), Path.GetFileName(S("file_path") ?? S("notebook_path") ?? "")),
+            "Read" => (L.T("Claude möchte eine Datei lesen"), Short(S("file_path"))),
+            "Glob" or "Grep" or "LS" => (L.T("Claude möchte einen Ordner durchsuchen"), Short(S("path") ?? S("pattern"))),
+            "WebFetch" => (L.T("Claude möchte eine Webseite öffnen"), Short(S("url"))),
+            "WebSearch" => (L.T("Claude möchte im Internet suchen"), Short(S("query"))),
+            _ => (L.T($"Claude möchte {a.Tool} benutzen"), ""),
         };
     }
 

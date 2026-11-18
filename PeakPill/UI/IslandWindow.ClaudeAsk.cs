@@ -51,8 +51,57 @@ public partial class IslandWindow
         };
         peek.Action(L.T("Ablehnen"), () => H.Agents.Decide(a, false));
         peek.Action(L.T("Erlauben"), () => H.Agents.Decide(a, true), true);
-        ShowPeek(peek);
+        ShowPeek(peek); // (in the queue like any alert – ShowAskCard shows it in the mockup's look)
     }
+
+    private bool _askWired;
+
+    /// <summary>C3 as in the mockup: the island grows, the sentence on top, "Erlauben" and "Ablehnen" side by side.</summary>
+    private void ShowAskCard()
+    {
+        if (!_askWired)
+        {
+            _askWired = true;
+            ((TextBlock)AskAllow.Child).Text = L.T("Erlauben");
+            ((TextBlock)AskDeny.Child).Text = L.T("Ablehnen");
+            foreach (var (b, allow) in new[] { (AskAllow, true), (AskDeny, false) })
+            {
+                var idle = b.Background;
+                var hover = new SolidColorBrush(Color.FromRgb(0x3A, 0x3A, 0x3C));
+                b.MouseEnter += (_, _) => b.Background = hover;
+                b.MouseLeave += (_, _) => b.Background = idle;
+                b.MouseLeftButtonUp += (_, e) =>
+                {
+                    e.Handled = true;
+                    var p = _peek;
+                    b.Background = idle;
+                    EndPeek();
+                    if (p?.Key == "agentask" && p.Actions.Count == 2) p.Actions[allow ? 1 : 0].Act?.Invoke();
+                };
+            }
+        }
+        AskText.Text = _peek.Title;
+        AskDetail.Text = _peek.Text;
+        AskDetail.Visibility = string.IsNullOrEmpty(_peek.Text) ? Visibility.Collapsed : Visibility.Visible;
+        _peekTimer.Stop();
+        ShowPanel(AskPanel);
+        AskPanel.Measure(new Size(AskW - 28, double.PositiveInfinity));
+        double h = Math.Max(84, AskPanel.DesiredSize.Height);
+        AnimateSize(AskW, h + NotchExtra, 22, true);
+        ShowSideBubbles();
+        // the buttons come a moment after the island has grown (as in the mockup)
+        if (S.Animations != AnimationLevel.Aus)
+        {
+            var row = (FrameworkElement)AskAllow.Parent;
+            var fade = new DoubleAnimationUsingKeyFrames();
+            fade.KeyFrames.Add(new DiscreteDoubleKeyFrame(0, KeyTime.FromTimeSpan(TimeSpan.Zero)));
+            fade.KeyFrames.Add(new LinearDoubleKeyFrame(0, KeyTime.FromTimeSpan(TimeSpan.FromMilliseconds(220))));
+            fade.KeyFrames.Add(new LinearDoubleKeyFrame(1, KeyTime.FromTimeSpan(TimeSpan.FromMilliseconds(440))));
+            row.BeginAnimation(OpacityProperty, fade);
+        }
+    }
+
+    private const double AskW = 300;
 
     // ---------- A4: a new title, word by word ----------
 
