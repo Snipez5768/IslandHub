@@ -504,6 +504,43 @@ public partial class IslandWindow
         {
             switch (scene)
             {
+                case "stack":
+                {
+                    // the ring stack: music + timer + Claude + a call; then the stack fans out under the pointer
+                    fh = 60;
+                    H.Agents.StopListening();
+                    _demoOnly = true;
+                    S.SideBubbles = false;
+                    var cover = Pic(Color.FromRgb(0xFF, 0x7A, 0x3D), Color.FromRgb(0xE0, 0x3A, 0x5A));
+                    H.Media.Fake("Nachtlicht", "Lena Ost", cover, false);
+                    UpdatePill(true);
+                    await Task.Delay(900);
+                    Frame();
+                    H.Timer.Reset(); H.Timer.SetDurationSeconds(300); H.Timer.Start();
+                    UpdatePill(true);
+                    await Film(6, 60);
+                    H.Agents.Demo("Demo-Aufgabe", "Liest", 1, 3, 20, AgentState.Running, "demo-stack");
+                    UpdatePill(true);
+                    await Film(6, 60);
+                    H.Privacy.Demo((@"C:\Windows\System32\notepad.exe", true, false, false, 3));
+                    await Task.Delay(1500);
+                    UpdatePill(true);
+                    await Film(4, 60);
+                    FanStack(true);
+                    await Film(8, 50);
+                    FanStack(false);
+                    await Film(6, 50);
+                    // no music: timer leads with its time, Claude + call as rings
+                    H.Media.FakeNone();
+                    UpdatePill(true);
+                    await Film(8, 60);
+                    Save("stack");
+                    File.WriteAllText(Path.Combine(dir, "stack.txt"), string.Join(" | ", RingStack.Children.OfType<FrameworkElement>().Select(c => c.Tag?.ToString())));
+                    H.Privacy.EndDemo();
+                    H.Agents.EndDemo();
+                    H.Timer.Reset();
+                    break;
+                }
                 case "showcase":
                     await ShowcaseAsync(dir); // every animation, filmed into one page (IslandWindow.Showcase.cs)
                     break;

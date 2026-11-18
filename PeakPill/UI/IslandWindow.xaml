@@ -433,9 +433,10 @@
                         <ColumnDefinition Width="Auto" />
                         <ColumnDefinition Width="*" />
                         <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" />
                     </Grid.ColumnDefinitions>
                     <!-- the clock in the quiet island (2026-11-18, mockup B) – its digits roll -->
-                    <ui:RollingText x:Name="IdleClock" Grid.ColumnSpan="3" FontSize="14" FontWeight="SemiBold" Foreground="White" HorizontalAlignment="Center"
+                    <ui:RollingText x:Name="IdleClock" Grid.ColumnSpan="4" FontSize="14" FontWeight="SemiBold" Foreground="White" HorizontalAlignment="Center"
                                     VerticalAlignment="Center" Visibility="Collapsed" IsHitTestVisible="False" Margin="5,0,0,0" />
                     <StackPanel x:Name="Lead" Orientation="Horizontal" VerticalAlignment="Center">
                         <Grid>
@@ -508,6 +509,10 @@
                             <Ellipse x:Name="DotCam" Width="6" Height="6" Fill="{StaticResource Green}" Margin="4,0,0,0" VerticalAlignment="Center" />
                         </StackPanel>
                     </Grid>
+                    <!-- the ring stack (2026-11-18, replaces the circles beside the island by default): timer, Claude, a call …
+                         as small overlapping rings; under the pointer it fans out, a click opens the ring's page -->
+                    <StackPanel x:Name="RingStack" Grid.Column="3" Orientation="Horizontal" VerticalAlignment="Center" Margin="8,0,0,0"
+                                Visibility="Collapsed" Background="Transparent" />
                 </Grid>
 
                 <!-- ============ MINI HINT ============ -->

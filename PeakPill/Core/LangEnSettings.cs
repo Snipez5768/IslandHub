@@ -117,6 +117,8 @@ public static class LangEnSettings
         ("In der Insel zeigen", "Show in the island"),
         ("fertig", "done"),
         ("wartet", "waiting"),
+        ("Kreise neben der Insel", "Circles beside the island"),
+        ("Aus: Timer, Claude und Anruf stehen als kleiner Ring-Stapel rechts in der Insel.", "Off: timer, Claude and calls sit as a small stack of rings on the right inside the island."),
         ("Uhrzeit", "Time"),
         ("Läuft sonst nichts, steht die Uhrzeit mittig in der Insel.", "When nothing else is going on, the time sits in the middle of the island."),
         ("Mit Sekunden", "With seconds"),

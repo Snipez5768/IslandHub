@@ -236,6 +236,17 @@
                                     </StackPanel>
                                 </DockPanel>
                             </Border>
+                            <!-- side things (2026-11-18): ring stack inside the island (default) or the old circles beside it -->
+                            <Border Style="{StaticResource Row}">
+                                <DockPanel>
+                                    <ToggleButton x:Name="OptSideBubbles" DockPanel.Dock="Right" Style="{StaticResource Switch}" Click="Opt_Click" VerticalAlignment="Center" />
+                                    <ui:HintPic Kind="trackpeek" />
+                                    <StackPanel Margin="0,0,12,0" VerticalAlignment="Center">
+                                        <TextBlock Text="Kreise neben der Insel" />
+                                        <TextBlock Style="{StaticResource Desc}" Text="Aus: Timer, Claude und Anruf stehen als kleiner Ring-Stapel rechts in der Insel." />
+                                    </StackPanel>
+                                </DockPanel>
+                            </Border>
                             <Border x:Name="ClockSecondsRow" Style="{StaticResource Row}">
                                 <DockPanel>
                                     <ToggleButton x:Name="OptSeconds" DockPanel.Dock="Right" Style="{StaticResource Switch}" Click="Opt_Click" VerticalAlignment="Center" />

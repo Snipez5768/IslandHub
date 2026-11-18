@@ -76,6 +76,9 @@ public sealed class AppSettings
     public bool MinimalMode { get; set; }
     /// <summary>Several screens: the island moves to the screen of the window you work in (off by default, 2026-11-17).</summary>
     public bool FollowActiveScreen { get; set; }
+    /// <summary>Timer, Claude, a call … as circles BESIDE the island (the old look). Off (default, 2026-11-18): a ring stack
+    /// inside the island.</summary>
+    public bool SideBubbles { get; set; }
     /// <summary>The time in the middle of the quiet island (2026-11-18, mockup B).</summary>
     public bool ClockInIsland { get; set; } = true;
     /// <summary>While you type in another window the closed island becomes see-through (2026-11-18).</summary>

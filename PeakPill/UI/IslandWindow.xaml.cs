@@ -236,7 +236,8 @@ public partial class IslandWindow : Window
         _hoverTimer.Tick += (_, _) =>
         {
             _hoverTimer.Stop();
-            if (IsCursorOverIsland(0) && (_state == State.Collapsed || _state == State.Hint && !_hintHasActions)) Expand(null, false);
+            // over the ring stack hovering only fans it out – a click opens (2026-11-18)
+            if (IsCursorOverIsland(0) && !RingStack.IsMouseOver && (_state == State.Collapsed || _state == State.Hint && !_hintHasActions)) Expand(null, false);
         };
         _watchTimer.Tick += (_, _) => WatchCursor();
         _peekTimer.Tick += (_, _) =>
@@ -1749,6 +1750,9 @@ public partial class IslandWindow : Window
         // the alarm shows itself in its last hour (a small bell with the time) – not all night long
         if (alarmSoon) side.Add(Act.Alarm);
         acts.InsertRange(Math.Min(1, acts.Count), side);
+        // ring stack (default, 2026-11-18): a call / the muted mic never takes the left – it sits on the right with the rings
+        if (!S.SideBubbles && acts.Count > 1)
+            foreach (var right in acts.Where(a => a is Act.Live or Act.MicMuted).ToList()) { acts.Remove(right); acts.Add(right); }
         // pause / play, a new lead, Claude done – before the bars are stopped below (IslandWindow.Qol.cs)
         PillMoments(game || acts.Count == 0 ? null : acts[0], playing);
 
@@ -1856,7 +1860,7 @@ public partial class IslandWindow : Window
                     LeadText.Text = n.Length > 16 ? n[..15] + "…" : n;
                     LeadText.Foreground = Brushes.White;
                     LeadText.Visibility = Visibility.Visible;
-                    ShowTrail(dl.Percent, SteamBrush);
+                    if (S.SideBubbles) ShowTrail(dl.Percent, SteamBrush); // the stack shows its ring instead – no numbers
                     Lead.ToolTip = string.Join(" · ", new[] { dl.Name, dl.Percent, dl.Eta, dl.Speed }.Where(x => !string.IsNullOrEmpty(x)));
                     break;
                 }
@@ -1866,7 +1870,7 @@ public partial class IslandWindow : Window
                     bool done = !H.Agents.AnyRunning && !H.Agents.AnyWaiting;
                     var c = done ? (Brush)FindResource("Green") : color;
                     ShowLeadIcon(done ? "check" : "asterisk", c);
-                    ShowTrail(done ? L.T("fertig") : ag?.IsWaiting == true ? L.T("wartet") : ag?.HasPlan == true ? ag.Counter : ag?.Elapsed ?? "", c);
+                    if (S.SideBubbles) ShowTrail(done ? L.T("fertig") : ag?.IsWaiting == true ? L.T("wartet") : ag?.HasPlan == true ? ag.Counter : ag?.Elapsed ?? "", c);
                     Lead.ToolTip = ag == null ? null : $"Claude Code · {ag.Project}\n{ag.Task}\n{ag.Step}";
                     break;
                 }
@@ -1898,7 +1902,21 @@ public partial class IslandWindow : Window
         // a notice in the island: mic / monitor / Claude … stay visible as bubbles beside it
         if (_state != State.Collapsed) { ShowSideBubbles(); return; }
 
-        UpdateBubble(!game && acts.Count > 1 ? acts[1] : null, !game && acts.Count > 2 ? acts[2] : null);
+        if (S.SideBubbles)
+        {
+            UpdateRingStack(null);
+            UpdateBubble(!game && acts.Count > 1 ? acts[1] : null, !game && acts.Count > 2 ? acts[2] : null);
+        }
+        else
+        {
+            // the ring stack in the island (default): everything after the lead – and the lead's own ring when it shows
+            // no text of its own (Claude, a download: no numbers, the ring says how far)
+            UpdateBubble(null);
+            var rings = new List<Act>();
+            if (!game && acts.Count > 0 && acts[0] is Act.Agent or Act.Steam) rings.Add(acts[0]);
+            if (!game) rings.AddRange(acts.Skip(1).Where(a => a != Act.Music));
+            UpdateRingStack(rings);
+        }
 
         UpdateEyes(!game && acts.Count == 0); // the little eyes sit on the left only while nothing else is there
         double w, h = (game ? 26 : PillH) + NotchExtra;
@@ -1906,8 +1924,10 @@ public partial class IslandWindow : Window
         {
             Lead.Measure(new Size(double.PositiveInfinity, 40));
             Trail.Measure(new Size(double.PositiveInfinity, 40));
-            w = Math.Max(S.Shape == IslandShape.Notch ? 200 : 196, 6 + Lead.DesiredSize.Width + 112 + Trail.DesiredSize.Width + 11);
-            w = Math.Min(w, 360);
+            RingStack.Measure(new Size(double.PositiveInfinity, 40));
+            double stack = RingStack.Visibility == Visibility.Visible ? RingStack.DesiredSize.Width + 8 : 0;
+            w = Math.Max(S.Shape == IslandShape.Notch ? 200 : 196, 6 + Lead.DesiredSize.Width + 112 + Trail.DesiredSize.Width + stack + 11);
+            w = Math.Min(w, 380);
         }
         else w = S.Shape == IslandShape.Notch ? 200 : IdleW;
 
@@ -2059,7 +2079,13 @@ public partial class IslandWindow : Window
     private List<Act> _sideActs = new();
 
     /// <summary>While a notice is shown: the side indicators (mic, monitor, Claude, OBS, Steam) as bubbles next to it.</summary>
-    private void ShowSideBubbles() =>
+    private void ShowSideBubbles()
+    {
+        if (!S.SideBubbles) { UpdateBubble(null); return; } // ring stack: no circles beside a notice either
+        ShowSideBubblesNow();
+    }
+
+    private void ShowSideBubblesNow() =>
         UpdateBubble(_sideActs.Count > 0 ? _sideActs[0] : null, _sideActs.Count > 1 ? _sideActs[1] : null);
 
     /// <summary>Only for the motion test: the bubbles keep what the test put there.</summary>
