@@ -158,15 +158,41 @@ public partial class IslandWindow
         S.IslandEyes = false;
         UpdateEyes();
 
-        // ---------- bubbles ----------
+        // ---------- the ring stack (default) ----------
+        bool side = S.SideBubbles;
+        S.SideBubbles = false;
         await ShowReset();
         H.Media.Fake("Nachtlicht", "Lena Ost", coverA, false);
         UpdatePill(true);
         await Task.Delay(900);
-        await Rec("bubble", "Blasen", "Blase entsteht", "Der Timer tropft aus der Insel, mit Faden, der reißt.", () => { H.Timer.SetDurationSeconds(300); H.Timer.Start(); UpdatePill(true); return Task.CompletedTask; }, 22, 40, 70);
+        await Rec("ringin", "Ring-Stapel", "Ring kommt dazu", "Ein Timer startet neben der Musik: sein Ring erscheint rechts in der Insel.", () => { H.Timer.SetDurationSeconds(300); H.Timer.Start(); UpdatePill(true); return Task.CompletedTask; }, 16, 45, 70);
+        await Rec("ringmore", "Ring-Stapel", "Mehrere Ringe", "Claude und ein Anruf kommen dazu – die Ringe liegen überlappend als Stapel.", async () =>
+        {
+            H.Agents.Demo("Demo-Aufgabe", "Liest", 1, 3, 20, AgentState.Running, "demo-show"); UpdatePill(true);
+            await Task.Delay(500);
+            H.Privacy.Demo((notepad, true, false, false, 3));
+            await Task.Delay(1400);
+            UpdatePill(true);
+        }, 26, 80, 70);
+        await Rec("ringfan", "Ring-Stapel", "Stapel unter dem Zeiger", "Der Stapel fächert auf, die Insel wird etwas breiter – Klick öffnet die Seite des Rings.", async () => { FanStack(true); await Task.Delay(900); FanStack(false); }, 26, 50, 70);
+        await Rec("ringout", "Ring-Stapel", "Ringe gehen", "Läuft etwas nicht mehr, verschwindet sein Ring.", async () =>
+        {
+            try { H.Privacy.EndDemo(); } catch { }
+            UpdatePill(true);
+            await Task.Delay(500);
+            H.Agents.EndDemo(); H.Timer.Reset(); UpdatePill(true);
+        }, 18, 60, 70);
+        // ---------- the old circles (setting "Kreise neben der Insel") ----------
+        S.SideBubbles = true;
+        await ShowReset();
+        H.Media.Fake("Nachtlicht", "Lena Ost", coverA, false);
+        UpdatePill(true);
+        await Task.Delay(900);
+        await Rec("bubble", "Kreise (Einstellung)", "Kreis entsteht", "Mit „Kreise neben der Insel“: der Timer tropft aus der Insel, mit Faden, der reißt.", () => { H.Timer.SetDurationSeconds(300); H.Timer.Start(); UpdatePill(true); return Task.CompletedTask; }, 22, 40, 70);
         await Task.Delay(500);
-        await Rec("bubblehover", "Blasen", "Blase unter dem Zeiger", "Wächst leicht und zeigt, was sie ist.", async () => { BubbleHover(Bubble, true); await Task.Delay(600); BubbleHover(Bubble, false); }, 16, 50, 70);
-        await Rec("bubblemerge", "Blasen", "Blase verschwindet", "Sie wird von der Insel zurück geschluckt.", () => { H.Timer.Reset(); UpdatePill(true); return Task.CompletedTask; }, 20, 40, 70);
+        await Rec("bubblehover", "Kreise (Einstellung)", "Kreis unter dem Zeiger", "Wächst leicht und zeigt, was er ist.", async () => { BubbleHover(Bubble, true); await Task.Delay(600); BubbleHover(Bubble, false); }, 16, 50, 70);
+        await Rec("bubblemerge", "Kreise (Einstellung)", "Kreis verschwindet", "Er wird von der Insel zurück geschluckt.", () => { H.Timer.Reset(); UpdatePill(true); return Task.CompletedTask; }, 20, 40, 70);
+        S.SideBubbles = side;
 
         // ---------- notices ----------
         await ShowReset();
@@ -353,7 +379,9 @@ textarea{width:100%;min-height:120px;font:12.5px Consolas,monospace;border-radiu
 <script>
 """);
         sb.Append("const C=").Append(json).Append(";\nconst NF=").Append(notFilmed).Append(";\n");
+        sb.Append("const STAMP=\"").Append(DateTime.Now.ToString("dd.MM.yyyy HH:mm")).Append("\";\n");
         sb.Append("""
+document.querySelector('h1').insertAdjacentHTML('afterend',`<span class="ctl">gefilmt am ${STAMP}</span>`);
 const out=document.getElementById('out');let speed=1;const pick={};
 const groups=[...new Set(C.map(c=>c.group))];
 for(const g of groups){const h=document.createElement('h2');h.textContent=g;out.appendChild(h);const grid=document.createElement('div');grid.className='grid';out.appendChild(grid);
