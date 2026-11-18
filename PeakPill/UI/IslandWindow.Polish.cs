@@ -563,6 +563,10 @@ public partial class IslandWindow
                     H.Timer.Reset();
                     break;
                 }
+                case "regallery":
+                    // the page anew from the films of an earlier one (PEAKPILL_GALLERY_SRC)
+                    RewriteGallery(Environment.GetEnvironmentVariable("PEAKPILL_GALLERY_SRC"), Path.Combine(dir, "animationen.html"));
+                    break;
                 case "showcase":
                     await ShowcaseAsync(dir); // every animation, filmed into one page (IslandWindow.Showcase.cs)
                     break;

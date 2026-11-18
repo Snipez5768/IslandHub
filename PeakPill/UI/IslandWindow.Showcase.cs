@@ -329,7 +329,23 @@ public partial class IslandWindow
         WriteGallery(Path.Combine(dir, "animationen.html"));
     }
 
-    private void WriteGallery(string file)
+    /// <summary>A new page from the films of an earlier one (no new filming) – e.g. after the page itself changed.</summary>
+    public void RewriteGallery(string source, string file)
+    {
+        var html = File.ReadAllText(source, new UTF8Encoding(false));
+        int a = html.IndexOf("const C=", StringComparison.Ordinal) + 8;
+        int b = html.IndexOf(";\nconst NF=", StringComparison.Ordinal);
+        using var doc = JsonDocument.Parse(html[a..b]);
+        _clips.Clear();
+        foreach (var c in doc.RootElement.EnumerateArray())
+            _clips.Add(new ShowClip(c.GetProperty("id").GetString(), c.GetProperty("group").GetString(), c.GetProperty("title").GetString(),
+                                    c.GetProperty("what").GetString(), c.GetProperty("ms").GetInt32(),
+                                    c.GetProperty("frames").EnumerateArray().Select(f => f.GetString()).ToList()));
+        var m = System.Text.RegularExpressions.Regex.Match(html, "const STAMP=\"([^\"]+)\"");
+        WriteGallery(file, m.Success ? m.Groups[1].Value : null);
+    }
+
+    private void WriteGallery(string file, string stamp = null)
     {
         var data = _clips.Select((c, i) => new { n = i + 1, id = c.Id, group = c.Group, title = c.Title, what = c.What, ms = c.Ms, frames = c.Frames }).ToList();
         var json = JsonSerializer.Serialize(data);
@@ -368,10 +384,14 @@ input.note{flex:1;min-width:160px;font:inherit;font-size:12.5px;padding:5px 9px;
 .ctl{display:flex;gap:10px;align-items:center;color:var(--sub);font-size:12.5px}
 textarea{width:100%;min-height:120px;font:12.5px Consolas,monospace;border-radius:10px;border:1px solid var(--line);background:var(--card);color:var(--text);padding:10px;box-sizing:border-box}
 .nf{background:var(--card);border:1px dashed var(--line);border-radius:14px;padding:12px 14px}
+.filt input:checked+label{background:var(--acc);border-color:var(--acc);color:#fff}
+.hide{display:none!important}
+.empty{color:var(--sub);padding:30px 0;text-align:center}
 </style></head><body>
 <header><h1>PeakPill · alle Animationen</h1>
 <span class="ctl">Tempo <input type="range" id="speed" min="0.25" max="1" step="0.25" value="1"> <span id="sv">1×</span></span>
 <span class="ctl" id="count"></span>
+<span class="seg filt"><input type="radio" name="f" id="fAll" value="all" checked><label for="fAll">Alle</label><input type="radio" name="f" id="fMine" value="mine"><label for="fMine">Nur meine Markierungen</label></span>
 <button id="copy">Auswahl kopieren</button></header>
 <main><div id="out"></div>
 <h2>Nicht filmbar (eigenes Fenster bzw. Uhrzeit-abhängig)</h2><div class="grid" id="nf"></div>
@@ -379,29 +399,45 @@ textarea{width:100%;min-height:120px;font:12.5px Consolas,monospace;border-radiu
 <script>
 """);
         sb.Append("const C=").Append(json).Append(";\nconst NF=").Append(notFilmed).Append(";\n");
-        sb.Append("const STAMP=\"").Append(DateTime.Now.ToString("dd.MM.yyyy HH:mm")).Append("\";\n");
+        sb.Append("const STAMP=\"").Append(stamp ?? DateTime.Now.ToString("dd.MM.yyyy HH:mm")).Append("\";\n");
         sb.Append("""
 document.querySelector('h1').insertAdjacentHTML('afterend',`<span class="ctl">gefilmt am ${STAMP}</span>`);
-const out=document.getElementById('out');let speed=1;const pick={};
+// what you marked and wrote stays in this browser (also after closing the page)
+const KEY='peakpill-galerie';let saved={};try{saved=JSON.parse(localStorage.getItem(KEY)||'{}')}catch(e){}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(saved))}catch(e){}}
+const out=document.getElementById('out');let speed=1;
 const groups=[...new Set(C.map(c=>c.group))];
-for(const g of groups){const h=document.createElement('h2');h.textContent=g;out.appendChild(h);const grid=document.createElement('div');grid.className='grid';out.appendChild(grid);
- for(const c of C.filter(x=>x.group===g)){const d=document.createElement('div');d.className='card';d.id='c'+c.n;
-  d.innerHTML=`<div class="t"><span class="n">#${c.n}</span>${c.title}</div><div class="w">${c.what}</div><img class="img" id="i${c.n}">
+for(const g of groups){const h=document.createElement('h2');h.textContent=g;h.dataset.g=g;out.appendChild(h);const grid=document.createElement('div');grid.className='grid';grid.dataset.g=g;out.appendChild(grid);
+ for(const c of C.filter(x=>x.group===g)){const d=document.createElement('div');d.className='card';d.id='c'+c.n;d.dataset.id=c.id;
+  d.innerHTML=`<div class="t"><span class="n">#${c.n}</span>${c.title}</div><div class="w">${c.what}</div><img class="img">
   <div class="row"><div class="seg"><input type="radio" name="r${c.n}" id="ok${c.n}" value="ok"><label class="ok" for="ok${c.n}">Gefällt</label>
   <input type="radio" name="r${c.n}" id="fx${c.n}" value="fix"><label class="fx" for="fx${c.n}">Überarbeiten</label></div>
-  <input class="note" id="t${c.n}" placeholder="Was soll anders werden?"><button data-r="${c.n}">↻</button></div>`;
+  <input class="note" id="t${c.n}" placeholder="Was soll anders werden?"><button>↻</button></div>`;
   grid.appendChild(d);
+  const s=saved[c.id]||{};
+  if(s.pick){d.querySelector(`input[value=${s.pick}]`).checked=true;d.className='card '+(s.pick==='fix'?'fix':'ok')}
+  if(s.note)d.querySelector('.note').value=s.note;
   const img=d.querySelector('img');let i=0,last=0,hold=0;
-  function step(ts){const dur=c.ms/speed;if(ts-last>=dur+(hold?600:0)){hold=0;img.src='data:image/jpeg;base64,'+c.frames[i];i++;if(i>=c.frames.length){i=0;hold=1}last=ts}requestAnimationFrame(step)}
+  function step(ts){if(!d.classList.contains('hide')){const dur=c.ms/speed;if(ts-last>=dur+(hold?600:0)){hold=0;img.src='data:image/jpeg;base64,'+c.frames[i];i++;if(i>=c.frames.length){i=0;hold=1}last=ts}}requestAnimationFrame(step)}
   requestAnimationFrame(step);
   d.querySelector('button').onclick=()=>{i=0};
-  d.querySelectorAll('input[type=radio]').forEach(r=>r.onchange=()=>{pick[c.n]=r.value;d.className='card '+(r.value==='fix'?'fix':'ok');upd()});
-  d.querySelector('.note').oninput=upd;
+  d.querySelectorAll('input[type=radio]').forEach(r=>r.onchange=()=>{saved[c.id]={...(saved[c.id]||{}),pick:r.value};save();d.className='card '+(r.value==='fix'?'fix':'ok');upd()});
+  d.querySelector('.note').oninput=e=>{saved[c.id]={...(saved[c.id]||{}),note:e.target.value};save();upd()};
  }}
 const nf=document.getElementById('nf');for(const x of NF){const d=document.createElement('div');d.className='nf';d.innerHTML=`<div class="t">${x.title}</div><div class="w">${x.what}</div>`;nf.appendChild(d)}
-function upd(){const ok=[],fx=[];for(const c of C){const p=pick[c.n];const t=document.getElementById('t'+c.n).value.trim();if(p==='fix')fx.push(`#${c.n} ${c.title}${t?' – '+t:''}`);else if(p==='ok')ok.push(`#${c.n} ${c.title}`)}
+const emptyMsg=document.createElement('div');emptyMsg.className='empty hide';emptyMsg.textContent='Noch nichts markiert – bei „Alle“ eine Animation auf „Überarbeiten“ setzen oder bei „Gefällt“ etwas dazuschreiben.';out.prepend(emptyMsg);
+// "only mine": everything to rework, and what you liked but wrote something about
+function mine(c){const s=saved[c.id]||{};return s.pick==='fix'||(s.pick==='ok'&&(s.note||'').trim()!=='')}
+function filter(){const only=document.getElementById('fMine').checked;let any=0;
+ for(const c of C){const show=!only||mine(c);document.getElementById('c'+c.n).classList.toggle('hide',!show);if(show)any++}
+ document.querySelectorAll('#out h2,#out .grid').forEach(el=>{const g=el.dataset.g;const vis=C.some(c=>c.group===g&&!document.getElementById('c'+c.n).classList.contains('hide'));el.classList.toggle('hide',!vis)});
+ emptyMsg.classList.toggle('hide',!(only&&any===0));
+ document.querySelectorAll('main>h2,#nf').forEach(el=>{if(el.id==='nf'||el.textContent.startsWith('Nicht filmbar'))el.classList.toggle('hide',only)})}
+document.querySelectorAll('input[name=f]').forEach(r=>r.onchange=filter);
+function upd(){const ok=[],fx=[];for(const c of C){const s=saved[c.id]||{};const t=(s.note||'').trim();if(s.pick==='fix')fx.push(`#${c.n} ${c.title}${t?' – '+t:''}`);else if(s.pick==='ok')ok.push(`#${c.n} ${c.title}${t?' – '+t:''}`)}
  document.getElementById('sel').value=(fx.length?'Überarbeiten:\n'+fx.join('\n')+'\n\n':'')+(ok.length?'Gefällt:\n'+ok.join('\n'):'');
- document.getElementById('count').textContent=`${fx.length} überarbeiten · ${ok.length} gefällt · ${C.length} gesamt`}
+ document.getElementById('count').textContent=`${fx.length} überarbeiten · ${ok.length} gefällt · ${C.length} gesamt`;
+ if(document.getElementById('fMine').checked)filter()}
 document.getElementById('speed').oninput=e=>{speed=+e.target.value;document.getElementById('sv').textContent=speed+'×'};
 document.getElementById('copy').onclick=()=>{const t=document.getElementById('sel');t.select();try{navigator.clipboard.writeText(t.value)}catch(e){document.execCommand('copy')}};
 upd();
