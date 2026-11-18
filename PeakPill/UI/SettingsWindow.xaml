@@ -497,7 +497,7 @@
                                         <TextBlock Style="{StaticResource Desc}" Margin="0"
                                                    Text="Claude Code meldet der Insel jede Aufgabe, den aktuellen Schritt, den Fortschritt der Aufgabenliste und ob es auf dich wartet. Gilt im Terminal, in VS Code und in der Claude-App." />
                                         <TextBlock Style="{StaticResource Desc}" Tag="Guide"
-                                                   Text="„Einrichten“ trägt fünf Hooks in deine Claude-Code-Einstellungen ein (%USERPROFILE%\.claude\settings.json, vorher wird eine Kopie angelegt). Sie schicken nur an diesen PC (127.0.0.1) und ändern nichts an Claudes Arbeit. Erkannt werden Sitzungen, die nach dem Einrichten starten – laufende einmal neu starten. Von Hand: den Block mit „Kopieren“ in die Datei einfügen." />
+                                                   Text="„Einrichten“ trägt sechs Hooks in deine Claude-Code-Einstellungen ein (%USERPROFILE%\.claude\settings.json, vorher wird eine Kopie angelegt). Sie schicken nur an diesen PC (127.0.0.1). Fragt Claude nach einer Erlaubnis, kannst du sie in der Insel geben oder ablehnen – sonst ändern sie nichts an Claudes Arbeit. Erkannt werden Sitzungen, die nach dem Einrichten starten – laufende einmal neu starten. Von Hand: den Block mit „Kopieren“ in die Datei einfügen." />
                                     </StackPanel>
                                 </Border>
                                 <Border Style="{StaticResource Row}" Padding="54,9,12,9">
