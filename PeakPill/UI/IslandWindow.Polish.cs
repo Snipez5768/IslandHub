@@ -526,6 +526,29 @@ public partial class IslandWindow
                     H.Agents.EndDemo();
                     break;
                 }
+                case "pausep1":
+                {
+                    // P1 "zur Ruhe kommen": playing → paused (bars sink to dots, cover tips back, pause sign) → playing
+                    fh = 60;
+                    H.Agents.StopListening();
+                    _demoOnly = true;
+                    var cover = Pic(Color.FromRgb(0xFF, 0x7A, 0x3D), Color.FromRgb(0xE0, 0x3A, 0x5A));
+                    H.Media.Fake("Nachtlicht", "Lena Ost", cover, true);
+                    UpdatePill(true);
+                    await Task.Delay(1500);
+                    Frame();
+                    H.Media.FakePlaying(false);
+                    UpdatePill(true);
+                    await Film(14, 50);
+                    await Task.Delay(800);
+                    Frame();
+                    H.Media.FakePlaying(true);
+                    UpdatePill(true);
+                    await Film(12, 50);
+                    Save("pausep1");
+                    File.WriteAllText(Path.Combine(dir, "pausep1.txt"), $"eq={Equalizer.Visibility} coverScale={LeadCoverScale.ScaleX:0.00} pause={CoverPause.Opacity:0.00} paused={_pausedLook}");
+                    break;
+                }
                 case "stack":
                 {
                     // the ring stack: music + timer + Claude + a call; then the stack fans out under the pointer
@@ -540,10 +563,10 @@ public partial class IslandWindow
                     Frame();
                     H.Timer.Reset(); H.Timer.SetDurationSeconds(300); H.Timer.Start();
                     UpdatePill(true);
-                    await Film(6, 60);
+                    await Film(20, 60);
                     H.Agents.Demo("Demo-Aufgabe", "Liest", 1, 3, 20, AgentState.Running, "demo-stack");
                     UpdatePill(true);
-                    await Film(6, 60);
+                    await Film(20, 60);
                     H.Privacy.Demo((@"C:\Windows\System32\notepad.exe", true, false, false, 3));
                     await Task.Delay(1500);
                     UpdatePill(true);

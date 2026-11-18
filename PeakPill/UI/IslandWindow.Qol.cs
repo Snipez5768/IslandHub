@@ -266,38 +266,52 @@ public partial class IslandWindow
     // ---------- 6 / 7: pause / play and a softly changing lead ----------
 
     private bool _wasPlaying;
-    private DateTime _eqFallingUntil;
     private Act? _lastLead;
     private string _lastAgentIcon;
+
+    private bool _pausedLook;
+
+    /// <summary>P1: the cover a little smaller with a dark veil and the pause sign – or back to normal.</summary>
+    private void SetPausedLook(bool paused, bool anim)
+    {
+        if (paused == _pausedLook) return;
+        _pausedLook = paused;
+        double scale = paused ? 0.86 : 1;
+        var d = TimeSpan.FromMilliseconds(paused ? 420 : 320);
+        IEasingFunction ease = paused ? new CubicEase { EasingMode = EasingMode.EaseOut } : new BackEase { Amplitude = 0.45, EasingMode = EasingMode.EaseOut };
+        double from = LeadCoverScale.ScaleX;
+        LeadCoverScale.BeginAnimation(ScaleTransform.ScaleXProperty, null);
+        LeadCoverScale.BeginAnimation(ScaleTransform.ScaleYProperty, null);
+        LeadCoverScale.ScaleX = LeadCoverScale.ScaleY = scale;
+        CoverPause.BeginAnimation(OpacityProperty, null);
+        CoverPause.Opacity = paused ? 1 : 0;
+        if (!anim) return;
+        var a = new DoubleAnimation(from, scale, d) { EasingFunction = ease, FillBehavior = FillBehavior.Stop };
+        LeadCoverScale.BeginAnimation(ScaleTransform.ScaleXProperty, a);
+        LeadCoverScale.BeginAnimation(ScaleTransform.ScaleYProperty, a);
+        CoverPause.BeginAnimation(OpacityProperty, new DoubleAnimation(paused ? 0 : 1, paused ? 1 : 0, d) { FillBehavior = FillBehavior.Stop });
+    }
 
     /// <summary>Called by UpdatePill once it knows what leads and whether music plays.</summary>
     private void PillMoments(Act? lead, bool playing)
     {
         bool anim = S.Animations != AnimationLevel.Aus && _state == State.Collapsed;
-        // paused: the bars fall down and the cover dims a little; playing again: it lights up
+        // paused – "zur Ruhe kommen" (user's pick P1, 2026-11-18): the bars sink to small dots and stay, the cover tips
+        // back a little (smaller, darker) and a fine pause sign lies on it; playing again: the bars pop up, the cover returns
         if (playing != _wasPlaying && lead == Act.Music && anim)
         {
             if (!playing)
-            {
-                _eqFallingUntil = DateTime.Now.AddMilliseconds(320);
                 foreach (var s in new[] { Eq1, Eq2, Eq3, Eq4, Eq5 })
-                    s.BeginAnimation(ScaleTransform.ScaleYProperty, new DoubleAnimation(s.ScaleY, 0.12, TimeSpan.FromMilliseconds(280))
-                        { EasingFunction = new BounceEase { Bounces = 1, Bounciness = 4, EasingMode = EasingMode.EaseOut }, FillBehavior = FillBehavior.Stop });
-                After(340, () => UpdatePill());
-            }
+                    s.BeginAnimation(ScaleTransform.ScaleYProperty, new DoubleAnimation(s.ScaleY, 0.2, TimeSpan.FromMilliseconds(380))
+                        { EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut }, FillBehavior = FillBehavior.Stop });
             else Pop(Equalizer);
         }
         _wasPlaying = playing;
-        // (not while a song swap moves the cover – otherwise always, so a dimmed cover can't stay dim: a held animation
-        // used to block this, the cover stayed grey after pause → play, 2026-11-18)
-        double coverOpacity = lead == Act.Music && !playing ? 0.62 : 1;
         bool swapping = _songPending || Math.Abs(LeadCoverShift.X) > 0.01;
-        if (!swapping && Math.Abs(LeadCover.Opacity - coverOpacity) > 0.01)
+        if (!swapping)
         {
-            double from = LeadCover.Opacity;
-            LeadCover.BeginAnimation(OpacityProperty, null);
-            LeadCover.Opacity = coverOpacity;
-            if (anim) LeadCover.BeginAnimation(OpacityProperty, new DoubleAnimation(from, coverOpacity, TimeSpan.FromMilliseconds(260)) { FillBehavior = FillBehavior.Stop });
+            if (LeadCover.Opacity < 0.99 && !LeadCover.HasAnimatedProperties) LeadCover.Opacity = 1; // (the earlier dimming)
+            SetPausedLook(lead == Act.Music && !playing, anim);
         }
         // a different thing leads the island now (e.g. the paused cover gives way to the timer): it slides in softly
         if (anim && lead != null && _lastLead != null && lead != _lastLead)

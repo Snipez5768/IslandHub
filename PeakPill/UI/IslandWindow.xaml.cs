@@ -1802,9 +1802,8 @@ public partial class IslandWindow : Window
                     if (!_songPending) { PillCover.ImageSource = H.Media.Cover; _shownCoverHash = H.Media.CoverHash; }
                     if (H.Media.Cover != null || _songPending) LeadCover.Visibility = Visibility.Visible;
                     else ShowLeadIcon("music", musicColor);
-                    // paused / nothing playing: no visualizer (user wish 2026-11-16) – the cover stays
-                    // (just paused: the bars stay a moment longer while they fall down)
-                    Equalizer.Visibility = H.Media.IsPlaying || DateTime.Now < _eqFallingUntil ? Visibility.Visible : Visibility.Collapsed;
+                    // P1 (2026-11-18): paused, the bars stay as small dots beside the resting cover
+                    Equalizer.Visibility = Visibility.Visible;
                     break;
                 case Act.Recording:
                     ShowLeadIcon("record", color);
@@ -3636,7 +3635,7 @@ public partial class IslandWindow : Window
             {
                 CompositionTarget.Rendering -= _songFrame;
                 _songFrame = null;
-                LeadCoverShift.X = 0; LeadCoverScale.ScaleX = LeadCoverScale.ScaleY = 1; LeadCover.Opacity = 1;
+                LeadCoverShift.X = 0; LeadCoverScale.ScaleX = LeadCoverScale.ScaleY = 1; LeadCover.Opacity = 1; _pausedLook = false; CoverPause.Opacity = 0;
                 LeadCoverGhost.Visibility = Visibility.Collapsed; LeadCoverGhost.Opacity = 1; LeadCoverGhostShift.X = 0;
                 LeadCoverGhostScale.ScaleX = LeadCoverGhostScale.ScaleY = 1; LeadCoverGhost.Effect = null;
             }

@@ -150,7 +150,7 @@ public partial class IslandWindow
 
     private void CoverBeat(double bass)
     {
-        if (S.Animations != AnimationLevel.An || LeadCover.Visibility != Visibility.Visible || _songPending || _state != State.Collapsed) return;
+        if (S.Animations != AnimationLevel.An || LeadCover.Visibility != Visibility.Visible || _songPending || _state != State.Collapsed || _pausedLook) return;
         // the cover's own scale (the song swap uses it too – only while no swap moves the cover)
         if (Math.Abs(LeadCoverShift.X) > 0.01 || LeadCoverScale.HasAnimatedProperties) return;
         _coverPulse = LeadCoverScale;
@@ -165,7 +165,7 @@ public partial class IslandWindow
     private void CoverBeatStop()
     {
         _coverBeat = 0;
-        if (_coverPulse != null) _coverPulse.ScaleX = _coverPulse.ScaleY = 1;
+        if (_coverPulse != null) _coverPulse.ScaleX = _coverPulse.ScaleY = _pausedLook ? 0.86 : 1; // (paused: P1 keeps it small)
     }
 
     // ---------- flights across the screen ----------

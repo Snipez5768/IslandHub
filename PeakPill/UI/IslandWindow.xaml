@@ -462,6 +462,13 @@
                                         <TranslateTransform x:Name="LeadCoverShift" />
                                     </TransformGroup>
                                 </Border.RenderTransform>
+                                <!-- paused (P1, 2026-11-18): the cover darkens and a fine pause sign lies on it -->
+                                <Border x:Name="CoverPause" CornerRadius="5" Background="#8C000000" Opacity="0" IsHitTestVisible="False">
+                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                        <Rectangle Width="2" Height="8" RadiusX="1" RadiusY="1" Fill="White" Margin="0,0,2.5,0" />
+                                        <Rectangle Width="2" Height="8" RadiusX="1" RadiusY="1" Fill="White" />
+                                    </StackPanel>
+                                </Border>
                             </Border>
                         </Grid>
                         <ui:SfIcon x:Name="LeadIcon" Size="16" Margin="5,0,0,0" Visibility="Collapsed" />
