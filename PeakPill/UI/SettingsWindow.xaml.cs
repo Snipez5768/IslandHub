@@ -324,6 +324,11 @@ public partial class SettingsWindow : Window
         OptLyricLine.IsChecked = S.LyricLine;
         OptCopyHelpers.IsChecked = S.CopyHelpers;
         OptSavedFiles.IsChecked = S.SavedFiles;
+        OptWishlist.IsChecked = S.WishlistSales;
+        if (OptGameReminder.Items.Count == 0)
+            foreach (var m in new[] { 0, 60, 90, 120, 180, 240 })
+                OptGameReminder.Items.Add(new ComboBoxItem { Content = m == 0 ? L.T("Aus") : m % 60 == 0 ? L.T($"{m / 60} h") : $"{m / 60}:{m % 60:00} h", Tag = m });
+        OptGameReminder.SelectedItem = OptGameReminder.Items.OfType<ComboBoxItem>().FirstOrDefault(i => (int)i.Tag == S.GameReminderMinutes) ?? OptGameReminder.Items[3];
         if (OptEveningAt.Items.Count == 0)
             for (int m = 15 * 60; m <= 22 * 60; m += 30) OptEveningAt.Items.Add(new ComboBoxItem { Content = $"{m / 60}:{m % 60:00}", Tag = m });
         OptEveningAt.SelectedItem = OptEveningAt.Items.OfType<ComboBoxItem>().FirstOrDefault(i => (int)i.Tag == S.EveningMinutes) ?? OptEveningAt.Items[6];
@@ -587,6 +592,13 @@ public partial class SettingsWindow : Window
 
     // ---------------- simple options ----------------
 
+    private void GameReminder_Changed(object sender, SelectionChangedEventArgs e)
+    {
+        if (_loading || OptGameReminder.SelectedItem is not ComboBoxItem { Tag: int m }) return;
+        S.GameReminderMinutes = m;
+        App.SaveSettings();
+    }
+
     private void EveningAt_Changed(object sender, SelectionChangedEventArgs e)
     {
         if (_loading || OptEveningAt.SelectedItem is not ComboBoxItem { Tag: int m }) return;
@@ -619,6 +631,7 @@ public partial class SettingsWindow : Window
         S.LyricLine = OptLyricLine.IsChecked == true;
         S.CopyHelpers = OptCopyHelpers.IsChecked == true;
         S.SavedFiles = OptSavedFiles.IsChecked == true;
+        S.WishlistSales = OptWishlist.IsChecked == true;
         OptEveningAt.IsEnabled = S.EveningMoment;
         S.DeviceInIsland = OptDevice.IsChecked == true;
         S.PowerInIsland = OptPower.IsChecked == true;

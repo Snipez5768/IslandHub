@@ -805,6 +805,27 @@
                                     </StackPanel>
                                 </DockPanel>
                             </Border>
+                            <!-- games (2026-11-18): a reminder after playing a while, sales on the Steam wishlist -->
+                            <Border Style="{StaticResource Row}">
+                                <DockPanel>
+                                    <ComboBox x:Name="OptGameReminder" DockPanel.Dock="Right" Style="{StaticResource DarkCombo}" Width="110" VerticalAlignment="Center" SelectionChanged="GameReminder_Changed" />
+                                    <ui:HintPic Kind="history" />
+                                    <StackPanel Margin="0,0,12,0" VerticalAlignment="Center">
+                                        <TextBlock Text="Spielzeit-Erinnerung" />
+                                        <TextBlock Style="{StaticResource Desc}" Text="Nach so viel Spielzeit am Tag erinnert die Insel einmal ruhig an eine Pause." />
+                                    </StackPanel>
+                                </DockPanel>
+                            </Border>
+                            <Border Style="{StaticResource Row}">
+                                <DockPanel>
+                                    <ToggleButton x:Name="OptWishlist" DockPanel.Dock="Right" Style="{StaticResource Switch}" Click="Opt_Click" VerticalAlignment="Center" />
+                                    <ui:HintPic Kind="data" />
+                                    <StackPanel Margin="0,0,12,0" VerticalAlignment="Center">
+                                        <TextBlock Text="Steam-Wunschliste im Angebot" />
+                                        <TextBlock Style="{StaticResource Desc}" Text="Einmal am Tag schaut die Insel deine Steam-Wunschliste durch (sie muss in Steam öffentlich sein) und meldet jedes Angebot einmal." />
+                                    </StackPanel>
+                                </DockPanel>
+                            </Border>
                             <!-- several screens (2026-11-17): off by default -->
                             <Border Style="{StaticResource Row}">
                                 <DockPanel>

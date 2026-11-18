@@ -45,10 +45,10 @@ Vor dem Bauen gibt es zu jeder Funktion Mockups im Chat.
 - [ ] 32 Handy-Anrufe über Smartphone-Link (hängt davon ab, was Windows erlaubt)
 
 **Spiele**
-- [ ] 36 Spielzeit heute, mit optionaler Erinnerung
-- [ ] 37 Steam-Wunschliste im Angebot
-- [ ] 38 FPS-Anzeige
-- [ ] 39 Instant Replay der letzten 30 s über OBS
+- [x] 36 Spielzeit heute, mit Erinnerung (36a im Spiel-Modus + 36b im Spiele-Tab)
+- [x] 37 Steam-Wunschliste im Angebot
+- [x] 38 FPS-Anzeige (über RivaTuner / MSI Afterburner)
+- [x] 39 Instant Replay über OBS (Strg+Alt+J)
 
 **Dateien & Helfer**
 - [x] 40 Datei-Konverter per Ziehen auf die Insel (40a, Bilder: JPG, PNG, kleiner, PDF)

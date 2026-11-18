@@ -16,7 +16,7 @@ public enum AiProvider { Claude, ChatGpt, Gemini }
 public enum HotkeyAction
 {
     ToggleIsland, Clipboard, Screenshot, ScreenshotOcr, Shelf, Music, Widgets, Reminders, Controls,
-    MicMute, QueueMode, PlayPause, NextTrack, PrevTrack, FocusTimer, Settings, AiChat, QuickNote, AiSelection, AiRegion, Calculator, Search, ColorPicker
+    MicMute, QueueMode, PlayPause, NextTrack, PrevTrack, FocusTimer, Settings, AiChat, QuickNote, AiSelection, AiRegion, Calculator, Search, ColorPicker, InstantReplay
 }
 
 public sealed record HotkeyDef(HotkeyAction Action, string Label, string Default);
@@ -49,6 +49,7 @@ public static class HotkeyInfo
         new(HotkeyAction.Calculator,    L.T("Rechner"),                         "Ctrl+Alt+Y"),
         new(HotkeyAction.Search,        L.T("Schnellsuche"),                    "Ctrl+Alt+Space"),
         new(HotkeyAction.ColorPicker,   L.T("Farbpipette"),                     "Ctrl+Alt+H"),
+        new(HotkeyAction.InstantReplay, L.T("Instant Replay (OBS)"),            "Ctrl+Alt+J"),
     };
 }
 
@@ -98,6 +99,11 @@ public sealed class AppSettings
     // helpers (2026-11-18): small offers after copying, and files just saved
     public bool CopyHelpers { get; set; } = true;
     public bool SavedFiles { get; set; } = true;
+    // games (2026-11-18): a reminder after so many minutes played today (0 = off), sales on the Steam wishlist
+    public int GameReminderMinutes { get; set; } = 120;
+    public bool WishlistSales { get; set; } = true;
+    public List<string> WishlistTold { get; set; } = new();
+    public DateTime WishlistCheckedOn { get; set; }
     public List<string> MinimalTabs { get; set; } = new() { "Clip", "Ai", "Agent", "Send", "Music", "Notify" };
     public AnimationLevel Animations { get; set; } = AnimationLevel.An;
 

@@ -92,10 +92,11 @@ public sealed class UsageService : ObservableObject
         bool fullscreen = App.Hub?.Game?.IsFullscreen == true;
         bool here = idle < 120 || fullscreen;
         if (idle >= 120) ActiveStreak = 0; else ActiveStreak += 5;
-        if (here && App.Settings.ScreenTime)
+        if (here)
         {
-            var name = ForegroundName();
-            if (name != null)
+            var name = ForegroundName(out var proc);
+            if (name != null && fullscreen && !VideoApps.Contains(proc ?? "")) AddGame(name); // a game in front, full screen (36)
+            if (name != null && App.Settings.ScreenTime)
             {
                 var key = DateTime.Today.ToString("yyyy-MM-dd");
                 if (!_days.TryGetValue(key, out var day)) _days[key] = day = new();
@@ -115,26 +116,60 @@ public sealed class UsageService : ObservableObject
 
     public double TodayTotal => Today().Sum(p => p.Seconds);
 
+    // ---------- 36 · time played (a game = something else than a browser / video player in full screen) ----------
+
+    private static readonly HashSet<string> VideoApps = new(StringComparer.OrdinalIgnoreCase)
+        { "chrome", "msedge", "firefox", "brave", "opera", "vivaldi", "vlc", "mpc-hc64", "mpc-hc", "PotPlayerMini64", "wmplayer", "Video.UI", "Microsoft.Media.Player", "explorer", "PeakPill" };
+    private Dictionary<string, Dictionary<string, double>> _games;
+    private DateTime _gamesSaved = DateTime.Now;
+
+    private void AddGame(string name)
+    {
+        _games ??= Storage.Load<Dictionary<string, Dictionary<string, double>>>("games.json");
+        var key = DateTime.Today.ToString("yyyy-MM-dd");
+        if (!_games.TryGetValue(key, out var day)) _games[key] = day = new();
+        day[name] = day.GetValueOrDefault(name) + 5;
+        if (DateTime.Now - _gamesSaved > TimeSpan.FromMinutes(1))
+        {
+            _gamesSaved = DateTime.Now;
+            foreach (var old in _games.Keys.Where(k => DateTime.TryParse(k, out var d) && DateTime.Today - d > TimeSpan.FromDays(14)).ToList()) _games.Remove(old);
+            try { Storage.Save("games.json", _games); } catch { }
+        }
+    }
+
+    /// <summary>Today's games, longest first (name, seconds).</summary>
+    public List<(string Name, double Seconds)> GamesToday()
+    {
+        _games ??= Storage.Load<Dictionary<string, Dictionary<string, double>>>("games.json");
+        return _games.TryGetValue(DateTime.Today.ToString("yyyy-MM-dd"), out var day)
+            ? day.OrderByDescending(p => p.Value).Select(p => (p.Key, p.Value)).ToList() : new();
+    }
+
+    public double GameSecondsToday => GamesToday().Sum(g => g.Seconds);
+
 #if DEBUG
     /// <summary>Films: a made-up day (no real app names).</summary>
     public void DemoSeed()
     {
+        _games = new() { [DateTime.Today.ToString("yyyy-MM-dd")] = new() { ["Demo-Spiel A"] = 6000, ["Demo-Spiel B"] = 2100 } };
         _days[DateTime.Today.ToString("yyyy-MM-dd")] = new() { ["Code-Editor"] = 7500, ["Browser"] = 4800, ["Spiele"] = 3120, ["Chat"] = 1860, ["Musik"] = 600 };
     }
 #endif
 
     /// <summary>The app in front by its friendly name ("Google Chrome", "Visual Studio Code") – PeakPill itself and the
     /// desktop don't count.</summary>
-    private string ForegroundName()
+    private string ForegroundName(out string proc)
     {
+        proc = null;
         try
         {
             var w = GetForegroundWindow();
             if (w == IntPtr.Zero) return null;
             GetWindowThreadProcessId(w, out var pid);
             if (pid == Environment.ProcessId) return null;
-            if (_names.TryGetValue((int)pid, out var known)) return known;
             using var p = Process.GetProcessById((int)pid);
+            proc = p.ProcessName;
+            if (_names.TryGetValue((int)pid, out var known)) return known;
             string name = p.ProcessName;
             if (name is "explorer" or "ShellExperienceHost" or "SearchHost" or "StartMenuExperienceHost" or "LockApp") return Cache(pid, null);
             try

@@ -134,6 +134,7 @@ public partial class IslandWindow : Window
         WireMusicMore();
         WireHelpers();
         WireSystem();
+        WireGames2();
         WireSend();
         WireNotes();
         WireNotifyDetach();
@@ -1802,6 +1803,7 @@ public partial class IslandWindow : Window
             TrailText.Foreground = gpuHot ? hotBrush : Brushes.White;
             TrailText.Visibility = Visibility.Visible;
             if (gpuHot != _hotPulse) { _hotPulse = gpuHot; Pulse(TrailText, gpuHot); }
+            GamePillExtras(); // FPS in front, the time played at the end (36a / 38)
         }
         else if (acts.Count > 0)
         {
@@ -3082,6 +3084,7 @@ public partial class IslandWindow : Window
             case HotkeyAction.Calculator: OpenQuery("="); break;  // 42
             case HotkeyAction.Search: OpenQuery(""); break;        // 46
             case HotkeyAction.ColorPicker: ScreenshotController.Start(false, picker: true); break; // 30
+            case HotkeyAction.InstantReplay: _ = InstantReplay(); break; // 39
             case HotkeyAction.Controls: ToggleTab("Controls"); break;
             case HotkeyAction.Screenshot: TakeScreenshot(false); break;
             case HotkeyAction.ScreenshotOcr: TakeScreenshot(true); break;

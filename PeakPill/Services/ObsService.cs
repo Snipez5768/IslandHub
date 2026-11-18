@@ -179,6 +179,25 @@ public sealed class ObsService : ObservableObject
     public Task ToggleStream() => Request("ToggleStream");
     public Task SetScene(string name) => Request("SetCurrentProgramScene", new JsonObject { ["sceneName"] = name });
 
+    /// <summary>
+    /// Instant replay (39, 2026-11-18): the replay buffer is switched on when it is off (then there is nothing to save yet),
+    /// otherwise the last seconds are saved and the file is returned. Null: OBS not connected or the buffer just started.
+    /// </summary>
+    public async Task<(bool Started, string File)> SaveReplayAsync()
+    {
+        if (!Connected) return (false, null);
+        var st = await Request("GetReplayBufferStatus");
+        if (st?["outputActive"]?.GetValue<bool>() != true)
+        {
+            await Request("StartReplayBuffer");
+            return (true, null);
+        }
+        await Request("SaveReplayBuffer");
+        await Task.Delay(1600); // OBS writes the file
+        var last = await Request("GetLastReplayBufferReplay");
+        return (false, last?["savedReplayPath"]?.GetValue<string>());
+    }
+
     /// <summary>Settings changed (password) → reconnect.</summary>
     public void Reconnect()
     {

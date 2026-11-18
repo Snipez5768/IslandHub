@@ -526,6 +526,53 @@ public partial class IslandWindow
                     H.Agents.EndDemo();
                     break;
                 }
+                case "games2":
+                {
+                    // 36b play view · 36a reminder · 37 sale card · 39 replay moment (demo data); checks for Steam / RivaTuner
+                    fh = 150;
+                    H.Agents.StopListening();
+                    _demoOnly = true;
+                    H.Media.Fake("Nachtlicht", "Lena Ost", Pic(Color.FromRgb(0xFF, 0x7A, 0x3D), Color.FromRgb(0xE0, 0x3A, 0x5A)), false);
+                    bool wasTucked = _tucked;
+                    if (_tucked) Untuck();
+                    var log = new List<string>();
+                    log.Add($"steam account found={SteamWishlist.LocalSteamId() != null}");
+                    log.Add($"rivatuner running={System.Diagnostics.Process.GetProcessesByName("RTSS").Length > 0}");
+                    H.Usage.DemoSeed();
+                    UpdatePill(true);
+                    await Task.Delay(700);
+                    Expand("Games", true);
+                    await Task.Delay(400);
+                    _playView = true;
+                    RefreshPlayView(true);
+                    await Film(10, 70);
+                    Save("1_spielzeit");
+                    _playView = false;
+                    RefreshPlayView(false);
+                    Collapse();
+                    await Task.Delay(800);
+                    var t = TimeSpan.FromSeconds(H.Usage.GameSecondsToday);
+                    _hintHoldMs = 4500;
+                    ShowHint("gamecontroller", L.T($"{(int)t.TotalHours} h {t.Minutes:00} gespielt – kurze Pause?"), (Brush)FindResource("Orange"), key: "gametime");
+                    await Film(10, 80);
+                    Save("2_erinnerung");
+                    await Task.Delay(4000);
+                    var sale = new PeekInfo { Key = "wish:demo", Icon = "gamecontroller", GlyphBrush = (Brush)FindResource("Green"), Source = L.T("Steam-Wunschliste"), SourceIcon = "gamecontroller",
+                                              SourceBrush = (Brush)FindResource("Green"), Title = "Demo-Spiel", Text = "−60 % · 15,99 €" + L.T(" statt {0}").Replace("{0}", "39,99 €"), TimeoutMs = 10000 };
+                    sale.Action(L.T("Im Shop"), () => { }, true);
+                    ShowPeek(sale);
+                    await Film(10, 70);
+                    Save("3_angebot");
+                    EndPeek();
+                    await Task.Delay(700);
+                    ShowHint("rotate.left", L.T("Speichert die letzten Sekunden …"), (Brush)FindResource("Danger"), key: "replay");
+                    SpinHintIcon();
+                    await Film(12, 100);
+                    Save("4_replay");
+                    File.WriteAllLines(Path.Combine(dir, "games2.txt"), log);
+                    if (wasTucked) Tuck();
+                    break;
+                }
                 case "system2":
                 {
                     // 24a/26/27/25 moments · 23a ring · status view (demo values; nothing of the system is changed)

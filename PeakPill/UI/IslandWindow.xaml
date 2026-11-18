@@ -1604,6 +1604,13 @@
 
                         <!-- ===== GAMES: games and programs the user added – picture + name, one click starts ===== -->
                         <Grid x:Name="TabGames" Visibility="Collapsed">
+                            <!-- 36b (2026-11-18): what was played today – the switch at the top right shows it instead of the tiles -->
+                            <StackPanel x:Name="PlayView" Visibility="Collapsed" VerticalAlignment="Center" Margin="2,0,2,0" Panel.ZIndex="1">
+                                <TextBlock x:Name="PlayHead" FontSize="11" FontWeight="SemiBold" Margin="0,0,0,5" />
+                                <StackPanel x:Name="PlayRows" />
+                            </StackPanel>
+                            <TextBlock x:Name="PlaySwitch" FontSize="10.5" Cursor="Hand" Foreground="{StaticResource SubText}" Background="Transparent"
+                                       HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,-6,2,0" Panel.ZIndex="2" />
                             <!-- the scroll area is 10 px bigger on every side (and the tiles 10 px further in), so lifted / hovered
                                  tiles are no longer cut off at its edges – visually everything stays where it was -->
                             <ScrollViewer x:Name="GamesScroll" HorizontalScrollBarVisibility="Hidden" VerticalScrollBarVisibility="Disabled" VerticalAlignment="Center"
