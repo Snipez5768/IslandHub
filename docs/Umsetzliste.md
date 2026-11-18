@@ -88,7 +88,7 @@ Vor dem Bauen gibt es zu jeder Funktion Mockups im Chat.
 
 - 33 Discord: wer gerade spricht
 - 50 Augen folgen der Maus
-- 31 Nachtlicht und Dunkelmodus – noch prüfen, im Code nicht gefunden
+- 31 Nachtlicht – Schalter im Kontrollzentrum (ein Dunkelmodus-Schalter fehlt noch)
 - 54 Mehrere Monitore – vorhanden ist „Insel folgt dem aktiven Bildschirm“, nicht eine Insel pro Bildschirm
 
 ## Animationen
