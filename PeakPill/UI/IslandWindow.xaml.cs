@@ -851,7 +851,7 @@ public partial class IslandWindow : Window
         Save("3_listening");
         await Task.Delay(1500);
         // a plain notice (timer end) – narrow first, the card on hover; stays because it rings
-        ShowPeek(new PeekInfo { Key = "timer", Important = true, Icon = "timer", GlyphBrush = (Brush)FindResource("Orange"), Title = "Timer abgelaufen", Text = "25 Min · Fokus", TimeoutMs = 0 }
+        ShowPeek(new PeekInfo { Key = "timer", Important = true, Icon = "timer", GlyphBrush = (Brush)FindResource("Orange"), Title = L.T("Timer abgelaufen"), Text = "25 Min · Fokus", TimeoutMs = 0 }
             .Action(L.T("Nochmal"), null).Action("OK", null, true));
         for (int i = 0; i < 8; i++) { Frame(); await Task.Delay(150); }
         OpenTicker();
@@ -3745,7 +3745,7 @@ public partial class IslandWindow : Window
                     break;
                 case "timer":
                     if (S.Animations == AnimationLevel.An) Ripples(((SolidColorBrush)FindResource("Orange")).Color);
-                    if (S.Animations != AnimationLevel.Aus) Shake();
+                    if (S.Animations != AnimationLevel.Aus) Wobble(); // alarm-clock wobble (2026-11-18)
                     break;
             }
         });
@@ -3753,6 +3753,7 @@ public partial class IslandWindow : Window
 
     private void OnAgentNeedsYou(AgentSession s)
     {
+        Wobble(); // Claude needs your answer: the island rings like an alarm clock (not when Claude is just done)
         // orange ring = where Claude stands in its plan; stays until you answer (or dismiss it)
         ShowPeek(new PeekInfo
             {
@@ -6185,10 +6186,10 @@ public partial class IslandWindow : Window
         if (S.Animations != AnimationLevel.Aus && _state != State.Expanded)
         {
             if (S.Animations == AnimationLevel.An) Ripples(((SolidColorBrush)FindResource("Orange")).Color);
-            Shake();
+            Wobble(); // rings like an alarm clock – the same as a due reminder (user wish 2026-11-18: wherever you must act)
             wait = 450;
         }
-        After(wait, () => ShowPeek(new PeekInfo { Key = "timer", Important = true, Icon = "timer", GlyphBrush = (Brush)FindResource("Orange"), Title = "Timer abgelaufen", Text = H.Timer.ModeText, TimeoutMs = 0 }
+        After(wait, () => ShowPeek(new PeekInfo { Key = "timer", Important = true, Icon = "timer", GlyphBrush = (Brush)FindResource("Orange"), Title = L.T("Timer abgelaufen"), Text = H.Timer.ModeText, TimeoutMs = 0 }
             .Action(L.T("Nochmal"), () => { H.Sounds.Stop(); H.Timer.SetDurationSeconds(again); H.Timer.Start(); })
             .Action("OK", () => H.Sounds.Stop(), true)));
     }
@@ -6243,7 +6244,7 @@ public partial class IslandWindow : Window
         if (S.Animations != AnimationLevel.Aus && _state != State.Expanded)
         {
             if (S.Animations == AnimationLevel.An) Ripples(((SolidColorBrush)FindResource("Orange")).Color);
-            Shake();
+            Wobble(); // the alarm clock rings – the island wobbles with it
             wait = 450;
         }
         After(wait, () => ShowPeek(new PeekInfo { Key = "alarm", Important = true, Icon = "bell.ring", GlyphBrush = (Brush)FindResource("Orange"),

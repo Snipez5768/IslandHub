@@ -504,6 +504,28 @@ public partial class IslandWindow
         {
             switch (scene)
             {
+                case "mustact":
+                {
+                    // things you must act on wobble like a due reminder: the timer's first ring, Claude needing input
+                    fh = 130;
+                    H.Agents.StopListening();
+                    _demoOnly = true;
+                    H.Media.FakeNone();
+                    UpdatePill(true);
+                    await Task.Delay(700);
+                    OnTimerCompleted();
+                    await Film(14, 70);
+                    H.Sounds.Stop();
+                    EndPeek();
+                    await Task.Delay(800);
+                    H.Agents.Demo("Demo-Aufgabe", "Frage", 1, 3, 20, AgentState.Waiting, "demo-act");
+                    OnAgentNeedsYou(H.Agents.Sessions.First());
+                    await Film(14, 70);
+                    Save("mustact");
+                    EndPeek();
+                    H.Agents.EndDemo();
+                    break;
+                }
                 case "stack":
                 {
                     // the ring stack: music + timer + Claude + a call; then the stack fans out under the pointer
