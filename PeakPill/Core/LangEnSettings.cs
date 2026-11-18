@@ -132,6 +132,17 @@ public static class LangEnSettings
         ("Suchen", "Search"),
         ("Suche leeren", "Clear search"),
         ("Nichts gefunden", "Nothing found"),
+        // music, second round (2026-11-18)
+        ("15 Sekunden zurück", "15 seconds back"),
+        ("15 Sekunden vor", "15 seconds forward"),
+        ("Schlaftimer", "Sleep timer"),
+        ("Lautstärke pro App", "Volume per app"),
+        ("Songende", "End of song"),
+        ("Musik stoppt in {0} min", "Music stops in {0} min"),
+        ("Musik stoppt nach diesem Song", "Music stops after this song"),
+        ("Gerade macht keine App Ton", "No app is playing sound right now"),
+        ("Liedzeile unter der Insel", "Song line under the island"),
+        ("Die gerade gesungene Zeile erscheint kurz klein unter der Insel. Dafür fragt die Insel den Songtext bei LRCLIB an (nur Titel und Interpret).", "The line being sung appears briefly under the island. For that the island asks LRCLIB for the lyrics (title and artist only)."),
         // the workday (2026-11-18)
         ("Fokus starten", "Start focus"),
         ("{0} diese Woche", "{0} this week"),

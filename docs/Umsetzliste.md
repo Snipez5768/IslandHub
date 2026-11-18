@@ -23,13 +23,13 @@ Vor dem Bauen gibt es zu jeder Funktion Mockups im Chat.
 - [ ] 14 Bildschirmbereich markieren, die KI erklärt ihn
 
 **Musik & Medien**
-- [ ] 15 Wischen auf der Insel: vorheriger oder nächster Titel
-- [ ] 16 Mitlaufende Liedzeile in der zugeklappten Insel
-- [ ] 17 Lautstärke pro App
-- [ ] 18 Ausgabegerät mit einem Klick wechseln
-- [ ] 19 Musik-Schlaftimer
-- [ ] 20 Video-Fortschritt (YouTube, Netflix)
-- [ ] 21 ±15 Sekunden springen (Podcasts, Hörbücher)
+- [x] 15 Wischen auf der Insel: vorheriger oder nächster Titel (15a Gummiband)
+- [x] 16 Liedzeile kurz unter der Insel (16b)
+- [x] 17 Lautstärke pro App (17a Mixer im Kontrollzentrum)
+- [ ] 18 Ausgabegerät mit einem Klick wechseln (noch keine Variante gewählt: 18a Chips oder 18b Durchschalten)
+- [x] 19 Musik-Schlaftimer
+- [x] 20 Video-Fortschritt (YouTube, Netflix)
+- [x] 21 ±15 Sekunden springen (21b, neben der Fortschrittsleiste)
 
 **System**
 - [ ] 23 Akkus von Controller, Maus und Kopfhörern als Ringe

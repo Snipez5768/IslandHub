@@ -89,6 +89,7 @@ public sealed class AppSettings
     public bool EveningMoment { get; set; } = true;
     public int EveningMinutes { get; set; } = 18 * 60;
     public bool ScreenTime { get; set; } = true;
+    public bool LyricLine { get; set; } = true;
     public List<string> MinimalTabs { get; set; } = new() { "Clip", "Ai", "Agent", "Send", "Music", "Notify" };
     public AnimationLevel Animations { get; set; } = AnimationLevel.An;
 

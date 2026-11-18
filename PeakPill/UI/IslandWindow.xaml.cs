@@ -130,6 +130,7 @@ public partial class IslandWindow : Window
         H.Reminders.Due += _ => Ui.Run(() => Note("Remind", 120));
         WireAi();
         WireWorkday();
+        WireMusicMore();
         WireSend();
         WireNotes();
         WireNotifyDetach();
@@ -1769,7 +1770,7 @@ public partial class IslandWindow : Window
         bool coverWasShown = LeadCover.IsVisible, iconWasShown = LeadIcon.IsVisible;
         LeadCover.Visibility = LeadIcon.Visibility = LeadText.Visibility = Visibility.Collapsed;
         Equalizer.Visibility = TrailText.Visibility = TrailLive.Visibility = Visibility.Collapsed;
-        FocusBadge.Visibility = Visibility.Collapsed;
+        FocusBadge.Visibility = SleepBadge.Visibility = Visibility.Collapsed;
         bool clock = !game && acts.Count == 0 && S.ClockInIsland; // nothing going on: the time in the middle (mockup B)
         if (clock && IdleClock.Visibility != Visibility.Visible) { IdleClock.Roll = false; IdleClock.Text = ClockText(); IdleClock.Roll = true; }
         IdleClock.Visibility = clock ? Visibility.Visible : Visibility.Collapsed;
@@ -1810,6 +1811,8 @@ public partial class IslandWindow : Window
                     else ShowLeadIcon("music", musicColor);
                     // P1 (2026-11-18): paused, the bars stay as small dots beside the resting cover
                     Equalizer.Visibility = Visibility.Visible;
+                    if (SleepActive) { SleepBadgeText.Text = SleepLeftText(); SleepBadge.Visibility = Visibility.Visible; } // sleep timer (19)
+                    if (IsVideoNow) { Equalizer.Visibility = Visibility.Collapsed; ShowTrail(VideoLeft(), (Brush)FindResource("SubText")); } // a video: the time left (20)
                     break;
                 case Act.Recording:
                     ShowLeadIcon("record", color);

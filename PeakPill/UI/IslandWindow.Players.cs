@@ -17,7 +17,8 @@ namespace PeakPill.UI;
 public partial class IslandWindow
 {
     private static readonly (string Service, string TitleMark)[] WebPlayers =
-        { ("YouTube Music", "YouTube Music"), ("SoundCloud", "SoundCloud"), ("Apple Music", "Apple Music"), ("Deezer", "Deezer"), ("YouTube", "YouTube") };
+        { ("YouTube Music", "YouTube Music"), ("SoundCloud", "SoundCloud"), ("Apple Music", "Apple Music"), ("Deezer", "Deezer"), ("YouTube", "YouTube"),
+          ("Netflix", "Netflix"), ("Prime Video", "Prime Video"), ("Disney+", "Disney+") }; // videos (2026-11-18): their progress shows in the island
 
     private static readonly Dictionary<string, string> BrowserProcess = new(StringComparer.OrdinalIgnoreCase)
     {

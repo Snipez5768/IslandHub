@@ -526,6 +526,49 @@ public partial class IslandWindow
                     H.Agents.EndDemo();
                     break;
                 }
+                case "music2":
+                {
+                    // 15a swipe · 16b song line · 19 sleep timer · 21b ±15 · 17a mixer (demo song)
+                    fh = 120;
+                    H.Agents.StopListening();
+                    _demoOnly = true;
+                    var cover = Pic(Color.FromRgb(0xFF, 0x7A, 0x3D), Color.FromRgb(0xE0, 0x3A, 0x5A));
+                    H.Media.Fake("Nachtlicht", "Lena Ost", cover, false);
+                    UpdatePill(true);
+                    await Task.Delay(900);
+                    Frame();
+                    for (int i = 0; i <= 12; i++) { ApplySwipe(i * 9); await Task.Delay(40); Frame(); }
+                    SwipeRelease(false);
+                    await Film(10, 50);
+                    Save("1_wischen");
+                    ShowLyric("und die Stadt wird langsam still");
+                    await Film(14, 120);
+                    Save("2_liedzeile");
+                    HideLyric();
+                    Expand("Music", true);
+                    await Task.Delay(500);
+                    Frame();
+                    Sleep_Click(null, null);
+                    await Film(8, 60);
+                    SetSleep(30);
+                    await Task.Delay(300);
+                    Frame();
+                    Save("3_musik_tab");
+                    Collapse();
+                    await Task.Delay(900);
+                    await Film(6, 100);
+                    Save("4_schlaf_insel");
+                    SetSleep(0);
+                    Expand("Controls", true);
+                    await Task.Delay(500);
+                    Frame();
+                    ShowMixer(true);
+                    await Film(10, 60);
+                    Save("5_mixer");
+                    ShowMixer(false);
+                    Collapse();
+                    break;
+                }
                 case "workday":
                 {
                     // 1a focus + 3 week bars · 5a eye break · 6 good morning · 7 evening · 4 screen time (demo data only)

@@ -376,6 +376,13 @@
             <Path x:Name="Bubble2Bridge" Fill="{DynamicResource IslandBubbleBackground}" Visibility="Collapsed" />
         </Canvas>
 
+        <!-- the line sung now, small under the closed island (16b, 2026-11-18) -->
+        <Border x:Name="LyricBubble" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,46,0,0" Padding="9,3,9,4" CornerRadius="10"
+                Background="#E6000000" Opacity="0" IsHitTestVisible="False" MaxWidth="360">
+            <Border.RenderTransform><TranslateTransform x:Name="LyricShift" /></Border.RenderTransform>
+            <TextBlock x:Name="LyricText" Foreground="White" FontSize="11.5" TextTrimming="CharacterEllipsis" />
+        </Border>
+
         <Border x:Name="Island" HorizontalAlignment="Center" VerticalAlignment="Top" Width="176" Height="32" Margin="0,8,0,0"
                 CornerRadius="16" Background="{DynamicResource IslandBackground}"
                 AllowDrop="True">
@@ -479,6 +486,11 @@
                             <Border.RenderTransform><ScaleTransform x:Name="FocusBadgeScale" /></Border.RenderTransform>
                             <TextBlock x:Name="FocusBadgeText" Foreground="White" FontSize="11" />
                         </Border>
+                        <!-- sleep timer (19, 2026-11-18): a small moon with the minutes left -->
+                        <StackPanel x:Name="SleepBadge" Orientation="Horizontal" VerticalAlignment="Center" Margin="7,0,0,0" Visibility="Collapsed">
+                            <ui:SfIcon Kind="moon" Size="11" Foreground="#BF5AF2" VerticalAlignment="Center" />
+                            <TextBlock x:Name="SleepBadgeText" Foreground="#BF5AF2" FontSize="11" FontWeight="SemiBold" Margin="3,0,0,0" VerticalAlignment="Center" />
+                        </StackPanel>
                     </StackPanel>
                     <!-- a new title (A4, 2026-11-18): the island widens, the cover flips, the words come one by one -->
                     <StackPanel x:Name="TitleWords" Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" Margin="8,0,6,0"
@@ -1105,16 +1117,23 @@
                                     </StackPanel>
                                 <Grid Grid.Row="2" Margin="0,0,0,1">
                                     <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto" />
                                         <ColumnDefinition Width="32" />
                                         <ColumnDefinition Width="*" />
                                         <ColumnDefinition Width="34" />
+                                        <ColumnDefinition Width="Auto" />
                                     </Grid.ColumnDefinitions>
-                                    <TextBlock x:Name="MusicPos" FontSize="10" Foreground="{StaticResource SubText}" VerticalAlignment="Center" />
-                                    <ui:SfIcon x:Name="MusicVolIcon" Kind="speaker" Size="13" Foreground="{StaticResource SubText}" HorizontalAlignment="Left" Visibility="Collapsed" />
-                                    <Slider x:Name="MusicProgress" Grid.Column="1" Style="{StaticResource ThinSlider}" Minimum="0" Maximum="1" />
-                                    <Slider x:Name="MusicVolume" Grid.Column="1" Style="{StaticResource ThinSlider}" Minimum="0" Maximum="1" Visibility="Collapsed"
+                                    <!-- 15 s back and forth (21b, 2026-11-18): quiet buttons at both ends of the progress -->
+                                    <Button x:Name="Back15Btn" Style="{StaticResource SmallIconButton}" ui:Ext.Icon="rotate.left" ui:Ext.IconSize="11" Width="20" Height="18" Click="Back15_Click" Margin="-4,0,2,0" />
+                                    <Button x:Name="Fwd15Btn" Grid.Column="4" Style="{StaticResource SmallIconButton}" ui:Ext.Icon="rotate.right" ui:Ext.IconSize="11" Width="20" Height="18" Click="Fwd15_Click" Margin="2,0,-4,0" />
+                                    <TextBlock x:Name="MusicPos" Grid.Column="1" FontSize="10" Foreground="{StaticResource SubText}" VerticalAlignment="Center" />
+                                    <ui:SfIcon x:Name="MusicVolIcon" Grid.Column="1" Kind="speaker" Size="13" Foreground="{StaticResource SubText}" HorizontalAlignment="Left" Visibility="Collapsed" />
+                                    <Slider x:Name="MusicProgress" Grid.Column="2" Style="{StaticResource ThinSlider}" Minimum="0" Maximum="1" />
+                                    <Slider x:Name="MusicVolume" Grid.Column="2" Style="{StaticResource ThinSlider}" Minimum="0" Maximum="1" Visibility="Collapsed"
                                             ValueChanged="MusicVolume_ValueChanged" ToolTip="Nur Spotify – die Systemlautstärke bleibt" />
-                                    <TextBlock x:Name="MusicDur" Grid.Column="2" FontSize="10" Foreground="{StaticResource SubText}" HorizontalAlignment="Right" VerticalAlignment="Center" />
+                                    <TextBlock x:Name="MusicDur" Grid.Column="3" FontSize="10" Foreground="{StaticResource SubText}" HorizontalAlignment="Right" VerticalAlignment="Center" />
+                                    <!-- sleep timer choices (19): they take the progress row for a moment -->
+                                    <StackPanel x:Name="SleepChips" Grid.ColumnSpan="5" Orientation="Horizontal" HorizontalAlignment="Center" Visibility="Collapsed" Background="#FF000000" />
                                 </Grid>
                                 <!-- the buttons under the progress: back · play/pause · forward; on the right source switch, and
                                      for Spotify its own volume and the queue -->
@@ -1125,6 +1144,9 @@
                                                 ui:Ext.Hover="{StaticResource Danger}" ToolTip="Zu Lieblingssongs" Click="MusicLike_Click" Visibility="Collapsed" />
                                         <Button x:Name="MusicLyricsBtn" Style="{StaticResource SmallIconButton}" ui:Ext.Icon="quote" ui:Ext.IconSize="13"
                                                 ui:Ext.Hover="{StaticResource Blue}" ToolTip="Songtext" Click="MusicLyrics_Click" />
+                                        <!-- sleep timer (19, 2026-11-18) -->
+                                        <Button x:Name="SleepBtn" Style="{StaticResource SmallIconButton}" ui:Ext.Icon="moon" ui:Ext.IconSize="12"
+                                                ui:Ext.Hover="#BF5AF2" Click="Sleep_Click" />
                                     </StackPanel>
                                     <StackPanel HorizontalAlignment="Right" Orientation="Horizontal" VerticalAlignment="Center">
                                         <!-- Spotify only: turns the progress bar into Spotify's own volume (Windows mixer) -->
@@ -2341,13 +2363,30 @@
                                     <ColumnDefinition Width="*" />
                                     <ColumnDefinition x:Name="SliderGap" Width="8" />
                                     <ColumnDefinition x:Name="BrightnessCol" Width="*" />
+                                    <ColumnDefinition Width="Auto" />
                                 </Grid.ColumnDefinitions>
                                 <Slider Style="{StaticResource CCHSlider}" Tag="speaker" Value="{Binding Audio.Volume, Mode=TwoWay}" ToolTip="Lautstärke" />
                                 <Slider x:Name="BrightnessSlider" Grid.Column="2" Style="{StaticResource CCHSlider}" Tag="sun" Value="{Binding Brightness.Level, Mode=TwoWay}" ToolTip="Helligkeit" />
+                                <!-- 17a (2026-11-18): every app that makes sound with its own slider -->
+                                <Button x:Name="MixerBtn" Grid.Column="3" Style="{StaticResource SmallIconButton}" ui:Ext.Icon="sliders" ui:Ext.IconSize="14"
+                                        Margin="6,0,0,0" VerticalAlignment="Center" Click="Mixer_Click" />
                             </Grid>
+                            <StackPanel x:Name="MixerView" Visibility="Collapsed" Margin="4,0,4,0">
+                                <DockPanel Margin="0,0,0,5">
+                                    <TextBlock x:Name="MixerBack" DockPanel.Dock="Right" FontSize="10.5" Cursor="Hand" Foreground="{StaticResource SubText}" Background="Transparent" />
+                                    <TextBlock x:Name="MixerTitle" FontSize="11" FontWeight="SemiBold" />
+                                </DockPanel>
+                                <StackPanel x:Name="MixerRows" />
+                            </StackPanel>
                         </StackPanel>
                     </Grid>
                 </Grid>
+                <!-- swipe on the closed island (15a, 2026-11-18): an arrow shows which way the title goes -->
+                <ui:SfIcon x:Name="SwipeArrow" Kind="chevron.right" Size="13" Foreground="White" HorizontalAlignment="Right" VerticalAlignment="Top"
+                           Margin="0,9,10,0" Opacity="0" IsHitTestVisible="False" />
+                <!-- a video in the browser (20, 2026-11-18): a thin line along the bottom shows how far -->
+                <Border x:Name="VideoLine" Height="2" CornerRadius="1" Background="#FF3B30" HorizontalAlignment="Left" VerticalAlignment="Top"
+                        Margin="16,0,0,0" Visibility="Collapsed" IsHitTestVisible="False" />
             </Grid>
         </Border>
         <!-- things that fly between the bubbles and the island (hanging up: the red phone), above everything -->

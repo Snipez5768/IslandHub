@@ -773,6 +773,17 @@
                                     </StackPanel>
                                 </DockPanel>
                             </Border>
+                            <!-- music (2026-11-18): the line sung now under the island -->
+                            <Border Style="{StaticResource Row}">
+                                <DockPanel>
+                                    <ToggleButton x:Name="OptLyricLine" DockPanel.Dock="Right" Style="{StaticResource Switch}" Click="Opt_Click" VerticalAlignment="Center" />
+                                    <ui:HintPic Kind="trackpeek" />
+                                    <StackPanel Margin="0,0,12,0" VerticalAlignment="Center">
+                                        <TextBlock Text="Liedzeile unter der Insel" />
+                                        <TextBlock Style="{StaticResource Desc}" Text="Die gerade gesungene Zeile erscheint kurz klein unter der Insel. Dafür fragt die Insel den Songtext bei LRCLIB an (nur Titel und Interpret)." />
+                                    </StackPanel>
+                                </DockPanel>
+                            </Border>
                             <!-- several screens (2026-11-17): off by default -->
                             <Border Style="{StaticResource Row}">
                                 <DockPanel>
