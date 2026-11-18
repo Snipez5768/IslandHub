@@ -31,6 +31,7 @@ public partial class IslandWindow
         Fwd15Btn.ToolTip = L.T("15 Sekunden vor");
         SleepBtn.ToolTip = L.T("Schlaftimer");
         MixerBtn.ToolTip = L.T("Lautstärke pro App");
+        OutputBtn.ToolTip = L.T("Nächstes Ausgabegerät");
         MixerTitle.Text = L.T("Lautstärke pro App");
         MixerBack.Text = L.T("Zurück");
         MixerBack.MouseEnter += (_, _) => MixerBack.Foreground = Brushes.White;
@@ -445,5 +446,45 @@ public partial class IslandWindow
             if (S.Animations != AnimationLevel.Aus) RowIn(row, 60 + i2 * 90);
             i2++;
         }
+    }
+}
+
+/// <summary>18b (user's pick 2026-11-18): one button that steps to the next sound output; the island shows the symbol
+/// turning from the old device into the new one, with an arrow to go on to the next.</summary>
+public partial class IslandWindow
+{
+    private void Output_Click(object sender, RoutedEventArgs e) => SwitchOutput();
+
+    private void SwitchOutput()
+    {
+        H.Devices.Quiet(TimeSpan.FromSeconds(3)); // our own moment – not the "headphones connected" notice as well
+        var step = AudioOutputs.SwitchNext();
+        if (step is not { } s)
+        {
+            ShowHint("speaker", L.T("Nur ein Ausgabegerät"), (Brush)FindResource("SubText"), key: "output");
+            return;
+        }
+        if (_state == State.Expanded) { Collapse(); After(320, () => OutputMoment(s.From, s.To)); }
+        else OutputMoment(s.From, s.To);
+    }
+
+    private void OutputMoment(AudioOutput from, AudioOutput to)
+    {
+        _hintHoldMs = 2600;
+        ShowHint(from.Icon, to.Name, Brushes.White, key: "output",
+                 actions: new List<(string, string, Brush, Action)> { ("chevron.right", L.T("Nächstes Gerät"), (Brush)FindResource("Blue"), SwitchOutput) });
+        if (from.Icon == to.Icon || S.Animations == AnimationLevel.Aus) { HintIcon.Kind = to.Icon; return; }
+        // the old symbol turns away, the new one turns in
+        After(240, () =>
+        {
+            var away = new DoubleAnimation(1, 0, TimeSpan.FromMilliseconds(130)) { EasingFunction = new CubicEase { EasingMode = EasingMode.EaseIn } };
+            away.Completed += (_, _) =>
+            {
+                HintIcon.Kind = to.Icon;
+                HintIconScale.BeginAnimation(ScaleTransform.ScaleXProperty,
+                    new DoubleAnimation(0, 1, TimeSpan.FromMilliseconds(320)) { EasingFunction = new BackEase { Amplitude = 0.6, EasingMode = EasingMode.EaseOut } });
+            };
+            HintIconScale.BeginAnimation(ScaleTransform.ScaleXProperty, away);
+        });
     }
 }

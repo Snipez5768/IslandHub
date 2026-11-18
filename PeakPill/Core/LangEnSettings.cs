@@ -141,6 +141,9 @@ public static class LangEnSettings
         ("Musik stoppt in {0} min", "Music stops in {0} min"),
         ("Musik stoppt nach diesem Song", "Music stops after this song"),
         ("Gerade macht keine App Ton", "No app is playing sound right now"),
+        ("Nächstes Ausgabegerät", "Next sound output"),
+        ("Nächstes Gerät", "Next device"),
+        ("Nur ein Ausgabegerät", "Only one sound output"),
         ("Liedzeile unter der Insel", "Song line under the island"),
         ("Die gerade gesungene Zeile erscheint kurz klein unter der Insel. Dafür fragt die Insel den Songtext bei LRCLIB an (nur Titel und Interpret).", "The line being sung appears briefly under the island. For that the island asks LRCLIB for the lyrics (title and artist only)."),
         // the workday (2026-11-18)

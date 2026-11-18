@@ -526,6 +526,20 @@ public partial class IslandWindow
                     H.Agents.EndDemo();
                     break;
                 }
+                case "output":
+                {
+                    // 18b: the moment only, with made-up devices (the real output is not switched in a test)
+                    fh = 70;
+                    H.Agents.StopListening();
+                    _demoOnly = true;
+                    H.Media.FakeNone();
+                    UpdatePill(true);
+                    await Task.Delay(700);
+                    OutputMoment(new AudioOutput("a", "Kopfhörer", "headphones"), new AudioOutput("b", "Lautsprecher", "speaker"));
+                    await Film(16, 50);
+                    Save("output");
+                    break;
+                }
                 case "music2":
                 {
                     // 15a swipe · 16b song line · 19 sleep timer · 21b ±15 · 17a mixer (demo song)

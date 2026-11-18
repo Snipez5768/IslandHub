@@ -118,6 +118,9 @@ public sealed class DeviceMoments : IMMNotificationClient, IDisposable
         });
     }
 
+    /// <summary>The island switches the output itself (18b) – its own moment shows, not the headphones notice.</summary>
+    public void Quiet(TimeSpan t) => _quietUntil = DateTime.Now + t;
+
     public void OnDeviceStateChanged(string deviceId, DeviceState newState) { }
     public void OnDeviceAdded(string pwstrDeviceId) { }
     public void OnDeviceRemoved(string deviceId) { }
@@ -126,7 +129,7 @@ public sealed class DeviceMoments : IMMNotificationClient, IDisposable
     /// <summary>Headphones or a headset (form factor), or any Bluetooth audio device.</summary>
     private static readonly PropertyKey EnumeratorName = new(new Guid("A45C254E-DF1C-4EFD-8020-67D146A850E0"), 24); // PKEY_Device_EnumeratorName
 
-    private static bool IsHeadphones(MMDevice d, out bool bluetooth)
+    internal static bool IsHeadphones(MMDevice d, out bool bluetooth)
     {
         bluetooth = false;
         try
@@ -141,7 +144,7 @@ public sealed class DeviceMoments : IMMNotificationClient, IDisposable
         catch { return false; }
     }
 
-    private static string Clean(string name)
+    internal static string Clean(string name)
     {
         name = (name ?? "").Trim();
         foreach (var junk in new[] { " Stereo", " Hands-Free AG Audio", " Hands-Free", " (Stereo)" })

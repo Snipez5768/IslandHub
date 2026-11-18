@@ -2364,12 +2364,16 @@
                                     <ColumnDefinition x:Name="SliderGap" Width="8" />
                                     <ColumnDefinition x:Name="BrightnessCol" Width="*" />
                                     <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="Auto" />
                                 </Grid.ColumnDefinitions>
                                 <Slider Style="{StaticResource CCHSlider}" Tag="speaker" Value="{Binding Audio.Volume, Mode=TwoWay}" ToolTip="Lautstärke" />
                                 <Slider x:Name="BrightnessSlider" Grid.Column="2" Style="{StaticResource CCHSlider}" Tag="sun" Value="{Binding Brightness.Level, Mode=TwoWay}" ToolTip="Helligkeit" />
                                 <!-- 17a (2026-11-18): every app that makes sound with its own slider -->
                                 <Button x:Name="MixerBtn" Grid.Column="3" Style="{StaticResource SmallIconButton}" ui:Ext.Icon="sliders" ui:Ext.IconSize="14"
                                         Margin="6,0,0,0" VerticalAlignment="Center" Click="Mixer_Click" />
+                                <!-- 18b (2026-11-18): every click the next sound output -->
+                                <Button x:Name="OutputBtn" Grid.Column="4" Style="{StaticResource SmallIconButton}" ui:Ext.Icon="headphones" ui:Ext.IconSize="14"
+                                        Margin="2,0,0,0" VerticalAlignment="Center" Click="Output_Click" />
                             </Grid>
                             <StackPanel x:Name="MixerView" Visibility="Collapsed" Margin="4,0,4,0">
                                 <DockPanel Margin="0,0,0,5">
