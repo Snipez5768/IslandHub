@@ -1140,7 +1140,11 @@ public partial class IslandWindow : Window
         _w0 = _sw.Value; _h0 = _sh.Value;
         UpdateAura(); // every change of state comes through here (open, close, card)
         _sw.Target = w; _sh.Target = h; _sr.Target = radius;
-        Pin(_activePanel);
+        // the closed pill only changing its width (a ring added, the stack fanning out): its content grows WITH the island –
+        // laid out at the final width it stuck out and the cover was cut at the left for a moment (2026-11-18)
+        bool pillOnly = _activePanel == PillPanel && Math.Abs(_sh.Value - h) < 1 && Math.Abs(h - (PillH + NotchExtra)) < 1;
+        if (pillOnly) Unpin(PillPanel);
+        else Pin(_activePanel);
         // bubbles centred next to a slim island (pill, hint); next to a tall alert they stay at the top
         double visible = h - NotchExtra;
         double top = (S.Shape == IslandShape.Notch ? 0 : 8) + (visible <= 46 ? Math.Max(0, (visible - 32) / 2) : 0);

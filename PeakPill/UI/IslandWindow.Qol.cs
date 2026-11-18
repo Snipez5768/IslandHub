@@ -288,11 +288,16 @@ public partial class IslandWindow
             else Pop(Equalizer);
         }
         _wasPlaying = playing;
+        // (not while a song swap moves the cover – otherwise always, so a dimmed cover can't stay dim: a held animation
+        // used to block this, the cover stayed grey after pause → play, 2026-11-18)
         double coverOpacity = lead == Act.Music && !playing ? 0.62 : 1;
-        if (Math.Abs(LeadCover.Opacity - coverOpacity) > 0.01 && !LeadCover.HasAnimatedProperties)
+        bool swapping = _songPending || Math.Abs(LeadCoverShift.X) > 0.01;
+        if (!swapping && Math.Abs(LeadCover.Opacity - coverOpacity) > 0.01)
         {
-            if (anim) LeadCover.BeginAnimation(OpacityProperty, new DoubleAnimation(coverOpacity, TimeSpan.FromMilliseconds(260)) { FillBehavior = FillBehavior.Stop });
+            double from = LeadCover.Opacity;
+            LeadCover.BeginAnimation(OpacityProperty, null);
             LeadCover.Opacity = coverOpacity;
+            if (anim) LeadCover.BeginAnimation(OpacityProperty, new DoubleAnimation(from, coverOpacity, TimeSpan.FromMilliseconds(260)) { FillBehavior = FillBehavior.Stop });
         }
         // a different thing leads the island now (e.g. the paused cover gives way to the timer): it slides in softly
         if (anim && lead != null && _lastLead != null && lead != _lastLead)
