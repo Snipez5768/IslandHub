@@ -1866,7 +1866,7 @@ public partial class IslandWindow : Window
                     bool done = !H.Agents.AnyRunning && !H.Agents.AnyWaiting;
                     var c = done ? (Brush)FindResource("Green") : color;
                     ShowLeadIcon(done ? "check" : "asterisk", c);
-                    ShowTrail(done ? "fertig" : ag?.IsWaiting == true ? "wartet" : ag?.HasPlan == true ? ag.Counter : ag?.Elapsed ?? "", c);
+                    ShowTrail(done ? L.T("fertig") : ag?.IsWaiting == true ? L.T("wartet") : ag?.HasPlan == true ? ag.Counter : ag?.Elapsed ?? "", c);
                     Lead.ToolTip = ag == null ? null : $"Claude Code · {ag.Project}\n{ag.Task}\n{ag.Step}";
                     break;
                 }
@@ -3823,8 +3823,12 @@ public partial class IslandWindow : Window
         else NotifClearAll_Click(sender, null);
     }
 
+    /// <summary>Render test (the animation gallery): real notifications stay out of the film.</summary>
+    private bool _demoOnly;
+
     private void OnNotificationArrived(IslandNotification n)
     {
+        if (_demoOnly && n.Id > 0) return;
         EyesNotice(); // the eyes look over to the bell
         UpdateNotifyUi(); // unread dot; read after a moment if the page is open
         if (n.IsCall)

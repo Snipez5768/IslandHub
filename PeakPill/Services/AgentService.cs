@@ -103,6 +103,15 @@ public sealed class AgentService : ObservableObject
         RaiseAll();
     }
 
+    /// <summary>Render test: no real Claude sessions report to this island (the running ones would show up in the film).</summary>
+    public void StopListening()
+    {
+        try { _listener?.Stop(); } catch { }
+        _listener = null;
+        Sessions.Clear();
+        RaiseAll();
+    }
+
     public void Start()
     {
         Load();

@@ -504,6 +504,9 @@ public partial class IslandWindow
         {
             switch (scene)
             {
+                case "showcase":
+                    await ShowcaseAsync(dir); // every animation, filmed into one page (IslandWindow.Showcase.cs)
+                    break;
                 case "open":
                     Expand("Music", true);
                     await Film(14, 45);

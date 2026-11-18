@@ -74,8 +74,12 @@ public sealed class MediaService : ObservableObject
 
     public void SelectSession(MediaSession s) => Attach(s);
 
+    /// <summary>Render test: made-up music is set – the real players are ignored from then on.</summary>
+    private bool _faked;
+
     private void Attach(MediaSession s)
     {
+        if (_faked) return;
         if (_session != null)
         {
             _session.MediaPropertiesChanged -= OnProps;
@@ -98,9 +102,9 @@ public sealed class MediaService : ObservableObject
         RefreshTimeline();
     }
 
-    private void OnProps(MediaSession s, MediaPropertiesChangedEventArgs e) => Ui.Run(() => { if (s == _session) _ = RefreshProps(); });
-    private void OnPlayback(MediaSession s, PlaybackInfoChangedEventArgs e) => Ui.Run(() => { if (s == _session) RefreshPlayback(); });
-    private void OnTimeline(MediaSession s, TimelinePropertiesChangedEventArgs e) => Ui.Run(() => { if (s == _session) RefreshTimeline(); });
+    private void OnProps(MediaSession s, MediaPropertiesChangedEventArgs e) => Ui.Run(() => { if (s == _session && !_faked) _ = RefreshProps(); });
+    private void OnPlayback(MediaSession s, PlaybackInfoChangedEventArgs e) => Ui.Run(() => { if (s == _session && !_faked) RefreshPlayback(); });
+    private void OnTimeline(MediaSession s, TimelinePropertiesChangedEventArgs e) => Ui.Run(() => { if (s == _session && !_faked) RefreshTimeline(); });
 
     private async Task RefreshProps()
     {
@@ -208,10 +212,11 @@ public sealed class MediaService : ObservableObject
     public void FakePlaying(bool playing) => IsPlaying = playing;
 
     /// <summary>Render test only: no music at all (the quiet island).</summary>
-    public void FakeNone() { HasMedia = false; IsPlaying = false; Title = Artist = AppName = null; Cover = null; }
+    public void FakeNone() { _faked = true; HasMedia = false; IsPlaying = false; Title = Artist = AppName = null; Cover = null; }
 
     public void Fake(string title, string artist, BitmapSource cover, bool track)
     {
+        _faked = true;
         bool changed = title != Title;
         Title = title; Artist = artist; AppName = "Spotify"; HasMedia = true; IsPlaying = true;
         var (avg, hash) = cover != null ? Analyze(cover) : (Colors.Transparent, 0L);

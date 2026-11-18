@@ -114,6 +114,9 @@ public static class LangEnSettings
 
         // ---------- 2026-11-18 ----------
         ("Als Notiz", "As a note"),
+        ("In der Insel zeigen", "Show in the island"),
+        ("fertig", "done"),
+        ("wartet", "waiting"),
         ("Uhrzeit", "Time"),
         ("Läuft sonst nichts, steht die Uhrzeit mittig in der Insel.", "When nothing else is going on, the time sits in the middle of the island."),
         ("Mit Sekunden", "With seconds"),
