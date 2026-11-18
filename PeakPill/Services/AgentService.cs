@@ -4,6 +4,7 @@ using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using System.Windows.Threading;
 using PeakPill.Core;
 
@@ -20,11 +21,53 @@ public sealed class PermissionAsk
     public AgentSession Session { get; set; }
     public string Tool { get; init; }
     public JsonElement Input { get; init; }
+    /// <summary>Claude Code's own suggestion for "always allow" (permission_suggestions) – null when it sent none.</summary>
+    public JsonElement? Suggestions { get; init; }
     public TaskCompletionSource<string> Answer { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
     public bool Open => !Answer.Task.IsCompleted;
-    internal void Allow() => Answer.TrySetResult("""{"hookSpecificOutput":{"hookEventName":"PermissionRequest","decision":{"behavior":"allow"}}}""");
-    internal void Deny() => Answer.TrySetResult("""{"hookSpecificOutput":{"hookEventName":"PermissionRequest","decision":{"behavior":"deny","message":"The user denied this in PeakPill."}}}""");
+    /// <summary>A question of Claude's (AskUserQuestion) with answers to pick, instead of allow / deny (9, 2026-11-18).</summary>
+    public bool IsQuestion => Tool == "AskUserQuestion";
+    public string Question => IsQuestion && FirstQuestion is { } q ? AgentService.StrOf(q, "question") : null;
+    public List<string> Options => IsQuestion && FirstQuestion is { } q && q.TryGetProperty("options", out var o) && o.ValueKind == JsonValueKind.Array
+        ? o.EnumerateArray().Select(x => AgentService.StrOf(x, "label")).Where(x => !string.IsNullOrEmpty(x)).ToList() : new();
+    /// <summary>"Immer" (10): Claude's suggestion, or for a command the command itself.</summary>
+    public bool CanAlways => !IsQuestion && (Suggestions is { ValueKind: JsonValueKind.Array } s && s.GetArrayLength() > 0 || Tool is "Bash" && AgentService.StrOf(Input, "command") is { Length: > 0 });
+
+    private JsonElement? FirstQuestion => Input.ValueKind == JsonValueKind.Object && Input.TryGetProperty("questions", out var qs)
+        && qs.ValueKind == JsonValueKind.Array && qs.GetArrayLength() == 1 && qs[0].ValueKind == JsonValueKind.Object
+        && !(qs[0].TryGetProperty("multiSelect", out var m) && m.ValueKind == JsonValueKind.True) ? qs[0] : null;
+
+    /// <summary>Only one single-choice question with 2–4 answers fits the island; everything else stays in Claude.</summary>
+    public bool Answerable => !IsQuestion || Question != null && Options.Count is >= 2 and <= 4;
+
+    private static string Decision(object decision) =>
+        JsonSerializer.Serialize(new { hookSpecificOutput = new { hookEventName = "PermissionRequest", decision } });
+
+    internal void Allow() => Answer.TrySetResult(Decision(new { behavior = "allow" }));
+    internal void Deny() => Answer.TrySetResult(Decision(new { behavior = "deny", message = "The user denied this in PeakPill." }));
     internal void Pass() => Answer.TrySetResult("{}");
+
+    internal void AllowAlways()
+    {
+        JsonNode rules;
+        if (Suggestions is { ValueKind: JsonValueKind.Array } s && s.GetArrayLength() > 0) rules = JsonNode.Parse(s.GetRawText());
+        else rules = new JsonArray(new JsonObject
+        {
+            ["type"] = "addRules", ["behavior"] = "allow", ["destination"] = "localSettings",
+            ["rules"] = new JsonArray(new JsonObject { ["toolName"] = Tool, ["ruleContent"] = AgentService.StrOf(Input, "command") }),
+        });
+        var decision = new JsonObject { ["behavior"] = "allow", ["updatedPermissions"] = rules };
+        Answer.TrySetResult(new JsonObject { ["hookSpecificOutput"] = new JsonObject { ["hookEventName"] = "PermissionRequest", ["decision"] = decision } }.ToJsonString());
+    }
+
+    /// <summary>The picked answer goes back as the tool's input (AskUserQuestion reads "answers": question → label).</summary>
+    internal void AnswerWith(string label)
+    {
+        var input = JsonNode.Parse(Input.GetRawText()) as JsonObject ?? new JsonObject();
+        input["answers"] = new JsonObject { [Question] = label };
+        var decision = new JsonObject { ["behavior"] = "allow", ["updatedInput"] = input };
+        Answer.TrySetResult(new JsonObject { ["hookSpecificOutput"] = new JsonObject { ["hookEventName"] = "PermissionRequest", ["decision"] = decision } }.ToJsonString());
+    }
 }
 
 /// <summary>One Claude Code session as the island shows it.</summary>
@@ -60,12 +103,26 @@ public sealed class AgentSession : ObservableObject
     public int PlanIndex { get; set; } = -1;
     /// <summary>A permission request the island is showing right now (never saved).</summary>
     [System.Text.Json.Serialization.JsonIgnore] public PermissionAsk Ask { get; set; }
+    /// <summary>Files changed in this task (11) – what the "done" moment tells.</summary>
+    [System.Text.Json.Serialization.JsonIgnore] public HashSet<string> ChangedFiles { get; } = new();
+    /// <summary>Claude Code's own record of the session – the tokens are counted from it (12).</summary>
+    public string Transcript { get; set; }
+    private long _tokens;
+    [System.Text.Json.Serialization.JsonIgnore] public long Tokens { get => _tokens; set { if (Set(ref _tokens, value)) { Raise(nameof(TokensText)); Raise(nameof(SideText)); } } }
+    [System.Text.Json.Serialization.JsonIgnore] public double ContextPercent { get; set; }
+    public string TokensText => Tokens <= 0 ? "" : Tokens >= 1_000_000 ? L.T($"{Tokens / 1e6:0.0} Mio Tokens") : L.T($"{Tokens / 1000.0:0}k Tokens");
+    /// <summary>The right side of a row in the Agent tab: "2 / 5 · 1,2 Mio Tokens".</summary>
+    public string SideText => string.Join(" · ", new[] { Counter, TokensText }.Where(x => x.Length > 0));
+    [System.Text.Json.Serialization.JsonIgnore] internal long TranscriptPos;
+    [System.Text.Json.Serialization.JsonIgnore] internal DateTime TokensAt;
+    [System.Text.Json.Serialization.JsonIgnore] internal readonly HashSet<string> SeenMessages = new();
 
     private void Changed()
     {
         Raise(nameof(HasPlan));
         Raise(nameof(Progress));
         Raise(nameof(Counter));
+        Raise(nameof(SideText));
     }
 }
 
@@ -86,7 +143,7 @@ public sealed class AgentService : ObservableObject
     public event Action<AgentSession> PermissionGone;
     private const int PermissionWaitMs = 45000;
     /// <summary>Questions and plan approvals need more than yes / no – those stay "Claude wartet auf dich" (C1).</summary>
-    private static bool NotAskable(string tool) => tool is null or "AskUserQuestion" or "ExitPlanMode";
+    private static bool NotAskable(string tool) => tool is null or "ExitPlanMode";
 
     public bool Any => Sessions.Count > 0;
     public bool AnyRunning => Sessions.Any(s => s.IsRunning);
@@ -202,7 +259,12 @@ public sealed class AgentService : ObservableObject
                         var root = doc.RootElement.Clone();
                         PermissionAsk ask = null;
                         if (Str(root, "hook_event_name") == "PermissionRequest" && !NotAskable(Str(root, "tool_name")))
-                            ask = new PermissionAsk { Tool = Str(root, "tool_name"), Input = root.TryGetProperty("tool_input", out var ti) ? ti : default };
+                            ask = new PermissionAsk
+                            {
+                                Tool = Str(root, "tool_name"), Input = root.TryGetProperty("tool_input", out var ti) ? ti : default,
+                                Suggestions = root.TryGetProperty("permission_suggestions", out var sg) ? sg : null,
+                            };
+                        if (ask is { Answerable: false }) ask = null; // several questions, many answers: Claude asks itself (C1)
                         Ui.Run(() => Handle(root, ask));
                         if (ask != null)
                         {
@@ -224,6 +286,7 @@ public sealed class AgentService : ObservableObject
 
     private static string Str(JsonElement e, string name) =>
         e.ValueKind == JsonValueKind.Object && e.TryGetProperty(name, out var v) && v.ValueKind == JsonValueKind.String ? v.GetString() : null;
+    internal static string StrOf(JsonElement e, string name) => Str(e, name);
 
     internal void Handle(JsonElement e, PermissionAsk ask = null)
     {
@@ -249,6 +312,8 @@ public sealed class AgentService : ObservableObject
         }
         var quiet = DateTime.Now - s.LastEvent;
         s.LastEvent = DateTime.Now;
+        var transcript = Str(e, "transcript_path");
+        if (!string.IsNullOrEmpty(transcript) && transcript != s.Transcript) { s.Transcript = transcript; s.TranscriptPos = 0; s.Tokens = 0; s.SeenMessages.Clear(); }
         var cwd = Str(e, "cwd");
         if (!string.IsNullOrEmpty(cwd)) s.Project = Path.GetFileName(cwd.TrimEnd('\\', '/'));
 
@@ -266,6 +331,7 @@ public sealed class AgentService : ObservableObject
                 s.Done = s.Total = 0;
                 s.PlanItems.Clear();
                 s.PlanIndex = -1;
+                s.ChangedFiles.Clear();
                 break;
 
             case "PreToolUse":
@@ -273,6 +339,7 @@ public sealed class AgentService : ObservableObject
                 s.State = AgentState.Running;
                 if (string.IsNullOrEmpty(s.Task)) s.Task = "Claude Code"; // started before PeakPill knew it – the prompt is unknown
                 OnTool(s, Str(e, "tool_name") ?? "", e.TryGetProperty("tool_input", out var ti) ? ti : default);
+                if (DateTime.Now - s.TokensAt > TimeSpan.FromSeconds(20)) CountTokens(s);
                 break;
 
             case "Notification":
@@ -304,6 +371,7 @@ public sealed class AgentService : ObservableObject
                 if (s.Total > 0) s.Done = s.Total;
                 s.Step = L.T("Fertig");
                 UpdateElapsed(s);
+                CountTokens(s);
                 Finished?.Invoke(s);
                 break;
         }
@@ -312,15 +380,33 @@ public sealed class AgentService : ObservableObject
     }
 
     /// <summary>The click in the island: allow or deny – Claude goes on right away.</summary>
-    public void Decide(PermissionAsk ask, bool allow)
+    public void Decide(PermissionAsk ask, bool allow) =>
+        Settle(ask, a => { if (allow) a.Allow(); else a.Deny(); }, allow ? L.T("Erlaubt – macht weiter") : L.T("Abgelehnt"));
+
+    /// <summary>"Immer" (10): allowed, and Claude Code remembers it.</summary>
+    public void Always(PermissionAsk ask) => Settle(ask, a => a.AllowAlways(), L.T("Erlaubt – macht weiter"));
+
+    /// <summary>An answer to Claude's question (9).</summary>
+    public void Answer(PermissionAsk ask, string label) => Settle(ask, a => a.AnswerWith(label), L.T("Antwort gegeben"));
+
+    /// <summary>"Eigene Antwort": the island steps back, Claude asks in its own window.</summary>
+    public void HandBack(PermissionAsk ask)
     {
         if (!ask.Open) return;
-        if (allow) ask.Allow(); else ask.Deny();
+        ask.Pass();
+        if (ask.Session?.Ask == ask) ask.Session.Ask = null;
+        RaiseAll();
+    }
+
+    private void Settle(PermissionAsk ask, Action<PermissionAsk> how, string step)
+    {
+        if (!ask.Open) return;
+        how(ask);
         var s = ask.Session;
         if (s == null) return;
         if (s.Ask == ask) s.Ask = null;
         s.State = AgentState.Running;
-        s.Step = allow ? L.T("Erlaubt – macht weiter") : L.T("Abgelehnt");
+        s.Step = step;
         RaiseAll();
     }
 
@@ -342,6 +428,7 @@ public sealed class AgentService : ObservableObject
         string Short(string t, int n = 70) { t = FirstLine(t ?? ""); return t.Length > n ? t[..(n - 1)] + "…" : t; }
         return a.Tool switch
         {
+            "AskUserQuestion" => (a.Question ?? L.T("Claude hat eine Frage"), ""),
             "Bash" or "PowerShell" => (L.T("Claude möchte einen Befehl ausführen"), Short(S("command"))),
             "Edit" or "Write" or "MultiEdit" or "NotebookEdit" => (L.T("Claude möchte eine Datei ändern"), Path.GetFileName(S("file_path") ?? S("notebook_path") ?? "")),
             "Read" => (L.T("Claude möchte eine Datei lesen"), Short(S("file_path"))),
@@ -358,6 +445,7 @@ public sealed class AgentService : ObservableObject
         switch (tool)
         {
             case "Edit" or "Write" or "MultiEdit" or "NotebookEdit":
+                if (file.Length > 0) s.ChangedFiles.Add(file);
                 s.Step = L.T($"Bearbeitet {file}"); break;
             case "Read":
                 s.Step = L.T($"Liest {file}"); break;
@@ -461,6 +549,99 @@ public sealed class AgentService : ObservableObject
     }
 
     /// <summary>Brings the Claude app (desktop app or the terminal it runs in) to the front.</summary>
+    /// <summary>
+    /// Counts the session's tokens from Claude Code's own record (12, 2026-11-18): every answer carries its usage –
+    /// input, output and the cached parts. Only the new lines are read each time; one answer can span several lines.
+    /// </summary>
+    private void CountTokens(AgentSession s)
+    {
+        var path = s.Transcript;
+        s.TokensAt = DateTime.Now;
+        if (string.IsNullOrEmpty(path)) return;
+        long from = s.TranscriptPos;
+        Task.Run(() =>
+        {
+            try
+            {
+                if (!File.Exists(path)) return;
+                using var fs = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
+                if (fs.Length <= from) return;
+                fs.Seek(from, SeekOrigin.Begin);
+                var bytes = new byte[fs.Length - from];
+                int read = 0;
+                while (read < bytes.Length) { int n = fs.Read(bytes, read, bytes.Length - read); if (n <= 0) break; read += n; }
+                int end = Array.LastIndexOf(bytes, (byte)'\n', read - 1);
+                if (end < 0) return; // no whole line yet
+                var text = Encoding.UTF8.GetString(bytes, 0, end + 1);
+                long added = 0;
+                double context = -1;
+                var seen = new List<string>();
+                foreach (var line in text.Split('\n'))
+                {
+                    if (!line.Contains("\"usage\"")) continue;
+                    try
+                    {
+                        using var doc = JsonDocument.Parse(line);
+                        if (!doc.RootElement.TryGetProperty("message", out var m) || !m.TryGetProperty("usage", out var u)) continue;
+                        var id = Str(m, "id");
+                        if (id != null && (s.SeenMessages.Contains(id) || seen.Contains(id))) continue;
+                        if (id != null) seen.Add(id);
+                        long N(string k) => u.TryGetProperty(k, out var v) && v.TryGetInt64(out var x) ? x : 0;
+                        long input = N("input_tokens"), cacheNew = N("cache_creation_input_tokens"), cacheRead = N("cache_read_input_tokens");
+                        added += input + N("output_tokens") + cacheNew + cacheRead;
+                        context = input + cacheNew + cacheRead;
+                    }
+                    catch { }
+                }
+                long pos = from + end + 1;
+                Ui.Run(() =>
+                {
+                    if (s.TranscriptPos != from) return; // counted meanwhile
+                    s.TranscriptPos = pos;
+                    foreach (var id in seen) s.SeenMessages.Add(id);
+                    s.Tokens += added;
+                    if (context >= 0) s.ContextPercent = Math.Min(100, 100 * context / (context > 200_000 ? 1_000_000 : 200_000));
+                });
+            }
+            catch { }
+        });
+    }
+
+    /// <summary>
+    /// The window of this one session (8b): a terminal, VS Code or Claude window whose title names the project or the
+    /// task – otherwise any Claude Code window, as before.
+    /// </summary>
+    public static bool OpenHost(AgentSession s)
+    {
+        if (s == null) return OpenHost();
+        var marks = new[] { s.Project, s.Task?.Split(' ').FirstOrDefault(w => w.Length > 4) }.Where(m => !string.IsNullOrWhiteSpace(m)).ToList();
+        var hosts = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "claude", "WindowsTerminal", "Code", "cmd", "powershell", "pwsh", "conhost", "OpenConsole" };
+        IntPtr hit = IntPtr.Zero;
+        try
+        {
+            EnumWindows((h, _) =>
+            {
+                if (!IsWindowVisible(h)) return true;
+                var sb = new StringBuilder(512);
+                GetWindowText(h, sb, sb.Capacity);
+                var title = sb.ToString();
+                if (title.Length == 0 || !marks.Any(m => title.Contains(m, StringComparison.OrdinalIgnoreCase))) return true;
+                GetWindowThreadProcessId(h, out var pid);
+                try { using var p = Process.GetProcessById((int)pid); if (!hosts.Contains(p.ProcessName)) return true; } catch { return true; }
+                hit = h;
+                return false;
+            }, IntPtr.Zero);
+        }
+        catch { }
+        return hit != IntPtr.Zero ? PrivacyService.Focus(hit) : OpenHost();
+    }
+
+    private delegate bool EnumProc(IntPtr h, IntPtr l);
+    [System.Runtime.InteropServices.DllImport("user32.dll")] private static extern bool EnumWindows(EnumProc cb, IntPtr l);
+    [System.Runtime.InteropServices.DllImport("user32.dll")] private static extern bool IsWindowVisible(IntPtr h);
+    [System.Runtime.InteropServices.DllImport("user32.dll", CharSet = System.Runtime.InteropServices.CharSet.Unicode)] private static extern int GetWindowText(IntPtr h, StringBuilder s, int max);
+    [System.Runtime.InteropServices.DllImport("user32.dll")] private static extern uint GetWindowThreadProcessId(IntPtr h, out uint pid);
+
     public static bool OpenHost()
     {
         foreach (var name in new[] { "claude", "Claude", "WindowsTerminal", "Code" })

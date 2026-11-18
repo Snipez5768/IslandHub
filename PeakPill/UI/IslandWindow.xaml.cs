@@ -195,7 +195,12 @@ public partial class IslandWindow : Window
         H.Agents.Finished += OnAgentFinished;
         H.Agents.NeedsYou += OnAgentNeedsYou;
         H.Agents.PermissionAsked += OnPermissionAsked;
-        H.Agents.PermissionGone += _ => { _peeks.RemoveAll(p => p.Key == "agentask"); if (_peek?.Key == "agentask") EndPeek(); };
+        H.Agents.PermissionGone += _ =>
+        {
+            foreach (var k in _askOf.Where(x => !x.Value.Open).Select(x => x.Key).ToList()) _askOf.Remove(k);
+            _peeks.RemoveAll(p => p.Key == "agentask" && !_askOf.ContainsKey(p));
+            if (_peek?.Key == "agentask" && !_askOf.ContainsKey(_peek)) EndPeek();
+        };
         H.Notifications.Arrived += OnNotificationArrived;
         H.Notifications.Items.CollectionChanged += (_, _) => UpdateNotifyUi();
         H.Prices.Fired += OnPriceAlarm;
@@ -3051,6 +3056,8 @@ public partial class IslandWindow : Window
             case HotkeyAction.Reminders: ToggleTab("Remind"); break;
             case HotkeyAction.AiChat: ToggleTab("Ai"); break;
             case HotkeyAction.QuickNote: ToggleTab("Notes"); break;
+            case HotkeyAction.AiSelection: AskAboutSelection(); break;          // 13a (2026-11-18)
+            case HotkeyAction.AiRegion: ScreenshotController.Start(false, explain: true); break; // 14
             case HotkeyAction.Controls: ToggleTab("Controls"); break;
             case HotkeyAction.Screenshot: TakeScreenshot(false); break;
             case HotkeyAction.ScreenshotOcr: TakeScreenshot(true); break;
@@ -3438,7 +3445,7 @@ public partial class IslandWindow : Window
     private void AgentCard_Click(object sender, MouseButtonEventArgs e)
     {
         Collapse();
-        AgentService.OpenHost();
+        AgentService.OpenHost((sender as FrameworkElement)?.DataContext as AgentSession); // that session's own window (8b)
     }
 
     private void OnAgentFinished(AgentSession s)
@@ -3468,6 +3475,7 @@ public partial class IslandWindow : Window
             }
             else if (LeadIcon.Visibility == Visibility.Visible) Pop(LeadIcon);
         });
+        DoneSummary(s); // 11: how many files Claude changed – a click shows which
         After(5200, () => UpdatePill());
     }
 

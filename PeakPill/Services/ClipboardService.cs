@@ -265,6 +265,8 @@ public sealed class ClipboardService : ObservableObject
     public event Action<ClipItem, bool> Captured;
 
     private DateTime _suppressUntil;
+    /// <summary>The island copies something itself for a moment (the selected text, 13a) – not a new entry.</summary>
+    public void Quiet(int ms) => _suppressUntil = DateTime.UtcNow.AddMilliseconds(ms);
     private readonly KeyboardHook _hook = new();
     private readonly Debouncer _save = new(1200);
     private ForegroundTracker _fg;

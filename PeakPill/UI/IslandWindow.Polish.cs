@@ -526,6 +526,64 @@ public partial class IslandWindow
                     H.Agents.EndDemo();
                     break;
                 }
+                case "claude2":
+                {
+                    // 9 question with answers · 10 "Immer" · 11 done summary · 12 tokens (demo data only)
+                    fh = 150;
+                    H.Agents.StopListening();
+                    _demoOnly = true;
+                    H.Media.FakeNone();
+                    var log = new List<string>();
+                    System.Text.Json.JsonElement J(string s) => System.Text.Json.JsonDocument.Parse(s).RootElement.Clone();
+                    // tokens from a made-up record of the session
+                    var tr = Path.Combine(dir, "demo-transcript.jsonl");
+                    File.WriteAllLines(tr, new[]
+                    {
+                        "{\"type\":\"assistant\",\"message\":{\"id\":\"m1\",\"usage\":{\"input_tokens\":1200,\"output_tokens\":800,\"cache_creation_input_tokens\":30000,\"cache_read_input_tokens\":0}}}",
+                        "{\"type\":\"assistant\",\"message\":{\"id\":\"m1\",\"usage\":{\"input_tokens\":1200,\"output_tokens\":800,\"cache_creation_input_tokens\":30000,\"cache_read_input_tokens\":0}}}",
+                        "{\"type\":\"assistant\",\"message\":{\"id\":\"m2\",\"usage\":{\"input_tokens\":500,\"output_tokens\":2500,\"cache_creation_input_tokens\":4000,\"cache_read_input_tokens\":90000}}}",
+                    });
+                    var trJson = System.Text.Json.JsonSerializer.Serialize(tr);
+                    H.Agents.Handle(J("{\"hook_event_name\":\"UserPromptSubmit\",\"session_id\":\"demo-c2\",\"cwd\":\"demo\",\"prompt\":\"Demo-Aufgabe\",\"transcript_path\":" + trJson + "}"));
+                    H.Agents.Handle(J("{\"hook_event_name\":\"PreToolUse\",\"session_id\":\"demo-c2\",\"tool_name\":\"Edit\",\"tool_input\":{\"file_path\":\"C:/demo/eins.txt\"}}"));
+                    H.Agents.Handle(J("{\"hook_event_name\":\"PreToolUse\",\"session_id\":\"demo-c2\",\"tool_name\":\"Write\",\"tool_input\":{\"file_path\":\"C:/demo/zwei.txt\"}}"));
+                    await Task.Delay(800);
+                    var s2 = H.Agents.Sessions.First(x => x.Id == "demo-c2");
+                    log.Add($"tokens={s2.Tokens} text={s2.TokensText} context={s2.ContextPercent:0.0}% side={s2.SideText} files={string.Join(",", s2.ChangedFiles)}");
+                    // 9: a question with three answers
+                    var q = J("{\"hook_event_name\":\"PermissionRequest\",\"session_id\":\"demo-c2\",\"tool_name\":\"AskUserQuestion\",\"tool_input\":{\"questions\":[{\"question\":\"Welche Farbe soll der Knopf haben?\",\"header\":\"Farbe\",\"multiSelect\":false,\"options\":[{\"label\":\"Blau\",\"description\":\"\"},{\"label\":\"Grün\",\"description\":\"\"},{\"label\":\"Orange\",\"description\":\"\"}]}]}}");
+                    var qa = new PermissionAsk { Tool = "AskUserQuestion", Input = q.GetProperty("tool_input") };
+                    log.Add($"question answerable={qa.Answerable} options={string.Join("/", qa.Options)}");
+                    H.Agents.Handle(q, qa);
+                    await Film(16, 70);
+                    Save("1_frage");
+                    H.Agents.Answer(qa, "Grün");
+                    log.Add("answer → " + qa.Answer.Task.Result);
+                    EndPeek();
+                    await Task.Delay(700);
+                    // 10: a command with "Immer"
+                    var c = J("{\"hook_event_name\":\"PermissionRequest\",\"session_id\":\"demo-c2\",\"tool_name\":\"Bash\",\"tool_input\":{\"command\":\"npm run build\"}}");
+                    var ca = new PermissionAsk { Tool = "Bash", Input = c.GetProperty("tool_input") };
+                    H.Agents.Handle(c, ca);
+                    await Film(12, 70);
+                    Save("2_immer");
+                    H.Agents.Always(ca);
+                    log.Add("always → " + ca.Answer.Task.Result);
+                    EndPeek();
+                    await Task.Delay(700);
+                    // 11: done after a while – how many files
+                    s2.StartedAt = DateTime.Now.AddMinutes(-3);
+                    H.Agents.Handle(J("{\"hook_event_name\":\"Stop\",\"session_id\":\"demo-c2\"}"));
+                    await Task.Delay(1700);
+                    await Film(14, 80);
+                    Save("3_fertig");
+                    ShowChangedFiles(s2, s2.ChangedFiles.ToList());
+                    await Film(12, 70);
+                    Save("4_welche");
+                    File.WriteAllLines(Path.Combine(dir, "claude2.txt"), log);
+                    H.Agents.EndDemo();
+                    break;
+                }
                 case "output":
                 {
                     // 18b: the moment only, with made-up devices (the real output is not switched in a test)

@@ -16,11 +16,11 @@ Vor dem Bauen gibt es zu jeder Funktion Mockups im Chat.
 - [x] 7 Feierabend-Moment mit Tageszusammenfassung
 
 **Claude & KI**
-- [ ] 8 Mehrere Claude-Sitzungen als eigene Ringe, Klick springt ins Fenster
-- [ ] 9 Claudes Rückfragen mit Antwort-Knöpfen in der Insel
-- [ ] 12 Verbrauch pro Claude-Sitzung
-- [ ] 13 Markierten Text per Tastenkürzel übersetzen, umformulieren oder erklären
-- [ ] 14 Bildschirmbereich markieren, die KI erklärt ihn
+- [x] 8 Mehrere Claude-Sitzungen (8b: eine Zeile pro Sitzung im Agent-Tab, Klick öffnet ihr Fenster)
+- [x] 9 Claudes Rückfragen mit Antwort-Knöpfen in der Insel
+- [x] 12 Verbrauch pro Claude-Sitzung (Tokens aus dem Verlauf)
+- [x] 13 Markierten Text per Strg+Alt+A übersetzen, umformulieren oder erklären (13a)
+- [x] 14 Bildschirmbereich per Strg+Alt+B markieren, die KI erklärt ihn
 
 **Musik & Medien**
 - [x] 15 Wischen auf der Insel: vorheriger oder nächster Titel (15a Gummiband)
@@ -72,10 +72,10 @@ Vor dem Bauen gibt es zu jeder Funktion Mockups im Chat.
 - [ ] 57 Sprachbefehle
 - [ ] 58 Größer und kontrastreicher
 
-## Erst erklären, dann entscheiden
+## Nach Erklärung gewählt
 
-- 10 „Immer erlauben“ als dritter Knopf bei der Claude-Erlaubnis
-- 11 Zusammenfassung, wenn Claude fertig ist
+- [x] 10 „Immer“ als dritter Knopf bei der Claude-Erlaubnis
+- [x] 11 Zusammenfassung, wenn Claude fertig ist (Anzahl geänderter Dateien, Klick zeigt welche)
 
 ## Später
 

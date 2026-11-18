@@ -653,19 +653,29 @@
                 <StackPanel x:Name="AskPanel" Margin="14,10,14,12" Visibility="Collapsed" VerticalAlignment="Center">
                     <TextBlock x:Name="AskText" Foreground="White" FontSize="12.5" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
                     <TextBlock x:Name="AskDetail" Foreground="#FFAEAEB2" FontSize="11" Margin="0,2,0,0" TextTrimming="CharacterEllipsis" />
-                    <Grid Margin="0,9,0,0">
+                    <Grid x:Name="AskButtons" Margin="0,9,0,0">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*" />
                             <ColumnDefinition Width="6" />
+                            <ColumnDefinition x:Name="AskAlwaysCol" Width="*" />
+                            <ColumnDefinition x:Name="AskAlwaysGap" Width="6" />
                             <ColumnDefinition Width="*" />
                         </Grid.ColumnDefinitions>
                         <Border x:Name="AskAllow" CornerRadius="11" Background="#FF2A2A2A" Padding="0,5" Cursor="Hand">
                             <TextBlock Text="Erlauben" Foreground="White" FontSize="11.5" HorizontalAlignment="Center" />
                         </Border>
-                        <Border x:Name="AskDeny" Grid.Column="2" CornerRadius="11" Background="#FF2A2A2A" Padding="0,5" Cursor="Hand">
+                        <!-- 10 (2026-11-18): allow and remember it -->
+                        <Border x:Name="AskAlways" Grid.Column="2" CornerRadius="11" Background="#FF2A2A2A" Padding="0,5" Cursor="Hand">
+                            <TextBlock Text="Immer" Foreground="White" FontSize="11.5" HorizontalAlignment="Center" />
+                        </Border>
+                        <Border x:Name="AskDeny" Grid.Column="4" CornerRadius="11" Background="#FF2A2A2A" Padding="0,5" Cursor="Hand">
                             <TextBlock Text="Ablehnen" Foreground="White" FontSize="11.5" HorizontalAlignment="Center" />
                         </Border>
                     </Grid>
+                    <!-- 9 (2026-11-18): Claude's question – its answers as buttons -->
+                    <UniformGrid x:Name="AskOptions" Rows="1" Margin="-3,9,-3,0" Visibility="Collapsed" />
+                    <TextBlock x:Name="AskOwn" FontSize="10.5" Foreground="#FFAEAEB2" HorizontalAlignment="Center" Margin="0,7,0,0" Cursor="Hand"
+                               Background="Transparent" Visibility="Collapsed" />
                 </StackPanel>
 
                 <!-- ============ ALERT ============ -->
@@ -1692,7 +1702,7 @@
                                     </StackPanel>
                                     <StackPanel Grid.Column="2" VerticalAlignment="Center">
                                         <TextBlock x:Name="AgentTime" Text="{Binding Elapsed}" FontSize="12.5" FontWeight="SemiBold" Foreground="#E8875B" HorizontalAlignment="Right" />
-                                        <TextBlock Text="{Binding Counter}" FontSize="11" Foreground="{StaticResource SubText}" HorizontalAlignment="Right" />
+                                        <TextBlock Text="{Binding SideText}" FontSize="11" Foreground="{StaticResource SubText}" HorizontalAlignment="Right" />
                                     </StackPanel>
                                 </Grid>
                                 <!-- progress: done / total of Claude's task list, or a moving loader without a list -->
@@ -1743,7 +1753,7 @@
                                                 </StackPanel>
                                                 <StackPanel Grid.Column="2" VerticalAlignment="Center" Margin="0,0,2,0">
                                                     <TextBlock x:Name="time" Text="{Binding Elapsed}" FontSize="12" FontWeight="SemiBold" Foreground="#E8875B" HorizontalAlignment="Right" />
-                                                    <TextBlock Text="{Binding Counter}" FontSize="10.5" Foreground="{StaticResource SubText}" HorizontalAlignment="Right" />
+                                                    <TextBlock Text="{Binding SideText}" FontSize="10.5" Foreground="{StaticResource SubText}" HorizontalAlignment="Right" />
                                                 </StackPanel>
                                                 <!-- thin progress line under the text when Claude keeps a task list -->
                                                 <Grid x:Name="bar" Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="2" Height="2" Margin="10,2,2,0" Visibility="Collapsed">

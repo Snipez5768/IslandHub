@@ -1,5 +1,6 @@
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
 using PeakPill.Core;
@@ -49,57 +50,97 @@ public partial class IslandWindow
             Text = detail,
             TimeoutMs = 0,
         };
-        peek.Action(L.T("Ablehnen"), () => H.Agents.Decide(a, false));
-        peek.Action(L.T("Erlauben"), () => H.Agents.Decide(a, true), true);
+        _askOf[peek] = a;
+        if (a.IsQuestion) Wobble(); // a question: it knocks first (C1), then the answers come
         ShowPeek(peek); // (in the queue like any alert – ShowAskCard shows it in the mockup's look)
     }
 
+    private readonly Dictionary<PeekInfo, PermissionAsk> _askOf = new();
     private bool _askWired;
 
-    /// <summary>C3 as in the mockup: the island grows, the sentence on top, "Erlauben" and "Ablehnen" side by side.</summary>
+    private static readonly Brush AskIdle = Frozen(Color.FromRgb(0x2A, 0x2A, 0x2A)), AskHover = Frozen(Color.FromRgb(0x3A, 0x3A, 0x3C));
+
+    /// <summary>A button of the card: grey, lighter under the pointer; a click closes the card first, then acts.</summary>
+    private Border AskButton(Border b, string text, Action<PermissionAsk> act)
+    {
+        b ??= new Border { CornerRadius = new CornerRadius(11), Padding = new Thickness(6, 5, 6, 5), Margin = new Thickness(3, 0, 3, 0), Cursor = Cursors.Hand,
+                           Child = new TextBlock { Foreground = Brushes.White, FontSize = 11.5, HorizontalAlignment = HorizontalAlignment.Center, TextTrimming = TextTrimming.CharacterEllipsis } };
+        b.Background = AskIdle;
+        ((TextBlock)b.Child).Text = text;
+        b.MouseEnter += (_, _) => b.Background = AskHover;
+        b.MouseLeave += (_, _) => b.Background = AskIdle;
+        b.MouseLeftButtonUp += (_, e) =>
+        {
+            e.Handled = true;
+            var p = _peek;
+            b.Background = AskIdle;
+            EndPeek();
+            if (p != null && _askOf.Remove(p, out var ask)) act(ask);
+        };
+        return b;
+    }
+
+    /// <summary>C3 as in the mockup: the island grows, the sentence on top, "Erlauben" ("Immer") "Ablehnen" side by side –
+    /// or, for Claude's question (9), its answers as buttons.</summary>
     private void ShowAskCard()
     {
         if (!_askWired)
         {
             _askWired = true;
-            ((TextBlock)AskAllow.Child).Text = L.T("Erlauben");
-            ((TextBlock)AskDeny.Child).Text = L.T("Ablehnen");
-            foreach (var (b, allow) in new[] { (AskAllow, true), (AskDeny, false) })
+            AskButton(AskAllow, L.T("Erlauben"), a => H.Agents.Decide(a, true));
+            AskButton(AskAlways, L.T("Immer"), a => H.Agents.Always(a));
+            AskButton(AskDeny, L.T("Ablehnen"), a => H.Agents.Decide(a, false));
+            AskOwn.Text = L.T("Eigene Antwort in Claude");
+            AskOwn.MouseEnter += (_, _) => AskOwn.Foreground = Brushes.White;
+            AskOwn.MouseLeave += (_, _) => AskOwn.Foreground = new SolidColorBrush(Color.FromRgb(0xAE, 0xAE, 0xB2));
+            AskOwn.MouseLeftButtonUp += (_, e) =>
             {
-                var idle = b.Background;
-                var hover = new SolidColorBrush(Color.FromRgb(0x3A, 0x3A, 0x3C));
-                b.MouseEnter += (_, _) => b.Background = hover;
-                b.MouseLeave += (_, _) => b.Background = idle;
-                b.MouseLeftButtonUp += (_, e) =>
-                {
-                    e.Handled = true;
-                    var p = _peek;
-                    b.Background = idle;
-                    EndPeek();
-                    if (p?.Key == "agentask" && p.Actions.Count == 2) p.Actions[allow ? 1 : 0].Act?.Invoke();
-                };
-            }
+                e.Handled = true;
+                var p = _peek;
+                EndPeek();
+                if (p != null && _askOf.Remove(p, out var ask)) { H.Agents.HandBack(ask); AgentService.OpenHost(ask.Session); }
+            };
         }
+        _askOf.TryGetValue(_peek, out var a);
+        bool question = a?.IsQuestion == true;
         AskText.Text = _peek.Title;
         AskDetail.Text = _peek.Text;
         AskDetail.Visibility = string.IsNullOrEmpty(_peek.Text) ? Visibility.Collapsed : Visibility.Visible;
+        AskButtons.Visibility = question ? Visibility.Collapsed : Visibility.Visible;
+        AskOptions.Visibility = AskOwn.Visibility = question ? Visibility.Visible : Visibility.Collapsed;
+        // "Immer" only when Claude Code can remember it (10)
+        bool always = a?.CanAlways == true;
+        AskAlways.Visibility = always ? Visibility.Visible : Visibility.Collapsed;
+        AskAlwaysCol.Width = always ? new GridLength(1, GridUnitType.Star) : new GridLength(0);
+        AskAlwaysGap.Width = new GridLength(always ? 6 : 0);
+        AskOptions.Children.Clear();
+        if (question)
+            foreach (var option in a.Options)
+            {
+                var label = option;
+                AskOptions.Children.Add(AskButton(null, label, x => H.Agents.Answer(x, label)));
+            }
         _peekTimer.Stop();
         ShowPanel(AskPanel);
         AskPanel.Measure(new Size(AskW - 28, double.PositiveInfinity));
         double h = Math.Max(84, AskPanel.DesiredSize.Height);
         AnimateSize(AskW, h + NotchExtra, 22, true);
         ShowSideBubbles();
-        // the buttons come a moment after the island has grown (as in the mockup)
-        if (S.Animations != AnimationLevel.Aus)
+        // the buttons come a moment after the island has grown (as in the mockup) – the answers one by one
+        if (S.Animations == AnimationLevel.Aus) return;
+        if (question)
         {
-            var row = (FrameworkElement)AskAllow.Parent;
-            var fade = new DoubleAnimationUsingKeyFrames();
-            fade.KeyFrames.Add(new DiscreteDoubleKeyFrame(0, KeyTime.FromTimeSpan(TimeSpan.Zero)));
-            fade.KeyFrames.Add(new LinearDoubleKeyFrame(0, KeyTime.FromTimeSpan(TimeSpan.FromMilliseconds(220))));
-            fade.KeyFrames.Add(new LinearDoubleKeyFrame(1, KeyTime.FromTimeSpan(TimeSpan.FromMilliseconds(440))));
-            row.BeginAnimation(OpacityProperty, fade);
+            int i = 0;
+            foreach (FrameworkElement b in AskOptions.Children) RowIn(b, 220 + i++ * 90);
+            return;
         }
+        var fade = new DoubleAnimationUsingKeyFrames();
+        fade.KeyFrames.Add(new DiscreteDoubleKeyFrame(0, KeyTime.FromTimeSpan(TimeSpan.Zero)));
+        fade.KeyFrames.Add(new LinearDoubleKeyFrame(0, KeyTime.FromTimeSpan(TimeSpan.FromMilliseconds(220))));
+        fade.KeyFrames.Add(new LinearDoubleKeyFrame(1, KeyTime.FromTimeSpan(TimeSpan.FromMilliseconds(440))));
+        AskButtons.BeginAnimation(OpacityProperty, fade);
     }
+
 
     private const double AskW = 300;
 

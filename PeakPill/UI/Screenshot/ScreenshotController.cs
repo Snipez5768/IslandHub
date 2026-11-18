@@ -12,7 +12,7 @@ public static class ScreenshotController
 {
     private static bool _busy;
 
-    public static async void Start(bool liveText)
+    public static async void Start(bool liveText, bool explain = false)
     {
         if (GifRecorder.IsRecording) { GifRecorder.Stop(); return; }
         if (_busy) return;
@@ -69,6 +69,7 @@ public static class ScreenshotController
             System.Windows.Media.Imaging.BitmapSource src;
             using (bmp) { src = ScreenshotService.ToBitmapSource(bmp); item = App.Hub.Clipboard.AddImage(src, true); }
 
+            if (explain) { App.Island.ExplainShot(item.ImageFile); return; } // 14 (2026-11-18): the KI says what it is
             if (liveText) { EditorWindow.Open(item, liveText: true); return; }
             // the picture shrinks and flies into the island (2026-11-17, no flash) – the preview comes after it landed
             await App.Island.FlyShot(src, result.Region);
