@@ -526,6 +526,41 @@ public partial class IslandWindow
                     H.Agents.EndDemo();
                     break;
                 }
+                case "system2":
+                {
+                    // 24a/26/27/25 moments · 23a ring · status view (demo values; nothing of the system is changed)
+                    fh = 150;
+                    H.Agents.StopListening();
+                    _demoOnly = true;
+                    H.Media.Fake("Nachtlicht", "Lena Ost", Pic(Color.FromRgb(0xFF, 0x7A, 0x3D), Color.FromRgb(0xE0, 0x3A, 0x5A)), false);
+                    bool wasTucked = _tucked;
+                    if (_tucked) Untuck();
+                    UpdatePill(true);
+                    await Task.Delay(800);
+                    ShowHint("wifi", L.T("Verbunden · Demo-WLAN"), (Brush)FindResource("Blue"), key: "net"); WaveHintIcon();
+                    await Film(12, 80);
+                    Save("1_wlan");
+                    await Task.Delay(2500);
+                    OnDriveAdded(new RemovableDrive("Z:\\", "DEMO-STICK", 28L * 1024 * 1024 * 1024));
+                    await Film(12, 70);
+                    Save("2_usb");
+                    EndPeek();
+                    await Task.Delay(700);
+                    OfferRestart();
+                    await Film(12, 70);
+                    Save("3_update");
+                    EndPeek();
+                    await Task.Delay(700);
+                    Expand("Controls", true);
+                    await Task.Delay(500);
+                    ShowStatus(true);
+                    await Film(12, 70);
+                    Save("4_status");
+                    ShowStatus(false);
+                    Collapse();
+                    if (wasTucked) Tuck();
+                    break;
+                }
                 case "helpers":
                 {
                     // 43/45/41a pills · QR card · 42/46 search · 40a convert · 47 saved (demo data only, no focus taken)

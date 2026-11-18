@@ -16,7 +16,7 @@ public enum AiProvider { Claude, ChatGpt, Gemini }
 public enum HotkeyAction
 {
     ToggleIsland, Clipboard, Screenshot, ScreenshotOcr, Shelf, Music, Widgets, Reminders, Controls,
-    MicMute, QueueMode, PlayPause, NextTrack, PrevTrack, FocusTimer, Settings, AiChat, QuickNote, AiSelection, AiRegion, Calculator, Search
+    MicMute, QueueMode, PlayPause, NextTrack, PrevTrack, FocusTimer, Settings, AiChat, QuickNote, AiSelection, AiRegion, Calculator, Search, ColorPicker
 }
 
 public sealed record HotkeyDef(HotkeyAction Action, string Label, string Default);
@@ -48,6 +48,7 @@ public static class HotkeyInfo
         new(HotkeyAction.AiRegion,      L.T("Bildschirmbereich erklären"),      "Ctrl+Alt+B"),
         new(HotkeyAction.Calculator,    L.T("Rechner"),                         "Ctrl+Alt+Y"),
         new(HotkeyAction.Search,        L.T("Schnellsuche"),                    "Ctrl+Alt+Space"),
+        new(HotkeyAction.ColorPicker,   L.T("Farbpipette"),                     "Ctrl+Alt+H"),
     };
 }
 

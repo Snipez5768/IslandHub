@@ -190,6 +190,8 @@ public partial class IslandWindow
         Act.Alarm => $"{L.T("Wecker")} · {H.Alarm.At:HH:mm}",
         Act.Music => $"{H.Media.Title} – {H.Media.Artist}",
         Act.MicMuted => L.T("Mikro stumm – klicken zum Einschalten"),
+        Act.Device when H.Sys.LowDevice is { } d => $"{d.Name} · {d.Level * 100:0} %",
+        Act.Print => L.T($"Druckt · {H.Sys.PrintText}"),
         _ => null,
     };
 

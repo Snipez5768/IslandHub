@@ -21,6 +21,7 @@ public sealed class Hub
     public TodoService Todos { get; private set; }
     public DayStatsService Day { get; private set; }
     public UsageService Usage { get; private set; }
+    public SystemWatch Sys { get; private set; }
     public FocusTimerService Timer { get; private set; }
     public SoundService Sounds { get; private set; }
     public GameModeService Game { get; private set; }
@@ -104,6 +105,8 @@ public sealed class Hub
 
         Game = new GameModeService(Foreground);
         Game.Start();
+        Sys = new SystemWatch();
+        Sys.Start();
         Privacy = new PrivacyService();
         Privacy.Start();
         Agents = new AgentService();

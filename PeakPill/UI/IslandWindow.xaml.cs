@@ -23,7 +23,8 @@ namespace PeakPill.UI;
 public partial class IslandWindow : Window
 {
     private enum State { Collapsed, Hint, Peek, Expanded }
-    private enum Act { Live, Agent, Obs, Steam, Timer, Music, MicMuted, Queue, Recording, Alarm }
+    private enum Act { Live, Agent, Obs, Steam, Timer, Music, MicMuted, Queue, Recording, Alarm, Device, Print }
+    private bool _hotPulse;
 
     private static readonly string[] TabOrder = { "Live", "Obs", "Music", "Clip", "Shelf", "Send", "Notes", "Agent", "Ai", "Games", "Notify", L.T("Timer"), "Today", "Remind", "Controls" };
     // one fixed size for every tab – the island never jumps when switching tabs
@@ -132,6 +133,7 @@ public partial class IslandWindow : Window
         WireWorkday();
         WireMusicMore();
         WireHelpers();
+        WireSystem();
         WireSend();
         WireNotes();
         WireNotifyDetach();
@@ -1763,6 +1765,8 @@ public partial class IslandWindow : Window
         if (AnyDl || DateTime.Now < _steamDoneUntil) side.Add(Act.Steam); // Steam and browser downloads
         // the alarm shows itself in its last hour (a small bell with the time) – not all night long
         if (alarmSoon) side.Add(Act.Alarm);
+        if (H.Sys.LowDevice != null) side.Add(Act.Device); // a controller / headphones at 20 % (23a)
+        if (H.Sys.Printing) side.Add(Act.Print);          // the printer prints (27)
         acts.InsertRange(Math.Min(1, acts.Count), side);
         // ring stack (default, 2026-11-18): a call / the muted mic never takes the left – it sits on the right with the rings
         if (!S.SideBubbles && acts.Count > 1)
@@ -1787,13 +1791,17 @@ public partial class IslandWindow : Window
 
         if (game)
         {
-            LeadText.Text = $"CPU {H.Stats.Cpu:0}%";
-            LeadText.Foreground = Brushes.White;
+            // with the temperatures when Windows / the graphics driver tell them (28, 2026-11-18) – red from 90 °C
+            var hotBrush = (Brush)FindResource("Danger");
+            bool cpuHot = H.Sys.CpuTemp >= 90, gpuHot = H.Sys.GpuTemp >= 90;
+            LeadText.Text = $"CPU {H.Stats.Cpu:0}%" + (H.Sys.CpuTemp is { } ct ? $"  {ct:0}°" : "");
+            LeadText.Foreground = cpuHot ? hotBrush : Brushes.White;
             LeadText.Visibility = Visibility.Visible;
-            TrailText.Text = H.Stats.HasGpu ? $"GPU {H.Stats.Gpu:0}%  RAM {H.Stats.Ram:0}%" : $"RAM {H.Stats.Ram:0}%";
+            TrailText.Text = H.Stats.HasGpu ? $"GPU {H.Stats.Gpu:0}%" + (H.Sys.GpuTemp is { } gt ? $" {gt:0}°" : "") + $"  RAM {H.Stats.Ram:0}%" : $"RAM {H.Stats.Ram:0}%";
             TrailText.FontSize = 12;
-            TrailText.Foreground = Brushes.White;
+            TrailText.Foreground = gpuHot ? hotBrush : Brushes.White;
             TrailText.Visibility = Visibility.Visible;
+            if (gpuHot != _hotPulse) { _hotPulse = gpuHot; Pulse(TrailText, gpuHot); }
         }
         else if (acts.Count > 0)
         {
@@ -1909,6 +1917,14 @@ public partial class IslandWindow : Window
                 case Act.Alarm:
                     ShowLeadIcon("bell", color);
                     ShowTrail(H.Alarm.At?.ToString("HH:mm") ?? "", color);
+                    break;
+                case Act.Device when H.Sys.LowDevice is { } dev:
+                    ShowLeadIcon(dev.Icon, color);
+                    ShowTrail($"{dev.Level * 100:0} %", color);
+                    break;
+                case Act.Print:
+                    ShowLeadIcon("doc", color);
+                    ShowTrail(H.Sys.PrintText, color);
                     break;
             }
         }
@@ -2085,6 +2101,8 @@ public partial class IslandWindow : Window
         Act.MicMuted => (Brush)FindResource("Danger"),
         Act.Recording => (Brush)FindResource("Danger"),
         Act.Queue => (Brush)FindResource("Accent"),
+        Act.Device => (Brush)FindResource("Danger"),
+        Act.Print => (Brush)FindResource("Blue"),
         _ => MusicTint()
     };
 
@@ -2170,6 +2188,7 @@ public partial class IslandWindow : Window
             Act.Timer or Act.Alarm => L.T("Timer"),
             Act.Music => "Music",
             Act.Queue => "Clip",
+            Act.Device => "Controls",
             _ => null, // GIF recording: no page of its own
         };
         if (tab == null || IsTabHidden(tab)) return null;
@@ -3062,6 +3081,7 @@ public partial class IslandWindow : Window
             case HotkeyAction.AiRegion: ScreenshotController.Start(false, explain: true); break; // 14
             case HotkeyAction.Calculator: OpenQuery("="); break;  // 42
             case HotkeyAction.Search: OpenQuery(""); break;        // 46
+            case HotkeyAction.ColorPicker: ScreenshotController.Start(false, picker: true); break; // 30
             case HotkeyAction.Controls: ToggleTab("Controls"); break;
             case HotkeyAction.Screenshot: TakeScreenshot(false); break;
             case HotkeyAction.ScreenshotOcr: TakeScreenshot(true); break;

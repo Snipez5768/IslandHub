@@ -12,7 +12,7 @@ public static class ScreenshotController
 {
     private static bool _busy;
 
-    public static async void Start(bool liveText, bool explain = false)
+    public static async void Start(bool liveText, bool explain = false, bool picker = false)
     {
         if (GifRecorder.IsRecording) { GifRecorder.Stop(); return; }
         if (_busy) return;
@@ -23,7 +23,7 @@ public static class ScreenshotController
             PreviewWindow.CloseCurrent();
             await Task.Delay(160);
 
-            var result = await RunOverlayAsync();
+            var result = await RunOverlayAsync(picker);
             App.Island.SetCaptureHidden(false);
             if (result == null) return;
 
@@ -97,10 +97,11 @@ public static class ScreenshotController
         done(new CaptureResult { Mode = CaptureMode.Area, Region = new SD.Rectangle(x, y, w, h), DelaySeconds = Math.Max(1, session.DelaySeconds) });
     }
 
-    private static Task<CaptureResult> RunOverlayAsync()
+    private static Task<CaptureResult> RunOverlayAsync(bool picker = false)
     {
         var tcs = new TaskCompletionSource<CaptureResult>();
         var session = new CaptureSession { DelaySeconds = App.Settings.ScreenshotTimer };
+        if (picker) session.Mode = CaptureMode.Picker; // straight to the colour picker with its loupe (30)
         session.Windows.AddRange(ScreenshotService.EnumerateWindows());
         var screens = WF.Screen.AllScreens;
         var shots = screens.Select(s => ScreenshotService.Capture(s.Bounds)).ToList();

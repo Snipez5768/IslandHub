@@ -123,6 +123,8 @@ public partial class IslandWindow
             case Act.Obs: color = H.Obs.Recording ? (Brush)FindResource("Danger") : (Brush)FindResource("Green"); value = 100; kind = "record"; break;
             case Act.Recording: color = (Brush)FindResource("Danger"); value = 100; kind = "record"; break;
             case Act.Alarm: color = (Brush)FindResource("Orange"); value = 100; kind = "bell"; break;
+            case Act.Device when H.Sys.LowDevice is { } dev: color = (Brush)FindResource("Danger"); value = Math.Max(5, dev.Level * 100); kind = dev.Icon; break;
+            case Act.Print: color = (Brush)FindResource("Blue"); value = Math.Max(5, H.Sys.PrintProgress * 100); kind = "doc"; spin = H.Sys.PrintProgress <= 0; break;
             default: color = Brushes.White; value = 100; kind = "dot.radiowaves"; break;
         }
         if (!ReferenceEquals(ring.Stroke, color)) { ring.Stroke = color; ring.Track = Tint(color, 0.22); }

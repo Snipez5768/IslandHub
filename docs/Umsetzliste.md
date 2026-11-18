@@ -32,14 +32,14 @@ Vor dem Bauen gibt es zu jeder Funktion Mockups im Chat.
 - [x] 21 ±15 Sekunden springen (21b, neben der Fortschrittsleiste)
 
 **System**
-- [ ] 23 Akkus von Controller, Maus und Kopfhörern als Ringe
-- [ ] 24 Netzwerk: Tempo, VPN, WLAN-Wechsel
-- [ ] 25 Windows-Update wartet auf Neustart
-- [ ] 26 USB-Stick: Name und Auswerfen
-- [ ] 27 Druckauftrag: Fortschritt, fertig, Papier leer
-- [ ] 28 CPU- und GPU-Temperatur beim Spielen
-- [ ] 29 Akku-Prognose („noch 2 h 10 min“)
-- [ ] 30 Farbpipette mit Farbfeld und Hex-Wert
+- [x] 23 Akkus von Controller, Maus und Kopfhörern (23a Ring ab 20 % + 23b Übersicht im Kontrollzentrum)
+- [x] 24 Netzwerk: Tempo, VPN, WLAN-Wechsel (24a Momente + 24b im Kontrollzentrum)
+- [x] 25 Windows-Update wartet auf Neustart (Heute 22:00 / Jetzt / Später)
+- [x] 26 USB-Stick: Name und Auswerfen
+- [x] 27 Druckauftrag: Fortschritt, fertig, Papier leer
+- [x] 28 CPU- und GPU-Temperatur beim Spielen (GPU über NVIDIA-Treiber, CPU wenn Windows sie meldet)
+- [x] 29 Akku-Prognose („noch 2 h 10 min“, nur Laptops)
+- [x] 30 Farbpipette mit Lupe (Strg+Alt+H)
 
 **Kommunikation**
 - [ ] 32 Handy-Anrufe über Smartphone-Link (hängt davon ab, was Windows erlaubt)
