@@ -35,7 +35,7 @@ public partial class IslandWindow
         // the clock in the quiet island: once a second; only the digits that change roll
         _clockTimer.Tick += (_, _) => { if (IdleClock.IsVisible) IdleClock.Text = ClockText(); };
         _clockTimer.Start();
-        H.Timer.Completed += () => Ui.Run(() => RimRun((Brush)FindResource("Orange"), full: true));
+        H.Timer.Completed += () => Ui.Run(() => { if (_focusRun == null && DateTime.Now > _focusEndedAt.AddSeconds(2)) RimRun((Brush)FindResource("Orange"), full: true); }); // (not after focus: its card comes)
     }
 
     // ---------- the clock (mockup B, 2026-11-18): in the middle of the quiet island, switchable ----------

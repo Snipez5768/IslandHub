@@ -83,6 +83,12 @@ public sealed class AppSettings
     public bool ClockInIsland { get; set; } = true;
     /// <summary>While you type in another window the closed island becomes see-through (2026-11-18).</summary>
     public bool FadeWhileTyping { get; set; } = true;
+    // workday (2026-11-18): eye break every 20 min, the morning and the evening moment, screen time
+    public bool EyeBreak { get; set; } = true;
+    public bool MorningMoment { get; set; } = true;
+    public bool EveningMoment { get; set; } = true;
+    public int EveningMinutes { get; set; } = 18 * 60;
+    public bool ScreenTime { get; set; } = true;
     public List<string> MinimalTabs { get; set; } = new() { "Clip", "Ai", "Agent", "Send", "Music", "Notify" };
     public AnimationLevel Animations { get; set; } = AnimationLevel.An;
 

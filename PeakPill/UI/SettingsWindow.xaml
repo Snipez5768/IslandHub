@@ -731,6 +731,48 @@
                                     </StackPanel>
                                 </DockPanel>
                             </Border>
+                            <!-- the workday (2026-11-18): eye break, good morning, evening, screen time -->
+                            <Border Style="{StaticResource Row}">
+                                <DockPanel>
+                                    <ToggleButton x:Name="OptEyeBreak" DockPanel.Dock="Right" Style="{StaticResource Switch}" Click="Opt_Click" VerticalAlignment="Center" />
+                                    <ui:HintPic Kind="screen" />
+                                    <StackPanel Margin="0,0,12,0" VerticalAlignment="Center">
+                                        <TextBlock Text="Augenpause" />
+                                        <TextBlock Style="{StaticResource Desc}" Text="Nach 20 Minuten am PC schauen die Augen der Insel 20 Sekunden aus dem Fenster – du am besten mit." />
+                                    </StackPanel>
+                                </DockPanel>
+                            </Border>
+                            <Border Style="{StaticResource Row}">
+                                <DockPanel>
+                                    <ToggleButton x:Name="OptMorning" DockPanel.Dock="Right" Style="{StaticResource Switch}" Click="Opt_Click" VerticalAlignment="Center" />
+                                    <ui:HintPic Kind="sun" />
+                                    <StackPanel Margin="0,0,12,0" VerticalAlignment="Center">
+                                        <TextBlock Text="Guten Morgen" />
+                                        <TextBlock Style="{StaticResource Desc}" Text="Morgens beim ersten Mal am PC: Wetter, offene Aufgaben und die nächste Erinnerung." />
+                                    </StackPanel>
+                                </DockPanel>
+                            </Border>
+                            <Border Style="{StaticResource Row}">
+                                <DockPanel>
+                                    <ToggleButton x:Name="OptEvening" DockPanel.Dock="Right" Style="{StaticResource Switch}" Click="Opt_Click" VerticalAlignment="Center" />
+                                    <ComboBox x:Name="OptEveningAt" DockPanel.Dock="Right" Style="{StaticResource DarkCombo}" Width="90" VerticalAlignment="Center" Margin="0,0,10,0" SelectionChanged="EveningAt_Changed" />
+                                    <ui:HintPic Kind="history" />
+                                    <StackPanel Margin="0,0,12,0" VerticalAlignment="Center">
+                                        <TextBlock Text="Feierabend" />
+                                        <TextBlock Style="{StaticResource Desc}" Text="Zur gewählten Uhrzeit: dein Tag in Zahlen – Fokus, erledigte Aufgaben, Claude." />
+                                    </StackPanel>
+                                </DockPanel>
+                            </Border>
+                            <Border Style="{StaticResource Row}">
+                                <DockPanel>
+                                    <ToggleButton x:Name="OptScreenTime" DockPanel.Dock="Right" Style="{StaticResource Switch}" Click="Opt_Click" VerticalAlignment="Center" />
+                                    <ui:HintPic Kind="data" />
+                                    <StackPanel Margin="0,0,12,0" VerticalAlignment="Center">
+                                        <TextBlock Text="Bildschirmzeit" />
+                                        <TextBlock Style="{StaticResource Desc}" Text="Merkt sich, welche App wie lange vorne war – im Heute-Tab. Bleibt nur auf diesem PC." />
+                                    </StackPanel>
+                                </DockPanel>
+                            </Border>
                             <!-- several screens (2026-11-17): off by default -->
                             <Border Style="{StaticResource Row}">
                                 <DockPanel>

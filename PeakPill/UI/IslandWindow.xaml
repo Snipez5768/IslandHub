@@ -473,6 +473,12 @@
                         </Grid>
                         <ui:SfIcon x:Name="LeadIcon" Size="16" Margin="5,0,0,0" Visibility="Collapsed" />
                         <TextBlock x:Name="LeadText" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center" Margin="6,0,0,0" Visibility="Collapsed" />
+                        <!-- focus (1a, 2026-11-18): how many messages wait – it pulses when one more comes -->
+                        <Border x:Name="FocusBadge" CornerRadius="8" Background="#FF2A2A2A" Padding="6,0,6,1" Margin="6,0,0,0" VerticalAlignment="Center"
+                                Visibility="Collapsed" RenderTransformOrigin="0.5,0.5">
+                            <Border.RenderTransform><ScaleTransform x:Name="FocusBadgeScale" /></Border.RenderTransform>
+                            <TextBlock x:Name="FocusBadgeText" Foreground="White" FontSize="11" />
+                        </Border>
                     </StackPanel>
                     <!-- a new title (A4, 2026-11-18): the island widens, the cover flips, the words come one by one -->
                     <StackPanel x:Name="TitleWords" Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" Margin="8,0,6,0"
@@ -618,6 +624,18 @@
                         </Border>
                     </StackPanel>
                 </Grid>
+
+                <!-- ============ MOMENT CARD (2026-11-18): focus done, good morning, evening – rows come in one by one ============ -->
+                <StackPanel x:Name="MomentPanel" Margin="14,10,14,12" Visibility="Collapsed" VerticalAlignment="Center">
+                    <DockPanel>
+                        <TextBlock x:Name="MomentMeta" DockPanel.Dock="Right" Foreground="#FFAEAEB2" FontSize="11" VerticalAlignment="Center" Margin="8,0,0,0" />
+                        <TextBlock x:Name="MomentTitle" Foreground="White" FontSize="13" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                    </DockPanel>
+                    <StackPanel x:Name="MomentRows" Margin="0,5,0,0" />
+                    <Border x:Name="MomentButton" CornerRadius="11" Background="#FF2A2A2A" Padding="0,5" Margin="0,8,0,0" Cursor="Hand" Visibility="Collapsed">
+                        <TextBlock x:Name="MomentButtonText" Foreground="White" FontSize="11.5" HorizontalAlignment="Center" />
+                    </Border>
+                </StackPanel>
 
                 <!-- ============ CLAUDE ASKS (C3, 2026-11-18, as in the mockup): the sentence, below it two buttons ============ -->
                 <StackPanel x:Name="AskPanel" Margin="14,10,14,12" Visibility="Collapsed" VerticalAlignment="Center">
@@ -2115,6 +2133,14 @@
                                     <!-- Wecker: quick times, and when it rings -->
                                     <StackPanel x:Name="AlarmPresets" Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,9,0,0" Visibility="Collapsed" />
                                     <TextBlock x:Name="AlarmStatus" FontSize="11" Foreground="{StaticResource SubText}" HorizontalAlignment="Center" Margin="0,5,0,0" Visibility="Collapsed" />
+                                    <!-- focus (3, 2026-11-18): this week's focus minutes as bars, Monday to Sunday -->
+                                    <StackPanel x:Name="FocusWeek" Margin="0,7,0,0" Visibility="Collapsed" HorizontalAlignment="Center">
+                                        <UniformGrid x:Name="FocusBars" Rows="1" Columns="7" Width="168" Height="34" />
+                                        <DockPanel Margin="0,2,0,0" Width="168">
+                                            <TextBlock x:Name="FocusBack" DockPanel.Dock="Right" FontSize="10.5" Cursor="Hand" Foreground="{StaticResource SubText}" Background="Transparent" />
+                                            <TextBlock x:Name="FocusWeekText" FontSize="10.5" Foreground="{StaticResource SubText}" />
+                                        </DockPanel>
+                                    </StackPanel>
                                 </StackPanel>
                             </Grid>
                             <Grid x:Name="TimerRunning" Visibility="Collapsed">
@@ -2182,10 +2208,19 @@
                                     <TextBlock x:Name="TodayMatchText" FontSize="11.5" FontWeight="SemiBold" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
                                 </DockPanel>
                                 <!-- calendar widget (user wish 2026-11-16): the month, this week and the next ones, today in red -->
+                                <Grid>
                                 <StackPanel x:Name="TodayCalendar">
                                     <TextBlock x:Name="CalMonth" FontSize="11" FontWeight="SemiBold" Foreground="{StaticResource Danger}" Margin="2,0,0,2" />
                                     <UniformGrid x:Name="CalGrid" Columns="7" />
                                 </StackPanel>
+                                <!-- screen time (4, 2026-11-18): which app was in front today -->
+                                <StackPanel x:Name="UsageView" Visibility="Collapsed">
+                                    <TextBlock x:Name="UsageHead" FontSize="11" FontWeight="SemiBold" Margin="2,0,0,4" />
+                                    <StackPanel x:Name="UsageRows" Margin="2,0,0,0" />
+                                </StackPanel>
+                                <TextBlock x:Name="TodaySwitch" FontSize="10.5" Cursor="Hand" Foreground="{StaticResource SubText}" Background="Transparent"
+                                           HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,1,2,0" />
+                                </Grid>
                                 </DockPanel>
                             </Grid>
                         </Grid>

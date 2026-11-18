@@ -178,6 +178,11 @@ public sealed class PeekInfo
     /// <summary>Messengers: the card gets "Antworten" – the text typed in the island is handed to this (2026-11-16).</summary>
     public Action<string> Reply { get; set; }
 
+    /// <summary>A moment card (2026-11-18: focus done, good morning, evening): rows that come in one by one.</summary>
+    public List<(string Glyph, System.Windows.Media.Brush Color, string Text, string Sub)> Rows { get; } = new();
+    /// <summary>Small grey text on the right of the card's title (a date, a time).</summary>
+    public string Meta { get; set; }
+
     public PeekInfo Button(string icon, string tip, Action act, System.Windows.Media.Brush fill = null, bool darkGlyph = false)
     {
         Buttons.Add((icon, tip, fill, darkGlyph, act));

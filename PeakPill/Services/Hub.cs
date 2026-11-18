@@ -19,6 +19,8 @@ public sealed class Hub
     public WeatherService Weather { get; private set; }
     public ReminderService Reminders { get; private set; }
     public TodoService Todos { get; private set; }
+    public DayStatsService Day { get; private set; }
+    public UsageService Usage { get; private set; }
     public FocusTimerService Timer { get; private set; }
     public SoundService Sounds { get; private set; }
     public GameModeService Game { get; private set; }
@@ -92,6 +94,10 @@ public sealed class Hub
         Todos = new TodoService();
         Todos.Load();
         Timer = new FocusTimerService();
+        Day = new DayStatsService();
+        Day.Load();
+        Usage = new UsageService();
+        Usage.Start();
         Alarm = new AlarmService();
         Alarm.Start();
         Sounds = new SoundService();

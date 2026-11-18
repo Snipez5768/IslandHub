@@ -7,13 +7,13 @@ Stand: 18.11.2026. Nummern wie in der Ideenliste im Chat.
 Vor dem Bauen gibt es zu jeder Funktion Mockups im Chat.
 
 **Arbeit & Fokus**
-- [ ] 1 Fokus-Stapel: Mitteilungen während des Fokus-Timers sammeln, danach gesammelt zeigen
-- [ ] 2 Termin-Countdown 10 min vorher, Klick öffnet den Teams- oder Zoom-Link (Outlook- oder Google-Kalender)
-- [ ] 3 Fokus-Statistik pro Woche
-- [ ] 4 Automatische Zeiterfassung pro App und Projekt, Tagesübersicht
-- [ ] 5 Augenpause alle 20 min
-- [ ] 6 Guten-Morgen-Moment: Wetter, Termine, Aufgaben
-- [ ] 7 Feierabend-Moment mit Tageszusammenfassung
+- [x] 1 Fokus-Stapel (1a): Mitteilungen während des Fokus-Timers sammeln, danach gesammelt zeigen
+- [ ] 2 Termin-Countdown (Variante 2a gewählt; kommt, sobald die Insel Termine lesen kann) 10 min vorher, Klick öffnet den Teams- oder Zoom-Link (Outlook- oder Google-Kalender)
+- [x] 3 Fokus-Statistik pro Woche
+- [x] 4 Automatische Zeiterfassung pro App und Projekt, Tagesübersicht
+- [x] 5 Augenpause alle 20 min (5a, Text „Schau kurz aus dem Fenster“)
+- [x] 6 Guten-Morgen-Moment: Wetter, Aufgaben, nächste Erinnerung (Termine kommen mit 2)
+- [x] 7 Feierabend-Moment mit Tageszusammenfassung
 
 **Claude & KI**
 - [ ] 8 Mehrere Claude-Sitzungen als eigene Ringe, Klick springt ins Fenster

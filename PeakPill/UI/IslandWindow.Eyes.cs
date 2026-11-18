@@ -111,7 +111,7 @@ public partial class IslandWindow
             _eyeTimer.Tick += (_, _) => EyeTick();
             _blinkTimer.Tick += (_, _) => Blink();
         }
-        bool wanted = S.IslandEyes && !_tucked;
+        bool wanted = (S.IslandEyes || EyeBreakOn) && !_tucked; // (the eye break is the eyes' own moment)
         if (wanted && !_eyeTimer.IsEnabled) _eyeTimer.Start();
         if (!wanted) { _eyeTimer.Stop(); if (_eyesShown) HideEyes(); }
     }
@@ -125,12 +125,13 @@ public partial class IslandWindow
         if (can && moved && PointerNear(p)) _eyesUntil = DateTime.Now + EyesLinger;
         // the KI writes an answer: the eyes wake up by themselves and look up, thinking (2026-11-17)
         bool thinking = H.Ai.Busy && S.Animations != AnimationLevel.Aus;
-        bool want = can && (DateTime.Now < _eyesUntil || thinking);
+        bool want = can && (DateTime.Now < _eyesUntil || thinking || EyeBreakOn);
         if (want && !_eyesShown) ShowEyes();
         else if (!want && _eyesShown) HideEyes();
         if (!_eyesShown || EyesAge <= OpenDelay + 0.12) return; // the lids are still opening – they look up first
         // tired at night: now and then a big yawn
         if (Night && _fx == 0 && DateTime.Now >= _nextYawn) { _nextYawn = DateTime.Now.AddSeconds(40 + _eyeRnd.Next(50)); EyesYawn(); }
+        if (EyeBreakOn) { if (!_pondering) Glance(1.3, -1.9, 700); _pondering = true; return; } // eye break: up and away, out of the window
         if (thinking) Ponder();
         else if (moved || _pondering) { _pondering = false; LookAt(p); } // awake: follow the pointer
     }

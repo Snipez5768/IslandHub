@@ -317,6 +317,14 @@ public partial class SettingsWindow : Window
         OptScaleScreen.IsChecked = S.ScaleWithScreen;
         OptFollowScreen.IsChecked = S.FollowActiveScreen;
         OptFadeTyping.IsChecked = S.FadeWhileTyping;
+        OptEyeBreak.IsChecked = S.EyeBreak;
+        OptMorning.IsChecked = S.MorningMoment;
+        OptEvening.IsChecked = S.EveningMoment;
+        OptScreenTime.IsChecked = S.ScreenTime;
+        if (OptEveningAt.Items.Count == 0)
+            for (int m = 15 * 60; m <= 22 * 60; m += 30) OptEveningAt.Items.Add(new ComboBoxItem { Content = $"{m / 60}:{m % 60:00}", Tag = m });
+        OptEveningAt.SelectedItem = OptEveningAt.Items.OfType<ComboBoxItem>().FirstOrDefault(i => (int)i.Tag == S.EveningMinutes) ?? OptEveningAt.Items[6];
+        OptEveningAt.IsEnabled = S.EveningMoment;
         OptIslandSize.Value = Math.Round(S.IslandSize * 100);
         IslandSizeText.Text = $"{Math.Round(S.IslandSize * 100)} %";
         OptDevice.IsChecked = S.DeviceInIsland;
@@ -576,6 +584,13 @@ public partial class SettingsWindow : Window
 
     // ---------------- simple options ----------------
 
+    private void EveningAt_Changed(object sender, SelectionChangedEventArgs e)
+    {
+        if (_loading || OptEveningAt.SelectedItem is not ComboBoxItem { Tag: int m }) return;
+        S.EveningMinutes = m;
+        App.SaveSettings();
+    }
+
     private void Opt_Click(object sender, RoutedEventArgs e)
     {
         if (_loading) return;
@@ -594,6 +609,11 @@ public partial class SettingsWindow : Window
         S.ScaleWithScreen = OptScaleScreen.IsChecked == true;
         S.FollowActiveScreen = OptFollowScreen.IsChecked == true;
         S.FadeWhileTyping = OptFadeTyping.IsChecked == true;
+        S.EyeBreak = OptEyeBreak.IsChecked == true;
+        S.MorningMoment = OptMorning.IsChecked == true;
+        S.EveningMoment = OptEvening.IsChecked == true;
+        S.ScreenTime = OptScreenTime.IsChecked == true;
+        OptEveningAt.IsEnabled = S.EveningMoment;
         S.DeviceInIsland = OptDevice.IsChecked == true;
         S.PowerInIsland = OptPower.IsChecked == true;
         S.MusicGlow = OptGlow.IsChecked == true;

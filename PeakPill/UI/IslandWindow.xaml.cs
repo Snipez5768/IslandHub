@@ -129,6 +129,7 @@ public partial class IslandWindow : Window
         H.Timer.Completed += () => Ui.Run(() => Note(L.T("Timer"), 60));
         H.Reminders.Due += _ => Ui.Run(() => Note("Remind", 120));
         WireAi();
+        WireWorkday();
         WireSend();
         WireNotes();
         WireNotifyDetach();
@@ -1105,7 +1106,7 @@ public partial class IslandWindow : Window
 
     private Grid Inner(Border b) => _bubbleInner.TryGetValue(b, out var g) ? g : (Grid)b.Child;
 
-    private FrameworkElement[] Panels => new FrameworkElement[] { PillPanel, HintPanel, PeekPanel, TickerPanel, ExpandedPanel, AskPanel };
+    private FrameworkElement[] Panels => new FrameworkElement[] { PillPanel, HintPanel, PeekPanel, TickerPanel, ExpandedPanel, AskPanel, MomentPanel };
 
     private static Spring NewFade(double from) => new(from, Spring.IslandResponse * 0.55, 1, 0.005);
 
@@ -1768,6 +1769,7 @@ public partial class IslandWindow : Window
         bool coverWasShown = LeadCover.IsVisible, iconWasShown = LeadIcon.IsVisible;
         LeadCover.Visibility = LeadIcon.Visibility = LeadText.Visibility = Visibility.Collapsed;
         Equalizer.Visibility = TrailText.Visibility = TrailLive.Visibility = Visibility.Collapsed;
+        FocusBadge.Visibility = Visibility.Collapsed;
         bool clock = !game && acts.Count == 0 && S.ClockInIsland; // nothing going on: the time in the middle (mockup B)
         if (clock && IdleClock.Visibility != Visibility.Visible) { IdleClock.Roll = false; IdleClock.Text = ClockText(); IdleClock.Roll = true; }
         IdleClock.Visibility = clock ? Visibility.Visible : Visibility.Collapsed;
@@ -1841,7 +1843,8 @@ public partial class IslandWindow : Window
                     break;
                 }
                 case Act.Timer:
-                    ShowLeadIcon("timer", color);
+                    ShowLeadIcon(_focusRun != null ? "moon" : "timer", color);
+                    if (_focusRun != null) FocusLead(); // "Fokus" and how many messages wait (1a)
                     ShowTrail(H.Timer.RemainingText, color);
                     _timerLead = true; // the progress runs around the rim (UpdateTimerRim)
                     break;
@@ -1901,6 +1904,8 @@ public partial class IslandWindow : Window
             }
         }
 
+        bool overlay = !game && PillOverlay(); // the eye break takes the closed island for 20 s (5a)
+        if (overlay) playing = false;
         bool eqOn = playing && !game;
         if (eqOn != _eqRunning) { PageEq(eqOn); _eqRunning = eqOn; }
         if (eqOn) { if (!_barTimer.IsEnabled) _barTimer.Start(); }
@@ -1933,7 +1938,7 @@ public partial class IslandWindow : Window
 
         UpdateEyes(!game && acts.Count == 0); // the little eyes sit on the left only while nothing else is there
         double w, h = (game ? 26 : PillH) + NotchExtra;
-        if (game || acts.Count > 0)
+        if (game || acts.Count > 0 || overlay)
         {
             Lead.Measure(new Size(double.PositiveInfinity, 40));
             Trail.Measure(new Size(double.PositiveInfinity, 40));
@@ -2729,6 +2734,7 @@ public partial class IslandWindow : Window
         PeekProgressScale.BeginAnimation(ScaleTransform.ScaleXProperty, null);
         PeekProgress.Visibility = Visibility.Collapsed;
         if (_peek.Key == "agentask") { ShowAskCard(); return; } // Claude asks for a permission: its own look (C3)
+        if (_peek.Rows.Count > 0) { ShowMomentCard(); return; }  // focus done, good morning, evening (2026-11-18)
         if (_peek.Ticker && !_peek.Open) { ShowTicker(); return; }
 
         // screenshot moment: the island opens downwards with the picture, then it shrinks into the island
@@ -3855,6 +3861,7 @@ public partial class IslandWindow : Window
     private void OnNotificationArrived(IslandNotification n)
     {
         if (_demoOnly && n.Id > 0) return;
+        if (_focusRun != null && !n.IsCall) { HoldForFocus(n); return; } // focus: collected quietly, shown at the end (1a)
         EyesNotice(); // the eyes look over to the bell
         UpdateNotifyUi(); // unread dot; read after a moment if the page is open
         if (n.IsCall)
@@ -4765,10 +4772,12 @@ public partial class IslandWindow : Window
             TimerStartBtn.Background = Tint((Brush)FindResource("Green"), 0.24);
             TimerStartBtn.Foreground = (Brush)FindResource("Green");
         }
+        ApplyFocusMode(); // the focus side: "Fokus starten" and the week bars (2026-11-18)
     }
 
     private void TimerStart_Click(object sender, RoutedEventArgs e)
     {
+        if (_focusMode && !_alarmMode) { StartFocus(); return; }
         if (_alarmMode)
         {
             bool showsSet = H.Alarm.At is { } at && at.Hour == HourWheel.Value && at.Minute == MinuteWheel.Value;
@@ -4792,6 +4801,7 @@ public partial class IslandWindow : Window
 
     private void TimerCancel_Click(object sender, RoutedEventArgs e)
     {
+        if (_focusRun != null) FocusFinished(false);
         H.Timer.Reset();
         UpdateTimerUi();
     }
@@ -6172,6 +6182,7 @@ public partial class IslandWindow : Window
 
     private void OnTimerCompleted()
     {
+        if (_focusRun != null) { FocusFinished(true); return; } // a focus session: no alarm – the collected messages come (1a)
         // the sound chosen in Settings › Allgemein › Timer – repeats until confirmed if enabled
         H.Sounds.Play(S.TimerSound, S.TimerSoundRepeat);
         if (_state == State.Expanded && !IsActive) Collapse();

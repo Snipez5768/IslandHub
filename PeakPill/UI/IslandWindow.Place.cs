@@ -171,6 +171,7 @@ public partial class IslandWindow
             TodayMatchState.Foreground = m.Live ? (Brush)FindResource("Green") : (Brush)FindResource("SubText");
         }
         BuildCalendar(m != null ? 2 : 3);
+        RefreshTodaySide(true); // calendar or screen time (2026-11-18)
     }
 
     /// <summary>

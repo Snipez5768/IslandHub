@@ -526,6 +526,66 @@ public partial class IslandWindow
                     H.Agents.EndDemo();
                     break;
                 }
+                case "workday":
+                {
+                    // 1a focus + 3 week bars · 5a eye break · 6 good morning · 7 evening · 4 screen time (demo data only)
+                    fh = 190;
+                    H.Agents.StopListening();
+                    _demoOnly = true;
+                    H.Media.FakeNone();
+                    var monday = DateTime.Today.AddDays(-(((int)DateTime.Today.DayOfWeek + 6) % 7));
+                    double[] demo = { 50, 95, 25, 80, 0, 0, 0 };
+                    for (int i = 0; i < 7; i++) if (monday.AddDays(i) <= DateTime.Today) H.Day.Get(monday.AddDays(i)).FocusMinutes = demo[i];
+                    Expand("Timer", true);
+                    await Task.Delay(500);
+                    SetFocusMode(true);
+                    await Film(14, 50);
+                    Save("1_fokus_seite");
+                    HourWheel.Value = 0; MinuteWheel.Value = 0; SecondWheel.Value = 14;
+                    StartFocus();
+                    await Task.Delay(1200);
+                    await Film(6, 80);
+                    foreach (var (app, t) in new[] { ("Demo-Chat", "Kommst du nachher?"), ("Paket", "Zustellung heute"), ("Kalender", "Termin verschoben") })
+                    {
+                        HoldForFocus(new IslandNotification { Id = -1, AppName = app, Title = t, Time = DateTime.Now });
+                        await Film(6, 80);
+                    }
+                    Save("2_fokus_sammelt");
+                    while (_focusRun != null) await Task.Delay(200);
+                    await Film(24, 60);
+                    Save("3_fokus_ende");
+                    EndPeek();
+                    await Task.Delay(900);
+                    StartEyeBreak();
+                    await Film(24, 100);
+                    Save("4_augenpause");
+                    _eyeBreakUntil = DateTime.Now;
+                    await Task.Delay(1500);
+                    H.Day.Today.MorningShown = false;
+                    _peeks.Clear();
+                    MorningCheck(force: true);
+                    await Film(22, 60);
+                    Save("5_morgen");
+                    EndPeek();
+                    await Task.Delay(900);
+                    H.Day.Today.EveningShown = false;
+                    H.Day.Today.TodosDone = 4; H.Day.Today.ClaudeDone = 6;
+                    H.Usage.DemoSeed();
+                    EveningCheck(force: true);
+                    await Film(22, 60);
+                    Save("6_feierabend");
+                    EndPeek();
+                    await Task.Delay(900);
+                    Expand("Today", true);
+                    await Task.Delay(400);
+                    _usageView = true;
+                    RefreshTodaySide(true);
+                    await Film(12, 60);
+                    Save("7_bildschirmzeit");
+                    _usageView = false;
+                    Collapse();
+                    break;
+                }
                 case "hookhttp":
                 {
                     // the real way: an HTTP permission request to the island's own hook port, then the click
