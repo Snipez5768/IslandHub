@@ -526,6 +526,27 @@ public partial class IslandWindow
                     H.Agents.EndDemo();
                     break;
                 }
+                case "hookhttp":
+                {
+                    // the real way: an HTTP permission request to the island's own hook port, then the click
+                    fh = 120;
+                    var log = new List<string>();
+                    var sw = System.Diagnostics.Stopwatch.StartNew();
+                    using var http = new System.Net.Http.HttpClient { Timeout = TimeSpan.FromSeconds(60) };
+                    var body = "{\"hook_event_name\":\"PermissionRequest\",\"session_id\":\"peakpill-test\",\"tool_name\":\"Bash\",\"tool_input\":{\"command\":\"echo PeakPill-Test\"}}";
+                    var send = http.PostAsync($"http://127.0.0.1:{AgentService.Port}/hook", new System.Net.Http.StringContent(body, System.Text.Encoding.UTF8, "application/json"));
+                    await Task.Delay(1500);
+                    log.Add($"after 1.5 s: done={send.IsCompleted} state={_state} peek={_peek?.Key} queued={_peeks.Count} sessions={H.Agents.Sessions.Count} ask={H.Agents.Sessions.FirstOrDefault(x => x.Id == "peakpill-test")?.Ask != null}");
+                    Frame();
+                    var ask = H.Agents.Sessions.FirstOrDefault(x => x.Id == "peakpill-test")?.Ask;
+                    if (ask != null) H.Agents.Decide(ask, true);
+                    var resp = await send;
+                    log.Add($"answer after {sw.ElapsedMilliseconds} ms: {await resp.Content.ReadAsStringAsync()}");
+                    try { var lines = File.ReadAllLines(Storage.PathOf("log.txt")); log.AddRange(lines.Skip(Math.Max(0, lines.Length - 25))); } catch (Exception ex) { log.Add("no log: " + ex.Message); }
+                    Save("hookhttp");
+                    File.WriteAllLines(Path.Combine(dir, "hookhttp.txt"), log);
+                    break;
+                }
                 case "claudeask":
                 {
                     // A4 new title word by word · C1 Claude waits for you · C3 a permission with "Erlauben" / "Ablehnen"

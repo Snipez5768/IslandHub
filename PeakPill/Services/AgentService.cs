@@ -213,7 +213,7 @@ public sealed class AgentService : ObservableObject
                         }
                     }
                 }
-                catch { answer = "{}"; }
+                catch (Exception ex) { answer = "{}"; App.Log(ex); }
                 var bytes = Encoding.UTF8.GetBytes(answer);
                 await s.WriteAsync(Encoding.ASCII.GetBytes($"HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: {bytes.Length}\r\nConnection: close\r\n\r\n"));
                 await s.WriteAsync(bytes);
