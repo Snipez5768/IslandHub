@@ -391,7 +391,8 @@ textarea{width:100%;min-height:120px;font:12.5px Consolas,monospace;border-radiu
 <header><h1>PeakPill · alle Animationen</h1>
 <span class="ctl">Tempo <input type="range" id="speed" min="0.25" max="1" step="0.25" value="1"> <span id="sv">1×</span></span>
 <span class="ctl" id="count"></span>
-<span class="seg filt"><input type="radio" name="f" id="fAll" value="all" checked><label for="fAll">Alle</label><input type="radio" name="f" id="fMine" value="mine"><label for="fMine">Nur meine Markierungen</label></span>
+<span class="seg filt"><input type="radio" name="f" id="fAll" value="all" checked><label for="fAll">Alle</label><input type="radio" name="f" id="fMine" value="mine"><label for="fMine">Nur zum Überarbeiten</label></span>
+<button id="give" style="background:var(--acc);border-color:var(--acc);color:#fff">An Claude übergeben</button>
 <button id="copy">Auswahl kopieren</button></header>
 <main><div id="out"></div>
 <h2>Nicht filmbar (eigenes Fenster bzw. Uhrzeit-abhängig)</h2><div class="grid" id="nf"></div>
@@ -425,9 +426,9 @@ for(const g of groups){const h=document.createElement('h2');h.textContent=g;h.da
   d.querySelector('.note').oninput=e=>{saved[c.id]={...(saved[c.id]||{}),note:e.target.value};save();upd()};
  }}
 const nf=document.getElementById('nf');for(const x of NF){const d=document.createElement('div');d.className='nf';d.innerHTML=`<div class="t">${x.title}</div><div class="w">${x.what}</div>`;nf.appendChild(d)}
-const emptyMsg=document.createElement('div');emptyMsg.className='empty hide';emptyMsg.textContent='Noch nichts markiert – bei „Alle“ eine Animation auf „Überarbeiten“ setzen oder bei „Gefällt“ etwas dazuschreiben.';out.prepend(emptyMsg);
+const emptyMsg=document.createElement('div');emptyMsg.className='empty hide';emptyMsg.textContent='Noch nichts zum Überarbeiten markiert – bei „Alle“ eine Animation auf „Überarbeiten“ setzen.';out.prepend(emptyMsg);
 // "only mine": everything to rework, and what you liked but wrote something about
-function mine(c){const s=saved[c.id]||{};return s.pick==='fix'||(s.pick==='ok'&&(s.note||'').trim()!=='')}
+function mine(c){const s=saved[c.id]||{};return s.pick==='fix'}
 function filter(){const only=document.getElementById('fMine').checked;let any=0;
  for(const c of C){const show=!only||mine(c);document.getElementById('c'+c.n).classList.toggle('hide',!show);if(show)any++}
  document.querySelectorAll('#out h2,#out .grid').forEach(el=>{const g=el.dataset.g;const vis=C.some(c=>c.group===g&&!document.getElementById('c'+c.n).classList.contains('hide'));el.classList.toggle('hide',!vis)});
@@ -440,6 +441,10 @@ function upd(){const ok=[],fx=[];for(const c of C){const s=saved[c.id]||{};const
  if(document.getElementById('fMine').checked)filter()}
 document.getElementById('speed').oninput=e=>{speed=+e.target.value;document.getElementById('sv').textContent=speed+'×'};
 document.getElementById('copy').onclick=()=>{const t=document.getElementById('sel');t.select();try{navigator.clipboard.writeText(t.value)}catch(e){document.execCommand('copy')}};
+// hand it over: the list lands as a file in Downloads ("peakpill-auswahl.txt") – Claude reads it from there
+document.getElementById('give').onclick=()=>{const t=document.getElementById('sel').value||'(nichts markiert)';
+ const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([t],{type:'text/plain;charset=utf-8'}));a.download='peakpill-auswahl.txt';document.body.appendChild(a);a.click();a.remove();
+ const b=document.getElementById('give');b.textContent='Übergeben ✓ – sag Claude Bescheid';setTimeout(()=>b.textContent='An Claude übergeben',4000)};
 upd();
 </script></body></html>
 """);
