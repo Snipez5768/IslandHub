@@ -526,6 +526,63 @@ public partial class IslandWindow
                     H.Agents.EndDemo();
                     break;
                 }
+                case "claudeask":
+                {
+                    // A4 new title word by word · C1 Claude waits for you · C3 a permission with "Erlauben" / "Ablehnen"
+                    fh = 120;
+                    H.Agents.StopListening();
+                    _demoOnly = true;
+                    bool peekWas = S.TrackPeek;
+                    S.TrackPeek = true;
+                    var log = new List<string>();
+                    var cover = Pic(Color.FromRgb(0xFF, 0x7A, 0x3D), Color.FromRgb(0xE0, 0x3A, 0x5A));
+                    var cover2 = Pic(Color.FromRgb(0x3D, 0x8B, 0xFF), Color.FromRgb(0x5A, 0x3A, 0xE0));
+                    H.Media.Fake("Nachtlicht", "Lena Ost", cover, false);
+                    UpdatePill(true);
+                    await Task.Delay(1200);
+                    Frame();
+                    H.Media.Fake("Morgenrot über der Stadt", "Lena Ost", cover2, true);
+                    await Film(40, 70);
+                    log.Add($"title: words={TitleWords.Children.Count} w={_titleW:0} visible={TitleWords.Visibility}");
+                    await Task.Delay(2500);
+                    Frame();
+                    Save("a4_title");
+                    log.Add($"title after: visible={TitleWords.Visibility} islandW={_targetW:0}");
+
+                    H.Agents.Demo("Demo-Aufgabe", "Liest", 1, 3, 20, AgentState.Running, "demo-ask", "demo");
+                    UpdatePill(true);
+                    await Task.Delay(900);
+                    Frame();
+                    // C1: a question
+                    var q = System.Text.Json.JsonDocument.Parse("{\"hook_event_name\":\"PermissionRequest\",\"session_id\":\"demo-ask\",\"tool_name\":\"AskUserQuestion\",\"tool_input\":{}}").RootElement.Clone();
+                    H.Agents.Handle(q);
+                    await Film(22, 60);
+                    log.Add($"c1: lead={LeadText.Text} waiting={H.Agents.AnyWaiting}");
+                    Save("c1_wartet");
+                    // C3: a permission
+                    var p = System.Text.Json.JsonDocument.Parse("{\"hook_event_name\":\"PermissionRequest\",\"session_id\":\"demo-ask\",\"tool_name\":\"Bash\",\"tool_input\":{\"command\":\"npm run build\"}}").RootElement.Clone();
+                    var ask = new PermissionAsk { Tool = "Bash", Input = p.GetProperty("tool_input") };
+                    H.Agents.Handle(p, ask);
+                    await Film(16, 60);
+                    log.Add($"c3: state={_state} peek={_peek?.Key} title={_peek?.Title} text={_peek?.Text} buttons={string.Join(",", _peek?.Actions.Select(x => x.Label) ?? new string[0])}");
+                    await Task.Delay(600);
+                    Frame();
+                    Save("c3_erlauben");
+                    H.Agents.Decide(ask, true);
+                    log.Add($"c3 allow → answer={(ask.Answer.Task.IsCompleted ? ask.Answer.Task.Result : "open")} waiting={H.Agents.AnyWaiting}");
+                    // answered in Claude's own window: the card goes away and the hook says "{}"
+                    var ask2 = new PermissionAsk { Tool = "Edit", Input = System.Text.Json.JsonDocument.Parse("{\"file_path\":\"C:/demo/beispiel.txt\"}").RootElement.Clone() };
+                    H.Agents.Handle(p, ask2);
+                    await Task.Delay(500);
+                    log.Add($"c3b: peek={_peek?.Key} title={_peek?.Title} text={_peek?.Text}");
+                    H.Agents.Handle(System.Text.Json.JsonDocument.Parse("{\"hook_event_name\":\"PreToolUse\",\"session_id\":\"demo-ask\",\"tool_name\":\"Read\",\"tool_input\":{}}").RootElement.Clone());
+                    await Task.Delay(500);
+                    log.Add($"c3b elsewhere → answer={(ask2.Answer.Task.IsCompleted ? ask2.Answer.Task.Result : "open")} peek={_peek?.Key} state={_state}");
+                    File.WriteAllLines(Path.Combine(dir, "claudeask.txt"), log);
+                    H.Agents.EndDemo();
+                    S.TrackPeek = peekWas;
+                    break;
+                }
                 case "pausep1":
                 {
                     // P1 "zur Ruhe kommen": playing → paused (bars sink to dots, cover tips back, pause sign) → playing

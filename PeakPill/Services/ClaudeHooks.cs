@@ -4,13 +4,15 @@ using System.Text.Json.Nodes;
 namespace PeakPill.Services;
 
 /// <summary>
-/// Sets up Claude Code so the island sees what it works on (user wish 2026-11-17): five "http" hooks in the user's
+/// Sets up Claude Code so the island sees what it works on (user wish 2026-11-17): six "http" hooks in the user's
 /// own Claude Code settings (%USERPROFILE%\.claude\settings.json) post every step to <see cref="AgentService"/>.
 /// Everything else in that file stays as it is; before the first change a copy is kept next to it.
 /// </summary>
 public static class ClaudeHooks
 {
-    public static readonly string[] Events = { "UserPromptSubmit", "PreToolUse", "Notification", "Stop", "SessionEnd" };
+    public static readonly string[] Events = { "UserPromptSubmit", "PreToolUse", "Notification", "Stop", "SessionEnd", "PermissionRequest" };
+    /// <summary>The others only report (1 s); a permission request waits for the click in the island (C3, 2026-11-18).</summary>
+    private static int Timeout(string ev) => ev == "PermissionRequest" ? 60 : 1;
     public static string Url => $"http://127.0.0.1:{AgentService.Port}/hook";
     public static string SettingsFile => Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".claude", "settings.json");
 
@@ -46,7 +48,7 @@ public static class ClaudeHooks
             if (HasOurs(list)) continue;
             list.Add(new JsonObject
             {
-                ["hooks"] = new JsonArray(new JsonObject { ["type"] = "http", ["url"] = Url, ["timeout"] = 1 }),
+                ["hooks"] = new JsonArray(new JsonObject { ["type"] = "http", ["url"] = Url, ["timeout"] = Timeout(ev) }),
             });
         }
     });
@@ -102,7 +104,7 @@ public static class ClaudeHooks
     {
         var hooks = new JsonObject();
         foreach (var ev in Events)
-            hooks[ev] = new JsonArray(new JsonObject { ["hooks"] = new JsonArray(new JsonObject { ["type"] = "http", ["url"] = Url, ["timeout"] = 1 }) });
+            hooks[ev] = new JsonArray(new JsonObject { ["hooks"] = new JsonArray(new JsonObject { ["type"] = "http", ["url"] = Url, ["timeout"] = Timeout(ev) }) });
         return new JsonObject { ["hooks"] = hooks }.ToJsonString(new JsonSerializerOptions { WriteIndented = true });
     }
 }

@@ -474,6 +474,9 @@
                         <ui:SfIcon x:Name="LeadIcon" Size="16" Margin="5,0,0,0" Visibility="Collapsed" />
                         <TextBlock x:Name="LeadText" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center" Margin="6,0,0,0" Visibility="Collapsed" />
                     </StackPanel>
+                    <!-- a new title (A4, 2026-11-18): the island widens, the cover flips, the words come one by one -->
+                    <StackPanel x:Name="TitleWords" Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" Margin="8,0,6,0"
+                                ClipToBounds="True" IsHitTestVisible="False" Visibility="Collapsed" />
                     <Grid x:Name="Trail" Grid.Column="2" VerticalAlignment="Center">
                         <!-- bar chart: 5 bars growing from the bottom, driven by the player's real loudness -->
                         <StackPanel x:Name="Equalizer" Orientation="Horizontal" Height="14" VerticalAlignment="Center" Visibility="Collapsed">

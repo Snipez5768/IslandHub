@@ -11,6 +11,22 @@ namespace PeakPill.Services;
 
 public enum AgentState { Running, Waiting, Done }
 
+/// <summary>
+/// Claude Code asks for a permission (C3, 2026-11-18): the island shows "Erlauben" / "Ablehnen"; the hook's answer
+/// waits for the click. No click in time → "{}" and Claude Code asks in its own window as always.
+/// </summary>
+public sealed class PermissionAsk
+{
+    public AgentSession Session { get; set; }
+    public string Tool { get; init; }
+    public JsonElement Input { get; init; }
+    public TaskCompletionSource<string> Answer { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+    public bool Open => !Answer.Task.IsCompleted;
+    internal void Allow() => Answer.TrySetResult("""{"hookSpecificOutput":{"hookEventName":"PermissionRequest","decision":{"behavior":"allow"}}}""");
+    internal void Deny() => Answer.TrySetResult("""{"hookSpecificOutput":{"hookEventName":"PermissionRequest","decision":{"behavior":"deny","message":"The user denied this in PeakPill."}}}""");
+    internal void Pass() => Answer.TrySetResult("{}");
+}
+
 /// <summary>One Claude Code session as the island shows it.</summary>
 public sealed class AgentSession : ObservableObject
 {
@@ -42,6 +58,8 @@ public sealed class AgentSession : ObservableObject
     /// restart the short updates ("next step") still have a plan to move along.</summary>
     public List<string> PlanItems { get; set; } = new();
     public int PlanIndex { get; set; } = -1;
+    /// <summary>A permission request the island is showing right now (never saved).</summary>
+    [System.Text.Json.Serialization.JsonIgnore] public PermissionAsk Ask { get; set; }
 
     private void Changed()
     {
@@ -63,6 +81,12 @@ public sealed class AgentService : ObservableObject
 
     public ObservableCollection<AgentSession> Sessions { get; } = new();
     public event Action<AgentSession> Finished, NeedsYou;
+    /// <summary>C3: a permission to answer in the island; Gone: answered elsewhere or no answer in time.</summary>
+    public event Action<PermissionAsk> PermissionAsked;
+    public event Action<AgentSession> PermissionGone;
+    private const int PermissionWaitMs = 45000;
+    /// <summary>Questions and plan approvals need more than yes / no – those stay "Claude wartet auf dich" (C1).</summary>
+    private static bool NotAskable(string tool) => tool is null or "AskUserQuestion" or "ExitPlanMode";
 
     public bool Any => Sessions.Count > 0;
     public bool AnyRunning => Sessions.Any(s => s.IsRunning);
@@ -137,7 +161,7 @@ public sealed class AgentService : ObservableObject
         }
     }
 
-    /// <summary>Minimal HTTP: read the JSON body, answer "{}" (never influences Claude's decisions).</summary>
+    /// <summary>Minimal HTTP: read the JSON body, answer "{}" – only a permission request gets the user's click from the island.</summary>
     private async Task Serve(TcpClient c)
     {
         using (c)
@@ -168,13 +192,31 @@ public sealed class AgentService : ObservableObject
                     if (headerEnd >= 0 && data.Count >= headerEnd + 4 + contentLength) break;
                     if (data.Count > 8 * 1024 * 1024) break;
                 }
-                var resp = Encoding.ASCII.GetBytes("HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: 2\r\nConnection: close\r\n\r\n{}");
-                await s.WriteAsync(resp);
-                if (headerEnd < 0) return;
-                var body = Encoding.UTF8.GetString(data.ToArray(), headerEnd + 4, Math.Min(contentLength, data.Count - headerEnd - 4));
-                using var doc = JsonDocument.Parse(body);
-                var root = doc.RootElement.Clone();
-                Ui.Run(() => Handle(root));
+                string answer = "{}";
+                try
+                {
+                    if (headerEnd >= 0)
+                    {
+                        var body = Encoding.UTF8.GetString(data.ToArray(), headerEnd + 4, Math.Min(contentLength, data.Count - headerEnd - 4));
+                        using var doc = JsonDocument.Parse(body);
+                        var root = doc.RootElement.Clone();
+                        PermissionAsk ask = null;
+                        if (Str(root, "hook_event_name") == "PermissionRequest" && !NotAskable(Str(root, "tool_name")))
+                            ask = new PermissionAsk { Tool = Str(root, "tool_name"), Input = root.TryGetProperty("tool_input", out var ti) ? ti : default };
+                        Ui.Run(() => Handle(root, ask));
+                        if (ask != null)
+                        {
+                            // the answer waits for the click in the island – no click in time: Claude Code asks itself
+                            var first = await Task.WhenAny(ask.Answer.Task, Task.Delay(PermissionWaitMs));
+                            if (first != ask.Answer.Task) { ask.Pass(); Ui.Run(() => AskEnded(ask, true)); }
+                            answer = await ask.Answer.Task;
+                        }
+                    }
+                }
+                catch { answer = "{}"; }
+                var bytes = Encoding.UTF8.GetBytes(answer);
+                await s.WriteAsync(Encoding.ASCII.GetBytes($"HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: {bytes.Length}\r\nConnection: close\r\n\r\n"));
+                await s.WriteAsync(bytes);
             }
             catch { /* a broken request is just ignored */ }
         }
@@ -183,15 +225,18 @@ public sealed class AgentService : ObservableObject
     private static string Str(JsonElement e, string name) =>
         e.ValueKind == JsonValueKind.Object && e.TryGetProperty(name, out var v) && v.ValueKind == JsonValueKind.String ? v.GetString() : null;
 
-    internal void Handle(JsonElement e)
+    internal void Handle(JsonElement e, PermissionAsk ask = null)
     {
         var ev = Str(e, "hook_event_name");
         var id = Str(e, "session_id");
-        if (ev == null || id == null) return;
+        if (ev == null || id == null) { ask?.Pass(); return; }
 
         var s = Sessions.FirstOrDefault(x => x.Id == id);
+        // Claude went on (answered in its own window) – the question in the island is over
+        if (s?.Ask is { } open && ev is not ("Notification" or "PermissionRequest")) { open.Pass(); AskEnded(open, false); }
         if (ev == "SessionEnd")
         {
+            ask?.Pass();
             if (s != null) Sessions.Remove(s);
             RaiseAll();
             Save();
@@ -237,7 +282,20 @@ public sealed class AgentService : ObservableObject
                 if (s.IsDone && (kind.Contains("idle") || msg.Contains("waiting for your input", StringComparison.OrdinalIgnoreCase))) break;
                 s.State = AgentState.Waiting;
                 s.Step = L.T("Wartet auf dich");
-                NeedsYou?.Invoke(s);
+                if (s.Ask == null) NeedsYou?.Invoke(s); // (the island is already asking with its buttons)
+                break;
+
+            case "PermissionRequest":
+                s.State = AgentState.Waiting;
+                s.Step = L.T("Wartet auf dich");
+                if (ask != null)
+                {
+                    s.Ask?.Pass();
+                    ask.Session = s;
+                    s.Ask = ask;
+                    PermissionAsked?.Invoke(ask);  // C3: the island opens with "Erlauben" / "Ablehnen"
+                }
+                else NeedsYou?.Invoke(s);          // a question: C1 "Claude wartet auf dich"
                 break;
 
             case "Stop":
@@ -251,6 +309,47 @@ public sealed class AgentService : ObservableObject
         }
         RaiseAll();
         Save();
+    }
+
+    /// <summary>The click in the island: allow or deny – Claude goes on right away.</summary>
+    public void Decide(PermissionAsk ask, bool allow)
+    {
+        if (!ask.Open) return;
+        if (allow) ask.Allow(); else ask.Deny();
+        var s = ask.Session;
+        if (s == null) return;
+        if (s.Ask == ask) s.Ask = null;
+        s.State = AgentState.Running;
+        s.Step = allow ? L.T("Erlaubt – macht weiter") : L.T("Abgelehnt");
+        RaiseAll();
+    }
+
+    /// <summary>Answered in Claude's own window, or no click in time (then Claude asks there: C1 reminds of it).</summary>
+    private void AskEnded(PermissionAsk ask, bool timedOut)
+    {
+        var s = ask.Session;
+        if (s == null || s.Ask != ask) return;
+        s.Ask = null;
+        PermissionGone?.Invoke(s);
+        if (timedOut && s.IsWaiting) NeedsYou?.Invoke(s);
+        RaiseAll();
+    }
+
+    /// <summary>What Claude wants, for the card: a title and the detail underneath.</summary>
+    public static (string Title, string Detail) Describe(PermissionAsk a)
+    {
+        string S(string n) => Str(a.Input, n);
+        string Short(string t, int n = 70) { t = FirstLine(t ?? ""); return t.Length > n ? t[..(n - 1)] + "…" : t; }
+        return a.Tool switch
+        {
+            "Bash" or "PowerShell" => (L.T("Befehl ausführen?"), Short(S("command"))),
+            "Edit" or "Write" or "MultiEdit" or "NotebookEdit" => (L.T("Datei ändern?"), Path.GetFileName(S("file_path") ?? S("notebook_path") ?? "")),
+            "Read" => (L.T("Datei lesen?"), Short(S("file_path"))),
+            "Glob" or "Grep" or "LS" => (L.T("Ordner durchsuchen?"), Short(S("path") ?? S("pattern"))),
+            "WebFetch" => (L.T("Webseite öffnen?"), Short(S("url"))),
+            "WebSearch" => (L.T("Im Internet suchen?"), Short(S("query"))),
+            _ => (L.T($"{a.Tool} benutzen?"), ""),
+        };
     }
 
     private static void OnTool(AgentSession s, string tool, JsonElement input)

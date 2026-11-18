@@ -132,5 +132,17 @@ public static class LangEnSettings
         ("Suchen", "Search"),
         ("Suche leeren", "Clear search"),
         ("Nichts gefunden", "Nothing found"),
+        // Claude asks (C1 / C3, 2026-11-18)
+        ("Claude wartet auf dich", "Claude is waiting for you"),
+        ("Erlauben", "Allow"),
+        ("Erlaubt – macht weiter", "Allowed – carrying on"),
+        ("Abgelehnt", "Declined"),
+        ("Befehl ausführen?", "Run a command?"),
+        ("Datei ändern?", "Change a file?"),
+        ("Datei lesen?", "Read a file?"),
+        ("Ordner durchsuchen?", "Search a folder?"),
+        ("Webseite öffnen?", "Open a web page?"),
+        ("Im Internet suchen?", "Search the web?"),
+        ("{0} benutzen?", "Use {0}?"),
     };
 }

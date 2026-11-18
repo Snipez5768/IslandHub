@@ -186,12 +186,14 @@ public partial class IslandWindow : Window
             // answered in Claude: the "needs your answer" banner goes away by itself
             if (!H.Agents.AnyWaiting)
             {
-                _peeks.RemoveAll(p => p.Key == "agentwait");
-                if (_peek?.Key == "agentwait") EndPeek();
+                _peeks.RemoveAll(p => p.Key is "agentwait" or "agentask");
+                if (_peek?.Key is "agentwait" or "agentask") EndPeek();
             }
         };
         H.Agents.Finished += OnAgentFinished;
         H.Agents.NeedsYou += OnAgentNeedsYou;
+        H.Agents.PermissionAsked += OnPermissionAsked;
+        H.Agents.PermissionGone += _ => { _peeks.RemoveAll(p => p.Key == "agentask"); if (_peek?.Key == "agentask") EndPeek(); };
         H.Notifications.Arrived += OnNotificationArrived;
         H.Notifications.Items.CollectionChanged += (_, _) => UpdateNotifyUi();
         H.Prices.Fired += OnPriceAlarm;
@@ -1757,6 +1759,8 @@ public partial class IslandWindow : Window
         // ring stack (default, 2026-11-18): a call / the muted mic never takes the left – it sits on the right with the rings
         if (!S.SideBubbles && acts.Count > 1)
             foreach (var right in acts.Where(a => a is Act.Live or Act.MicMuted).ToList()) { acts.Remove(right); acts.Add(right); }
+        // Claude waits for your answer (C1, 2026-11-18): it takes the island with "Claude wartet auf dich"
+        if (H.Agents.AnyWaiting && acts.Remove(Act.Agent)) acts.Insert(0, Act.Agent);
         // pause / play, a new lead, Claude done – before the bars are stopped below (IslandWindow.Qol.cs)
         PillMoments(game || acts.Count == 0 ? null : acts[0], playing);
 
@@ -1873,7 +1877,13 @@ public partial class IslandWindow : Window
                     bool done = !H.Agents.AnyRunning && !H.Agents.AnyWaiting;
                     var c = done ? (Brush)FindResource("Green") : color;
                     ShowLeadIcon(done ? "check" : "asterisk", c);
-                    if (S.SideBubbles) ShowTrail(done ? L.T("fertig") : ag?.IsWaiting == true ? L.T("wartet") : ag?.HasPlan == true ? ag.Counter : ag?.Elapsed ?? "", c);
+                    if (ag?.IsWaiting == true)
+                    {
+                        LeadText.Text = L.T("Claude wartet auf dich");
+                        LeadText.Foreground = c;
+                        LeadText.Visibility = Visibility.Visible;
+                    }
+                    else if (S.SideBubbles) ShowTrail(done ? L.T("fertig") : ag?.IsWaiting == true ? L.T("wartet") : ag?.HasPlan == true ? ag.Counter : ag?.Elapsed ?? "", c);
                     Lead.ToolTip = ag == null ? null : $"Claude Code · {ag.Project}\n{ag.Task}\n{ag.Step}";
                     break;
                 }
@@ -1916,7 +1926,7 @@ public partial class IslandWindow : Window
             // no text of its own (Claude, a download: no numbers, the ring says how far)
             UpdateBubble(null);
             var rings = new List<Act>();
-            if (!game && acts.Count > 0 && acts[0] is Act.Agent or Act.Steam) rings.Add(acts[0]);
+            if (!game && acts.Count > 0 && (acts[0] is Act.Steam || acts[0] is Act.Agent && !H.Agents.AnyWaiting)) rings.Add(acts[0]);
             if (!game) rings.AddRange(acts.Skip(1).Where(a => a != Act.Music));
             UpdateRingStack(rings);
         }
@@ -1929,7 +1939,7 @@ public partial class IslandWindow : Window
             Trail.Measure(new Size(double.PositiveInfinity, 40));
             RingStack.Measure(new Size(double.PositiveInfinity, 40));
             double stack = RingStack.Visibility == Visibility.Visible ? RingStack.DesiredSize.Width + 8 : 0;
-            w = Math.Max(S.Shape == IslandShape.Notch ? 200 : 196, 6 + Lead.DesiredSize.Width + 112 + Trail.DesiredSize.Width + stack + 11);
+            w = Math.Max(S.Shape == IslandShape.Notch ? 200 : 196, 6 + Lead.DesiredSize.Width + TitleRoom(acts) + Trail.DesiredSize.Width + stack + 11);
             w = Math.Min(w, 380);
         }
         else w = S.Shape == IslandShape.Notch ? 200 : IdleW;
@@ -2834,7 +2844,7 @@ public partial class IslandWindow : Window
                 _ when _peek.Ticker => (accent ? "arrow.up.right" : "chevron.right", accent ? (Brush)FindResource("Green") : null),
                 _ => ((string)null, (Brush)null)
             };
-            if (right && round.Item1 != null)
+            if (right && round.Item1 != null && _peek.Key != "agentask") // (Claude's permission: two clear words, C3)
             {
                 b.SetResourceReference(StyleProperty, "GlassIcon");
                 b.Content = null;
@@ -3570,7 +3580,7 @@ public partial class IslandWindow : Window
         _songOld = null;
         PillCover.ImageSource = H.Media.Cover ?? old;
         _shownCoverHash = H.Media.CoverHash;
-        if (still && old != null) CoverSwap(old);
+        if (still && old != null) { if (TitleMomentComing) CoverFlip(old); else CoverSwap(old); }
         else _trackPeekNotBefore = DateTime.Now;
     }
 
@@ -3748,21 +3758,6 @@ public partial class IslandWindow : Window
                     break;
             }
         });
-    }
-
-    private void OnAgentNeedsYou(AgentSession s)
-    {
-        Wobble(); // Claude needs your answer: the island rings like an alarm clock (not when Claude is just done)
-        // orange ring = where Claude stands in its plan; stays until you answer (or dismiss it)
-        ShowPeek(new PeekInfo
-            {
-                Key = "agentwait", Important = true, Ring = s.HasPlan ? Math.Max(0.06, s.Progress) : 1, Icon = "asterisk", GlyphBrush = AgentBrush,
-                Source = string.IsNullOrEmpty(s.Project) ? "Claude Code" : $"Claude Code · {s.Project}", SourceIcon = "asterisk", SourceBrush = AgentBrush,
-                Title = L.T("Claude braucht deine Antwort"),
-                Text = string.Join(" · ", new[] { s.Task, s.HasPlan ? s.Counter : null }.Where(x => !string.IsNullOrWhiteSpace(x))),
-                TimeoutMs = 0, Click = () => AgentService.OpenHost()
-            }
-            .Button("arrow.up.right", L.T("Claude öffnen"), () => AgentService.OpenHost(), AgentBrush, darkGlyph: true));
     }
 
     // =====================================================================
@@ -4908,15 +4903,15 @@ public partial class IslandWindow : Window
             // then the notice – shown right away it would hide the small moment
             if (S.Animations == AnimationLevel.Aus) { ShowTrackPeek(); return; }
             var title = H.Media.Title;
-            _trackPeekNotBefore = DateTime.Now.AddMilliseconds(900);
+            _trackPeekNotBefore = DateTime.Now.AddMilliseconds(500);
             void Later()
             {
                 if (H.Media.Title != title) return; // skipped on meanwhile – that song brings its own notice
                 var wait = (_trackPeekNotBefore - DateTime.Now).TotalMilliseconds;
                 if (wait > 20) { After((int)wait, Later); return; }
-                if (_state == State.Collapsed) ShowTrackPeek();
+                if (_state == State.Collapsed) TitleMoment(); // A4 (2026-11-18): the words come one by one in the island
             }
-            After(900, Later);
+            After(500, Later);
         });
     }
 
