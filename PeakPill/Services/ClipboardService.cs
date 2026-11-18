@@ -37,6 +37,11 @@ public sealed class ClipItem : ObservableObject
     [JsonIgnore] public int Index { get => _index; set { if (Set(ref _index, value)) Raise(nameof(IndexText)); } }
     [JsonIgnore] public string IndexText => _index is >= 1 and <= 9 ? _index.ToString() : "";
     [JsonIgnore] public bool IsImage => Kind == ClipKind.Image;
+    // helpers in the list (41b / 45, 2026-11-18): a link gets a QR code, a number "call", an address "map"
+    [JsonIgnore] public HelperKind Helper => CopyHelpers.Detect(this).Kind;
+    [JsonIgnore] public bool HasHelper => Helper is HelperKind.Link or HelperKind.Phone or HelperKind.Address;
+    [JsonIgnore] public string HelperIcon => Helper switch { HelperKind.Link => "qr", HelperKind.Phone => "phone", HelperKind.Address => "globe", _ => "info" };
+    [JsonIgnore] public string HelperTip => Helper switch { HelperKind.Link => L.T("QR-Code"), HelperKind.Phone => L.T("Am Handy anrufen"), HelperKind.Address => L.T("Auf der Karte zeigen"), _ => "" };
     [JsonIgnore]
     public string IconName => Kind switch
     {

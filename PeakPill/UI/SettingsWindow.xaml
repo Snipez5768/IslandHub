@@ -784,6 +784,27 @@
                                     </StackPanel>
                                 </DockPanel>
                             </Border>
+                            <!-- helpers (2026-11-18): small offers after copying, files just saved -->
+                            <Border Style="{StaticResource Row}">
+                                <DockPanel>
+                                    <ToggleButton x:Name="OptCopyHelpers" DockPanel.Dock="Right" Style="{StaticResource Switch}" Click="Opt_Click" VerticalAlignment="Center" />
+                                    <ui:HintPic Kind="history" />
+                                    <StackPanel Margin="0,0,12,0" VerticalAlignment="Center">
+                                        <TextBlock Text="Hilfen beim Kopieren" />
+                                        <TextBlock Style="{StaticResource Desc}" Text="Nach dem Kopieren kurz unter der Insel: QR-Code für Links, Preise und Einheiten umgerechnet, Adresse auf der Karte, Nummer anrufen, Übersetzen. Für Wechselkurse fragt die Insel einmal am Tag die Kurse der EZB ab." />
+                                    </StackPanel>
+                                </DockPanel>
+                            </Border>
+                            <Border Style="{StaticResource Row}">
+                                <DockPanel>
+                                    <ToggleButton x:Name="OptSavedFiles" DockPanel.Dock="Right" Style="{StaticResource Switch}" Click="Opt_Click" VerticalAlignment="Center" />
+                                    <ui:HintPic Kind="data" />
+                                    <StackPanel Margin="0,0,12,0" VerticalAlignment="Center">
+                                        <TextBlock Text="Gerade gespeichert" />
+                                        <TextBlock Style="{StaticResource Desc}" Text="Eine neue Datei auf dem Desktop oder in Dokumente erscheint kurz in der Insel – zum Herausziehen." />
+                                    </StackPanel>
+                                </DockPanel>
+                            </Border>
                             <!-- several screens (2026-11-17): off by default -->
                             <Border Style="{StaticResource Row}">
                                 <DockPanel>

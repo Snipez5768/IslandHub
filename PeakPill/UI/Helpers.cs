@@ -182,6 +182,8 @@ public sealed class PeekInfo
     public List<(string Glyph, System.Windows.Media.Brush Color, string Text, string Sub)> Rows { get; } = new();
     /// <summary>Small grey text on the right of the card's title (a date, a time).</summary>
     public string Meta { get; set; }
+    /// <summary>A picture in the card (a QR code to scan).</summary>
+    public System.Windows.Media.ImageSource Picture { get; set; }
 
     public PeekInfo Button(string icon, string tip, Action act, System.Windows.Media.Brush fill = null, bool darkGlyph = false)
     {

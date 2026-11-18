@@ -322,6 +322,8 @@ public partial class SettingsWindow : Window
         OptEvening.IsChecked = S.EveningMoment;
         OptScreenTime.IsChecked = S.ScreenTime;
         OptLyricLine.IsChecked = S.LyricLine;
+        OptCopyHelpers.IsChecked = S.CopyHelpers;
+        OptSavedFiles.IsChecked = S.SavedFiles;
         if (OptEveningAt.Items.Count == 0)
             for (int m = 15 * 60; m <= 22 * 60; m += 30) OptEveningAt.Items.Add(new ComboBoxItem { Content = $"{m / 60}:{m % 60:00}", Tag = m });
         OptEveningAt.SelectedItem = OptEveningAt.Items.OfType<ComboBoxItem>().FirstOrDefault(i => (int)i.Tag == S.EveningMinutes) ?? OptEveningAt.Items[6];
@@ -615,6 +617,8 @@ public partial class SettingsWindow : Window
         S.EveningMoment = OptEvening.IsChecked == true;
         S.ScreenTime = OptScreenTime.IsChecked == true;
         S.LyricLine = OptLyricLine.IsChecked == true;
+        S.CopyHelpers = OptCopyHelpers.IsChecked == true;
+        S.SavedFiles = OptSavedFiles.IsChecked == true;
         OptEveningAt.IsEnabled = S.EveningMoment;
         S.DeviceInIsland = OptDevice.IsChecked == true;
         S.PowerInIsland = OptPower.IsChecked == true;

@@ -131,6 +131,7 @@ public partial class IslandWindow : Window
         WireAi();
         WireWorkday();
         WireMusicMore();
+        WireHelpers();
         WireSend();
         WireNotes();
         WireNotifyDetach();
@@ -1112,7 +1113,7 @@ public partial class IslandWindow : Window
 
     private Grid Inner(Border b) => _bubbleInner.TryGetValue(b, out var g) ? g : (Grid)b.Child;
 
-    private FrameworkElement[] Panels => new FrameworkElement[] { PillPanel, HintPanel, PeekPanel, TickerPanel, ExpandedPanel, AskPanel, MomentPanel };
+    private FrameworkElement[] Panels => new FrameworkElement[] { PillPanel, HintPanel, PeekPanel, TickerPanel, ExpandedPanel, AskPanel, MomentPanel, QueryPanel };
 
     private static Spring NewFade(double from) => new(from, Spring.IslandResponse * 0.55, 1, 0.005);
 
@@ -2742,6 +2743,7 @@ public partial class IslandWindow : Window
         PeekProgressScale.BeginAnimation(ScaleTransform.ScaleXProperty, null);
         PeekProgress.Visibility = Visibility.Collapsed;
         if (_peek.Key == "agentask") { ShowAskCard(); return; } // Claude asks for a permission: its own look (C3)
+        if (_peek.Key == "query") { ShowQueryCard(); return; } // quick search / calculator (42 / 46)
         if (_peek.Rows.Count > 0) { ShowMomentCard(); return; }  // focus done, good morning, evening (2026-11-18)
         if (_peek.Ticker && !_peek.Open) { ShowTicker(); return; }
 
@@ -3058,6 +3060,8 @@ public partial class IslandWindow : Window
             case HotkeyAction.QuickNote: ToggleTab("Notes"); break;
             case HotkeyAction.AiSelection: AskAboutSelection(); break;          // 13a (2026-11-18)
             case HotkeyAction.AiRegion: ScreenshotController.Start(false, explain: true); break; // 14
+            case HotkeyAction.Calculator: OpenQuery("="); break;  // 42
+            case HotkeyAction.Search: OpenQuery(""); break;        // 46
             case HotkeyAction.Controls: ToggleTab("Controls"); break;
             case HotkeyAction.Screenshot: TakeScreenshot(false); break;
             case HotkeyAction.ScreenshotOcr: TakeScreenshot(true); break;
@@ -5707,6 +5711,7 @@ public partial class IslandWindow : Window
         {
             AddGames(files);
         }
+        else if (files != null && OfferConvert(files)) { } // one picture: JPG · PNG · smaller · PDF – or the Ablage (40a)
         else if (files != null)
         {
             H.Shelf.Add(files);

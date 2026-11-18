@@ -39,6 +39,8 @@
                     <Grid Grid.Column="2" VerticalAlignment="Center" Margin="8,0,0,0" MinWidth="40">
                         <TextBlock x:Name="AgoText" Text="{Binding Ago}" FontSize="10.5" Foreground="{StaticResource FaintText}" HorizontalAlignment="Right" VerticalAlignment="Center" />
                         <StackPanel x:Name="Actions" Orientation="Horizontal" VerticalAlignment="Center" HorizontalAlignment="Right" Visibility="Collapsed">
+                            <Button Style="{StaticResource SmallIconButton}" Width="22" Height="22" ui:Ext.IconSize="13" ui:Ext.Icon="{Binding HelperIcon}" ToolTip="{Binding HelperTip}"
+                                    Click="ClipHelper_Click" Visibility="{Binding HasHelper, Converter={StaticResource BoolVis}}" />
                             <Button Style="{StaticResource SmallIconButton}" Width="22" Height="22" ui:Ext.IconSize="13" ui:Ext.Icon="square.pencil" ToolTip="Als Notiz"
                                     Click="ClipToNote_Click" Visibility="{Binding IsImage, Converter={StaticResource InvBoolVis}}" />
                             <Button Style="{StaticResource SmallIconButton}" Width="22" Height="22" ui:Ext.IconSize="13" ui:Ext.Icon="pin" ui:Ext.Hover="{StaticResource Orange}" ToolTip="Anheften" Click="ClipPin_Click" />
@@ -160,6 +162,8 @@
                                 Click="ClipQuickLook_Click" Visibility="Collapsed" />
                         <Button x:Name="AskBtn" Style="{StaticResource SmallIconButton}" Width="22" Height="22" ui:Ext.IconSize="12" ui:Ext.Icon="bubble" ui:Ext.Hover="{StaticResource Blue}" ToolTip="KI fragen"
                                 Click="ClipAskAi_Click" Visibility="Collapsed" />
+                        <Button Style="{StaticResource SmallIconButton}" Width="22" Height="22" ui:Ext.IconSize="12" ui:Ext.Icon="{Binding HelperIcon}" ToolTip="{Binding HelperTip}"
+                                Click="ClipHelper_Click" Visibility="{Binding HasHelper, Converter={StaticResource BoolVis}}" />
                         <Button Style="{StaticResource SmallIconButton}" Width="22" Height="22" ui:Ext.IconSize="12" ui:Ext.Icon="square.pencil" ToolTip="Als Notiz"
                                 Click="ClipToNote_Click" Visibility="{Binding IsImage, Converter={StaticResource InvBoolVis}}" />
                         <Button Style="{StaticResource SmallIconButton}" Width="22" Height="22" ui:Ext.IconSize="12" ui:Ext.Icon="pin" ui:Ext.Hover="{StaticResource Orange}" ToolTip="Anheften" Click="ClipPin_Click" />
@@ -375,6 +379,17 @@
             <Path x:Name="BubbleBridge" Fill="{DynamicResource IslandBubbleBackground}" Visibility="Collapsed" />
             <Path x:Name="Bubble2Bridge" Fill="{DynamicResource IslandBubbleBackground}" Visibility="Collapsed" />
         </Canvas>
+
+        <!-- helpers after copying (41a / 43 / 44 / 45, 2026-11-18): a second small pill under the island – a click acts -->
+        <Border x:Name="HelperBubble" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,46,0,0" Padding="10,4,10,5" CornerRadius="12"
+                Background="#F0000000" Opacity="0" Visibility="Collapsed" Cursor="Hand" MaxWidth="380">
+            <Border.RenderTransform><TranslateTransform x:Name="HelperShift" /></Border.RenderTransform>
+            <StackPanel Orientation="Horizontal">
+                <ui:SfIcon x:Name="HelperIcon" Size="12" Foreground="White" VerticalAlignment="Center" Margin="0,0,7,0" />
+                <TextBlock x:Name="HelperText" Foreground="White" FontSize="11.5" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" MaxWidth="260" />
+                <TextBlock x:Name="HelperAction" Foreground="#0A84FF" FontSize="11" FontWeight="SemiBold" VerticalAlignment="Center" Margin="9,0,0,0" />
+            </StackPanel>
+        </Border>
 
         <!-- the line sung now, small under the closed island (16b, 2026-11-18) -->
         <Border x:Name="LyricBubble" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,46,0,0" Padding="9,3,9,4" CornerRadius="10"
@@ -637,6 +652,18 @@
                     </StackPanel>
                 </Grid>
 
+                <!-- ============ QUICK SEARCH / CALCULATOR (42 / 46, 2026-11-18): one line with the best hit; ↓ opens the list ============ -->
+                <StackPanel x:Name="QueryPanel" Margin="12,6,12,7" Visibility="Collapsed" VerticalAlignment="Center">
+                    <DockPanel Height="24">
+                        <TextBlock x:Name="QueryBest" DockPanel.Dock="Right" FontSize="11.5" Foreground="#FFAEAEB2" VerticalAlignment="Center" Margin="8,0,2,0"
+                                   MaxWidth="150" TextTrimming="CharacterEllipsis" />
+                        <ui:SfIcon x:Name="QueryIcon" Kind="search" Size="13" Foreground="#FFAEAEB2" VerticalAlignment="Center" Margin="2,0,8,0" />
+                        <TextBox x:Name="QueryBox" Style="{x:Null}" Background="Transparent" BorderThickness="0" Foreground="White" CaretBrush="White"
+                                 FontSize="13" VerticalAlignment="Center" Padding="0" FocusVisualStyle="{x:Null}" />
+                    </DockPanel>
+                    <StackPanel x:Name="QueryList" Margin="0,6,0,3" Visibility="Collapsed" />
+                </StackPanel>
+
                 <!-- ============ MOMENT CARD (2026-11-18): focus done, good morning, evening – rows come in one by one ============ -->
                 <StackPanel x:Name="MomentPanel" Margin="14,10,14,12" Visibility="Collapsed" VerticalAlignment="Center">
                     <DockPanel>
@@ -644,6 +671,10 @@
                         <TextBlock x:Name="MomentTitle" Foreground="White" FontSize="13" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
                     </DockPanel>
                     <StackPanel x:Name="MomentRows" Margin="0,5,0,0" />
+                    <!-- a picture in the card (a QR code to scan, 41a) -->
+                    <Border x:Name="MomentPicBox" Background="White" CornerRadius="8" Padding="6" HorizontalAlignment="Center" Margin="0,8,0,0" Visibility="Collapsed">
+                        <Image x:Name="MomentPic" Width="132" Height="132" RenderOptions.BitmapScalingMode="NearestNeighbor" />
+                    </Border>
                     <Border x:Name="MomentButton" CornerRadius="11" Background="#FF2A2A2A" Padding="0,5" Margin="0,8,0,0" Cursor="Hand" Visibility="Collapsed">
                         <TextBlock x:Name="MomentButtonText" Foreground="White" FontSize="11.5" HorizontalAlignment="Center" />
                     </Border>

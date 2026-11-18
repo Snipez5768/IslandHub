@@ -526,6 +526,69 @@ public partial class IslandWindow
                     H.Agents.EndDemo();
                     break;
                 }
+                case "helpers":
+                {
+                    // 43/45/41a pills · QR card · 42/46 search · 40a convert · 47 saved (demo data only, no focus taken)
+                    fh = 210;
+                    H.Agents.StopListening();
+                    _demoOnly = true;
+                    _noFocus = true;
+                    H.Media.FakeNone();
+                    bool wasTucked = _tucked;
+                    if (_tucked) Untuck();
+                    H.Media.Fake("Nachtlicht", "Lena Ost", Pic(Color.FromRgb(0xFF, 0x7A, 0x3D), Color.FromRgb(0xE0, 0x3A, 0x5A)), false); // something in the island, so it does not make room
+                    UpdatePill(true);
+                    var log = new List<string>();
+                    await Task.Delay(600);
+                    foreach (var (txt, name) in new[] { ("49,99 $", "1_preis"), ("5 miles", "2_einheit"), ("0123 456789", "3_nummer"), ("Hauptstraße 1, 12345 Demostadt", "4_adresse") })
+                    {
+                        var ci = new ClipItem { Kind = ClipKind.Text, Text = txt };
+                        log.Add($"{txt} → {CopyHelpers.Detect(ci).Kind} unit={CopyHelpers.ConvertUnit(txt)}");
+                        await OfferHelper(ci);
+                        await Film(8, 70);
+                        Save(name);
+                        HideHelper();
+                        await Task.Delay(400);
+                    }
+                    await OfferHelper(new ClipItem { Kind = ClipKind.Link, Text = "https://beispiel.de/seite" });
+                    await Film(6, 70);
+                    Save("5_link");
+                    HideHelper();
+                    ShowQr("https://beispiel.de/seite");
+                    await Film(14, 70);
+                    Save("6_qr");
+                    EndPeek();
+                    await Task.Delay(700);
+                    OpenQuery("=12*7+3");
+                    await Film(8, 60);
+                    Save("7_rechner");
+                    log.Add("calc: " + QueryBest.Text);
+                    while (_apps == null) await Task.Delay(100);
+                    QueryBox.Text = "timer 5";
+                    _queryOpen = true; QueryList.Visibility = Visibility.Visible; ShowHits();
+                    await Film(8, 60);
+                    Save("8_suche");
+                    log.Add("search: " + string.Join(" | ", _hits.Select(h => h.Kind + ":" + h.Text)));
+                    EndPeek();
+                    await Task.Delay(700);
+                    var png = Path.Combine(dir, "demo-bild.png");
+                    using (var fs = File.Create(png)) { var enc = new PngBitmapEncoder(); enc.Frames.Add(BitmapFrame.Create(Pic(Color.FromRgb(0x3D, 0x8B, 0xFF), Color.FromRgb(0x5A, 0x3A, 0xE0)))); enc.Save(fs); }
+                    OfferConvert(new[] { png });
+                    await Film(12, 70);
+                    Save("9_umwandeln");
+                    EndPeek();
+                    foreach (var to in new[] { "jpg", "small", "pdf" }) { var r = ConvertFile(png, to); log.Add($"{to} → {Path.GetFileName(r)} {new FileInfo(r).Length} B"); }
+                    await Task.Delay(700);
+                    var saved = Path.Combine(dir, "demo-bericht.txt");
+                    File.WriteAllText(saved, "demo");
+                    OnSaved(saved);
+                    await Task.Delay(1100);
+                    await Film(8, 80);
+                    Save("10_gespeichert");
+                    File.WriteAllLines(Path.Combine(dir, "helpers.txt"), log);
+                    if (wasTucked) Tuck();
+                    break;
+                }
                 case "claude2":
                 {
                     // 9 question with answers · 10 "Immer" · 11 done summary · 12 tokens (demo data only)

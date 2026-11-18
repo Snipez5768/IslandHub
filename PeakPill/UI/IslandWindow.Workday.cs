@@ -246,6 +246,9 @@ public partial class IslandWindow
             if (S.Animations != AnimationLevel.Aus) RowIn(row, 200 + i * 130);
             i++;
         }
+        MomentPic.Source = _peek.Picture;
+        MomentPicBox.Visibility = _peek.Picture != null ? Visibility.Visible : Visibility.Collapsed;
+        if (_peek.Picture != null && S.Animations != AnimationLevel.Aus) RowIn(MomentPicBox, 200 + i * 130);
         bool button = _peek.Actions.Count > 0;
         MomentButton.Visibility = button ? Visibility.Visible : Visibility.Collapsed;
         if (button)

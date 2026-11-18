@@ -16,7 +16,7 @@ public enum AiProvider { Claude, ChatGpt, Gemini }
 public enum HotkeyAction
 {
     ToggleIsland, Clipboard, Screenshot, ScreenshotOcr, Shelf, Music, Widgets, Reminders, Controls,
-    MicMute, QueueMode, PlayPause, NextTrack, PrevTrack, FocusTimer, Settings, AiChat, QuickNote, AiSelection, AiRegion
+    MicMute, QueueMode, PlayPause, NextTrack, PrevTrack, FocusTimer, Settings, AiChat, QuickNote, AiSelection, AiRegion, Calculator, Search
 }
 
 public sealed record HotkeyDef(HotkeyAction Action, string Label, string Default);
@@ -46,6 +46,8 @@ public static class HotkeyInfo
         new(HotkeyAction.QuickNote,     L.T("Schnellnotiz schreiben"),          "Ctrl+Alt+N"),
         new(HotkeyAction.AiSelection,   L.T("Markierten Text an die KI"),       "Ctrl+Alt+A"),
         new(HotkeyAction.AiRegion,      L.T("Bildschirmbereich erklären"),      "Ctrl+Alt+B"),
+        new(HotkeyAction.Calculator,    L.T("Rechner"),                         "Ctrl+Alt+Y"),
+        new(HotkeyAction.Search,        L.T("Schnellsuche"),                    "Ctrl+Alt+Space"),
     };
 }
 
@@ -92,6 +94,9 @@ public sealed class AppSettings
     public int EveningMinutes { get; set; } = 18 * 60;
     public bool ScreenTime { get; set; } = true;
     public bool LyricLine { get; set; } = true;
+    // helpers (2026-11-18): small offers after copying, and files just saved
+    public bool CopyHelpers { get; set; } = true;
+    public bool SavedFiles { get; set; } = true;
     public List<string> MinimalTabs { get; set; } = new() { "Clip", "Ai", "Agent", "Send", "Music", "Notify" };
     public AnimationLevel Animations { get; set; } = AnimationLevel.An;
 

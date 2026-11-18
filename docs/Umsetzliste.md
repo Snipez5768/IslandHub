@@ -51,14 +51,14 @@ Vor dem Bauen gibt es zu jeder Funktion Mockups im Chat.
 - [ ] 39 Instant Replay der letzten 30 s über OBS
 
 **Dateien & Helfer**
-- [ ] 40 Datei-Konverter per Ziehen auf die Insel
-- [ ] 41 QR-Code für den aktuellen Link
-- [ ] 42 Rechner in der Insel
-- [ ] 43 Umrechnen beim Kopieren (Währung, Einheiten)
-- [ ] 44 Übersetzen beim Kopieren fremdsprachiger Texte
-- [ ] 45 Kopierte Adresse in der Karte öffnen, kopierte Nummer am Handy anrufen
-- [ ] 46 Schnellsuche für Apps, Dateien und Befehle
-- [ ] 47 Gerade gespeicherte Datei zum Herausziehen
+- [x] 40 Datei-Konverter per Ziehen auf die Insel (40a, Bilder: JPG, PNG, kleiner, PDF)
+- [x] 41 QR-Code für Links (41a beim Kopieren + 41b in der Zwischenablage)
+- [x] 42 Rechner in der Insel (Strg+Alt+Y)
+- [x] 43 Umrechnen beim Kopieren (Währung, Einheiten)
+- [x] 44 Übersetzen beim Kopieren fremdsprachiger Texte
+- [x] 45 Kopierte Adresse in der Karte öffnen, kopierte Nummer am Handy anrufen
+- [x] 46 Schnellsuche für Apps, Dateien und Befehle (Strg+Alt+Leertaste, 46b + ↓ für 46a)
+- [x] 47 Gerade gespeicherte Datei zum Herausziehen (Desktop, Dokumente)
 
 **Spaß & Persönlichkeit**
 - [ ] 48 Wetter in der Insel: Regen, Schnee
