@@ -61,16 +61,16 @@ Vor dem Bauen gibt es zu jeder Funktion Mockups im Chat.
 - [x] 47 Gerade gespeicherte Datei zum Herausziehen (Desktop, Dokumente)
 
 **Spaß & Persönlichkeit**
-- [ ] 48 Wetter in der Insel: Regen, Schnee
-- [ ] 49 Feiertage und Geburtstage
-- [ ] 51 Trink-Erinnerung als Ring
-- [ ] 52 Erfolge
+- [x] 48 Wetter in der Insel: Regen, Schnee (48a Moment + 48b leise bei der Uhr)
+- [x] 49 Feiertage und Geburtstage (Geburtstage selbst eintragen)
+- [x] 51 Trink-Erinnerung mit Glas neben der Uhr
+- [x] 52 Erfolge
 
 **Die Insel selbst**
-- [ ] 55 Freie Position: links, rechts, unten
-- [ ] 56 Designs: Rand-Farbe, Glas-Look, kleinere Insel
-- [ ] 57 Sprachbefehle
-- [ ] 58 Größer und kontrastreicher
+- [x] 55 Position unten (links / rechts gab es schon über Verschieben)
+- [ ] 56 Rand-Farbe – nicht gewählt (Designs und Größe gibt es schon)
+- [x] 57 Sprachbefehle (Strg+Alt+G halten, Windows-Spracherkennung)
+- [ ] 58 Kontrast-Modus – nicht gewählt (Größe gibt es schon)
 
 ## Nach Erklärung gewählt
 

@@ -720,6 +720,17 @@
                                     </StackPanel>
                                 </DockPanel>
                             </Border>
+                            <!-- 55 (2026-11-18): the island at the bottom, above the taskbar -->
+                            <Border Style="{StaticResource Row}">
+                                <DockPanel>
+                                    <ToggleButton x:Name="OptBottom" DockPanel.Dock="Right" Style="{StaticResource Switch}" Click="Opt_Click" VerticalAlignment="Center" />
+                                    <ui:HintPic Kind="move" />
+                                    <StackPanel Margin="0,0,12,0" VerticalAlignment="Center">
+                                        <TextBlock Text="Insel unten" />
+                                        <TextBlock Style="{StaticResource Desc}" Text="Die Insel sitzt über der Taskleiste und klappt nach oben auf." />
+                                    </StackPanel>
+                                </DockPanel>
+                            </Border>
                             <!-- typing elsewhere: the island steps back (2026-11-18) -->
                             <Border Style="{StaticResource Row}">
                                 <DockPanel>
@@ -825,6 +836,47 @@
                                         <TextBlock Style="{StaticResource Desc}" Text="Einmal am Tag schaut die Insel deine Steam-Wunschliste durch (sie muss in Steam öffentlich sein) und meldet jedes Angebot einmal." />
                                     </StackPanel>
                                 </DockPanel>
+                            </Border>
+                            <!-- fun (2026-11-18): weather in the island, holidays and birthdays, water, achievements -->
+                            <Border Style="{StaticResource Row}">
+                                <DockPanel>
+                                    <ToggleButton x:Name="OptWeatherFx" DockPanel.Dock="Right" Style="{StaticResource Switch}" Click="Opt_Click" VerticalAlignment="Center" />
+                                    <ui:HintPic Kind="sun" />
+                                    <StackPanel Margin="0,0,12,0" VerticalAlignment="Center">
+                                        <TextBlock Text="Regen und Schnee in der Insel" />
+                                        <TextBlock Style="{StaticResource Desc}" Text="Fängt es an zu regnen oder zu schneien, fällt kurz etwas durch die Insel – und ab und zu, solange die Uhr zu sehen ist." />
+                                    </StackPanel>
+                                </DockPanel>
+                            </Border>
+                            <Border Style="{StaticResource Row}">
+                                <StackPanel>
+                                    <DockPanel>
+                                        <ToggleButton x:Name="OptHolidays" DockPanel.Dock="Right" Style="{StaticResource Switch}" Click="Opt_Click" VerticalAlignment="Center" />
+                                        <ui:HintPic Kind="sun" />
+                                        <StackPanel Margin="0,0,12,0" VerticalAlignment="Center">
+                                            <TextBlock Text="Feiertage und Geburtstage" />
+                                            <TextBlock Style="{StaticResource Desc}" Text="Ein kleiner Moment an Feiertagen. Geburtstage trägst du hier selbst ein, eine Zeile pro Person: Name TT.MM" />
+                                        </StackPanel>
+                                    </DockPanel>
+                                    <TextBox x:Name="OptBirthdays" Style="{StaticResource MacTextBox}" Margin="0,8,0,0" AcceptsReturn="True" MinHeight="44" Tag="z. B. Lena 18.11" LostFocus="Birthdays_Changed" />
+                                </StackPanel>
+                            </Border>
+                            <Border Style="{StaticResource Row}">
+                                <DockPanel>
+                                    <ToggleButton x:Name="OptWater" DockPanel.Dock="Right" Style="{StaticResource Switch}" Click="Opt_Click" VerticalAlignment="Center" />
+                                    <ui:HintPic Kind="history" />
+                                    <StackPanel Margin="0,0,12,0" VerticalAlignment="Center">
+                                        <TextBlock Text="Trink-Erinnerung" />
+                                        <TextBlock Style="{StaticResource Desc}" Text="Ein kleines Glas neben der Uhr füllt sich über den Tag; etwa alle 90 Minuten erinnert die Insel an ein Glas Wasser." />
+                                    </StackPanel>
+                                </DockPanel>
+                            </Border>
+                            <Border Style="{StaticResource Row}">
+                                <StackPanel>
+                                    <TextBlock Text="Erfolge" />
+                                    <TextBlock Style="{StaticResource Desc}" Text="Kleine Abzeichen für Fokus, Pausen, Wasser und mehr." />
+                                    <WrapPanel x:Name="AchievementList" Margin="0,8,0,0" />
+                                </StackPanel>
                             </Border>
                             <!-- several screens (2026-11-17): off by default -->
                             <Border Style="{StaticResource Row}">

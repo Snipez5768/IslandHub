@@ -160,6 +160,8 @@ public partial class IslandWindow
             return;
         }
         if (string.IsNullOrEmpty(file) || !File.Exists(file)) { ShowHint("xmark", L.T("OBS hat nichts gespeichert"), (Brush)FindResource("Danger"), key: "replay"); return; }
+        H.Day.Today.Replays++;
+        H.Day.Save();
         H.Shelf.Add(new[] { file });
         var p = new PeekInfo
         {

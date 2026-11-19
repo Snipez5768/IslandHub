@@ -135,6 +135,8 @@ public partial class IslandWindow : Window
         WireHelpers();
         WireSystem();
         WireGames2();
+        WireFun();
+        ApplyBottom(); // at the top or at the bottom (55)
         WireSend();
         WireNotes();
         WireNotifyDetach();
@@ -244,7 +246,7 @@ public partial class IslandWindow : Window
         RemindEmpty.Visibility = H.Reminders.Items.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
         H.Shelf.Items.CollectionChanged += (_, _) => UpdateShelfUi();
         LiveApp.MicBrush = MicBrush;
-        App.SettingsChanged += () => { LiveApp.MicBrush = MicBrush; Reposition(); ApplyShape(); UpdatePill(true); UpdateLiveUi(); UpdateGlow(); ApplyTabStyle(); ApplyClipLayout(); UpdateAiUi(); };
+        App.SettingsChanged += () => { LiveApp.MicBrush = MicBrush; ApplyBottom(); ApplyShape(); UpdatePill(true); UpdateLiveUi(); UpdateGlow(); ApplyTabStyle(); ApplyClipLayout(); UpdateAiUi(); };
 
         _hoverTimer.Tick += (_, _) =>
         {
@@ -1060,11 +1062,9 @@ public partial class IslandWindow : Window
         try
         {
             Native.GetCursorPos(out var p);
-            var tl = Island.PointToScreen(new Point(0, 0));
-            var dpi = VisualTreeHelper.GetDpi(this);
-            double w = Island.ActualWidth * PxX, h = Island.ActualHeight * PxY; // island units → screen pixels (Windows scaling × zoom)
+            var r = ScreenRect(Island); // (mirrored when the island sits at the bottom, 55)
             double t = tolerance * PxX;
-            return p.X >= tl.X - t && p.X <= tl.X + w + t && p.Y >= tl.Y - t - 2 && p.Y <= tl.Y + h + t;
+            return p.X >= r.Left - t && p.X <= r.Right + t && p.Y >= r.Top - t - 2 && p.Y <= r.Bottom + t;
         }
         catch { return false; }
     }
@@ -1692,9 +1692,9 @@ public partial class IslandWindow : Window
         {
             Native.GetCursorPos(out var p);
             var dpi = VisualTreeHelper.GetDpi(this);
-            var tl = TuckStrip.PointToScreen(new Point(0, 0));
-            double cx = tl.X + TuckStrip.ActualWidth * PxX / 2;
-            near = Math.Abs(p.X - cx) <= 150 * PxX && p.Y <= tl.Y + 40 * PxY && p.Y >= tl.Y - 4;
+            var r = ScreenRect(TuckStrip);
+            double cx = (r.Left + r.Right) / 2;
+            near = Math.Abs(p.X - cx) <= 150 * PxX && (S.IslandBottom ? p.Y >= r.Bottom - 40 * PxY && p.Y <= r.Bottom + 4 : p.Y <= r.Top + 40 * PxY && p.Y >= r.Top - 4);
         }
         catch { }
         // only while nothing else of the island is showing
@@ -1785,6 +1785,7 @@ public partial class IslandWindow : Window
         bool clock = !game && acts.Count == 0 && S.ClockInIsland; // nothing going on: the time in the middle (mockup B)
         if (clock && IdleClock.Visibility != Visibility.Visible) { IdleClock.Roll = false; IdleClock.Text = ClockText(); IdleClock.Roll = true; }
         IdleClock.Visibility = clock ? Visibility.Visible : Visibility.Collapsed;
+        if (WaterGlass.IsVisible != (clock && S.Water)) After(1, UpdateWaterGlass); // the glass of water beside the clock (51)
         Lead.ToolTip = null;
 
         var musicColor = MusicTint();
@@ -3085,6 +3086,7 @@ public partial class IslandWindow : Window
             case HotkeyAction.Search: OpenQuery(""); break;        // 46
             case HotkeyAction.ColorPicker: ScreenshotController.Start(false, picker: true); break; // 30
             case HotkeyAction.InstantReplay: _ = InstantReplay(); break; // 39
+            case HotkeyAction.VoiceCommand: VoiceCommand(); break; // 57
             case HotkeyAction.Controls: ToggleTab("Controls"); break;
             case HotkeyAction.Screenshot: TakeScreenshot(false); break;
             case HotkeyAction.ScreenshotOcr: TakeScreenshot(true); break;

@@ -317,6 +317,7 @@ public partial class SettingsWindow : Window
         OptScaleScreen.IsChecked = S.ScaleWithScreen;
         OptFollowScreen.IsChecked = S.FollowActiveScreen;
         OptFadeTyping.IsChecked = S.FadeWhileTyping;
+        OptBottom.IsChecked = S.IslandBottom;
         OptEyeBreak.IsChecked = S.EyeBreak;
         OptMorning.IsChecked = S.MorningMoment;
         OptEvening.IsChecked = S.EveningMoment;
@@ -325,6 +326,11 @@ public partial class SettingsWindow : Window
         OptCopyHelpers.IsChecked = S.CopyHelpers;
         OptSavedFiles.IsChecked = S.SavedFiles;
         OptWishlist.IsChecked = S.WishlistSales;
+        OptWeatherFx.IsChecked = S.WeatherFx;
+        OptHolidays.IsChecked = S.Holidays;
+        OptWater.IsChecked = S.Water;
+        OptBirthdays.Text = string.Join("\n", S.Birthdays.Select(b => b.Replace("|", " ")));
+        BuildAchievements();
         if (OptGameReminder.Items.Count == 0)
             foreach (var m in new[] { 0, 60, 90, 120, 180, 240 })
                 OptGameReminder.Items.Add(new ComboBoxItem { Content = m == 0 ? L.T("Aus") : m % 60 == 0 ? L.T($"{m / 60} h") : $"{m / 60}:{m % 60:00} h", Tag = m });
@@ -592,6 +598,32 @@ public partial class SettingsWindow : Window
 
     // ---------------- simple options ----------------
 
+    private void Birthdays_Changed(object sender, RoutedEventArgs e)
+    {
+        if (_loading) return;
+        S.Birthdays = OptBirthdays.Text.Split('\n').Select(l => System.Text.RegularExpressions.Regex.Match(l.Trim(), @"^(.+?)\s+(\d{1,2})\.(\d{1,2})\.?$"))
+            .Where(m => m.Success).Select(m => $"{m.Groups[1].Value.Trim()}|{int.Parse(m.Groups[2].Value):00}.{int.Parse(m.Groups[3].Value):00}").ToList();
+        App.SaveSettings();
+    }
+
+    /// <summary>Every achievement: golden when reached (with the day), grey until then.</summary>
+    private void BuildAchievements()
+    {
+        AchievementList.Children.Clear();
+        foreach (var (title, text, when) in IslandWindow.AchievementList(S))
+        {
+            var gold = new SolidColorBrush(Color.FromRgb(0xFF, 0xD6, 0x0A));
+            var chip = new Border { CornerRadius = new CornerRadius(10), Padding = new Thickness(9, 3, 10, 4), Margin = new Thickness(0, 0, 6, 6),
+                                    Background = new SolidColorBrush(when != null ? Color.FromArgb(0x33, 0xFF, 0xD6, 0x0A) : Color.FromArgb(0x1A, 0xFF, 0xFF, 0xFF)),
+                                    ToolTip = when is { } t ? $"{text} · {t:dd.MM.yyyy}" : text };
+            var sp = new StackPanel { Orientation = Orientation.Horizontal };
+            sp.Children.Add(new SfIcon { Kind = "trophy", Size = 11, Foreground = when != null ? gold : Brushes.Gray, Margin = new Thickness(0, 0, 5, 0), VerticalAlignment = VerticalAlignment.Center });
+            sp.Children.Add(new TextBlock { Text = title, FontSize = 11, Foreground = when != null ? Brushes.White : Brushes.Gray, VerticalAlignment = VerticalAlignment.Center });
+            chip.Child = sp;
+            AchievementList.Children.Add(chip);
+        }
+    }
+
     private void GameReminder_Changed(object sender, SelectionChangedEventArgs e)
     {
         if (_loading || OptGameReminder.SelectedItem is not ComboBoxItem { Tag: int m }) return;
@@ -624,6 +656,7 @@ public partial class SettingsWindow : Window
         S.ScaleWithScreen = OptScaleScreen.IsChecked == true;
         S.FollowActiveScreen = OptFollowScreen.IsChecked == true;
         S.FadeWhileTyping = OptFadeTyping.IsChecked == true;
+        S.IslandBottom = OptBottom.IsChecked == true;
         S.EyeBreak = OptEyeBreak.IsChecked == true;
         S.MorningMoment = OptMorning.IsChecked == true;
         S.EveningMoment = OptEvening.IsChecked == true;
@@ -632,6 +665,9 @@ public partial class SettingsWindow : Window
         S.CopyHelpers = OptCopyHelpers.IsChecked == true;
         S.SavedFiles = OptSavedFiles.IsChecked == true;
         S.WishlistSales = OptWishlist.IsChecked == true;
+        S.WeatherFx = OptWeatherFx.IsChecked == true;
+        S.Holidays = OptHolidays.IsChecked == true;
+        S.Water = OptWater.IsChecked == true;
         OptEveningAt.IsEnabled = S.EveningMoment;
         S.DeviceInIsland = OptDevice.IsChecked == true;
         S.PowerInIsland = OptPower.IsChecked == true;

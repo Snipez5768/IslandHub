@@ -155,10 +155,10 @@ public partial class IslandWindow
     {
         try
         {
-            var tl = Island.PointToScreen(new Point(0, 0));
-            double w = Island.ActualWidth * PxX, h = Island.ActualHeight * PxY;
+            var r = ScreenRect(Island);
             double mx = 150 * PxX, my = 120 * PxY;
-            return p.X >= tl.X - mx && p.X <= tl.X + w + mx && p.Y >= tl.Y - 10 && p.Y <= tl.Y + h + my;
+            // below the island – or above it when it sits at the bottom (55)
+            return p.X >= r.Left - mx && p.X <= r.Right + mx && (S.IslandBottom ? p.Y >= r.Top - my && p.Y <= r.Bottom + 10 : p.Y >= r.Top - 10 && p.Y <= r.Bottom + my);
         }
         catch { return false; }
     }

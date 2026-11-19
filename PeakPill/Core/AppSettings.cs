@@ -16,7 +16,7 @@ public enum AiProvider { Claude, ChatGpt, Gemini }
 public enum HotkeyAction
 {
     ToggleIsland, Clipboard, Screenshot, ScreenshotOcr, Shelf, Music, Widgets, Reminders, Controls,
-    MicMute, QueueMode, PlayPause, NextTrack, PrevTrack, FocusTimer, Settings, AiChat, QuickNote, AiSelection, AiRegion, Calculator, Search, ColorPicker, InstantReplay
+    MicMute, QueueMode, PlayPause, NextTrack, PrevTrack, FocusTimer, Settings, AiChat, QuickNote, AiSelection, AiRegion, Calculator, Search, ColorPicker, InstantReplay, VoiceCommand
 }
 
 public sealed record HotkeyDef(HotkeyAction Action, string Label, string Default);
@@ -50,6 +50,7 @@ public static class HotkeyInfo
         new(HotkeyAction.Search,        L.T("Schnellsuche"),                    "Ctrl+Alt+Space"),
         new(HotkeyAction.ColorPicker,   L.T("Farbpipette"),                     "Ctrl+Alt+H"),
         new(HotkeyAction.InstantReplay, L.T("Instant Replay (OBS)"),            "Ctrl+Alt+J"),
+        new(HotkeyAction.VoiceCommand,  L.T("Sprachbefehl (halten)"),           "Ctrl+Alt+G"),
     };
 }
 
@@ -89,6 +90,7 @@ public sealed class AppSettings
     public bool ClockInIsland { get; set; } = true;
     /// <summary>While you type in another window the closed island becomes see-through (2026-11-18).</summary>
     public bool FadeWhileTyping { get; set; } = true;
+    public bool IslandBottom { get; set; } // 55 (2026-11-18): above the taskbar, opening upwards
     // workday (2026-11-18): eye break every 20 min, the morning and the evening moment, screen time
     public bool EyeBreak { get; set; } = true;
     public bool MorningMoment { get; set; } = true;
@@ -104,6 +106,13 @@ public sealed class AppSettings
     public bool WishlistSales { get; set; } = true;
     public List<string> WishlistTold { get; set; } = new();
     public DateTime WishlistCheckedOn { get; set; }
+    // fun (2026-11-18): rain and snow in the island, holidays and birthdays, water, achievements
+    public bool WeatherFx { get; set; } = true;
+    public bool Holidays { get; set; } = true;
+    public List<string> Birthdays { get; set; } = new();   // "Name|dd.MM"
+    public bool Water { get; set; } = true;
+    public int WaterGoal { get; set; } = 8;
+    public Dictionary<string, DateTime> Achievements { get; set; } = new();
     public List<string> MinimalTabs { get; set; } = new() { "Clip", "Ai", "Agent", "Send", "Music", "Notify" };
     public AnimationLevel Animations { get; set; } = AnimationLevel.An;
 

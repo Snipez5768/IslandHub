@@ -50,8 +50,11 @@ public partial class IslandWindow
     {
         ApplyZoom();
         var dpi = VisualTreeHelper.GetDpi(this);
-        var b = IslandScreen().Bounds;
+        var scr = IslandScreen();
+        var b = scr.Bounds;
         double wPx = Width * dpi.DpiScaleX;
+        // at the bottom (55): the window's lower edge on the taskbar's upper edge
+        int topPx = S.IslandBottom ? scr.WorkingArea.Bottom - (int)Math.Round(Height * dpi.DpiScaleY) : b.Top;
         double margin = 200 * dpi.DpiScaleX * _zoom; // the widest island stays on its screen
         double cx = Math.Clamp(b.Left + b.Width / 2.0 + S.IslandX * b.Width, b.Left + margin, b.Right - margin);
         var h = new WindowInteropHelper(this).Handle;
@@ -59,10 +62,10 @@ public partial class IslandWindow
         if (h == IntPtr.Zero)
         {
             Left = (cx - wPx / 2) / dpi.DpiScaleX;
-            Top = b.Top / dpi.DpiScaleY;
+            Top = topPx / dpi.DpiScaleY;
             return;
         }
-        Native.SetWindowPos(h, IntPtr.Zero, (int)Math.Round(cx - wPx / 2), b.Top, 0, 0, 0x0001 | 0x0004 | 0x0010); // NOSIZE | NOZORDER | NOACTIVATE
+        Native.SetWindowPos(h, IntPtr.Zero, (int)Math.Round(cx - wPx / 2), topPx, 0, 0, 0x0001 | 0x0004 | 0x0010); // NOSIZE | NOZORDER | NOACTIVATE
     }
 
     // ---------- move mode ----------

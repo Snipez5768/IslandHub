@@ -14,6 +14,10 @@ public sealed class DayEntry
     public int ClaudeDone { get; set; }
     public bool MorningShown { get; set; }
     public bool EveningShown { get; set; }
+    public int Water { get; set; }
+    public int EyeBreaks { get; set; }
+    public int Replays { get; set; }
+    public bool HolidayShown { get; set; }
 }
 
 /// <summary>

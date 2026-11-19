@@ -464,6 +464,16 @@ public partial class IslandWindow
             try { var c = Island.TranslatePoint(new Point(Island.ActualWidth / 2, 0), Root); var l = Island.TranslatePoint(new Point(0, 0), Root); var cv = LeadCover.TranslatePoint(new Point(0, 0), Root); xs.Add($"{frames.Count}: centre {c.X:0.0}  w {Island.ActualWidth:0}  left {l.X:0.0}  right {l.X + Island.ActualWidth:0.0}  cover {cv.X:0.0}"); } catch { }
         }
         async Task Film(int count, int ms) { for (int i = 0; i < count; i++) { Frame(); await Task.Delay(ms); } }
+        void SaveFrameBottom(string name) // the whole window (the island at the bottom, 55)
+        {
+            var dpi = VisualTreeHelper.GetDpi(this);
+            var rtb = new RenderTargetBitmap((int)(ActualWidth * dpi.DpiScaleX), (int)(ActualHeight * dpi.DpiScaleY), dpi.PixelsPerInchX, dpi.PixelsPerInchY, PixelFormats.Pbgra32);
+            var bg = new DrawingVisual();
+            using (var dc = bg.RenderOpen()) dc.DrawRectangle(new SolidColorBrush(Color.FromRgb(0x3D, 0x4A, 0x63)), null, new Rect(0, 0, ActualWidth, ActualHeight));
+            rtb.Render(bg); rtb.Render(Root);
+            var enc = new PngBitmapEncoder(); enc.Frames.Add(BitmapFrame.Create(rtb));
+            using var fs = File.Create(Path.Combine(dir, name + ".png")); enc.Save(fs);
+        }
         void Save(string name)
         {
             if (frames.Count == 0) return;
@@ -524,6 +534,59 @@ public partial class IslandWindow
                     Save("mustact");
                     EndPeek();
                     H.Agents.EndDemo();
+                    break;
+                }
+                case "fun":
+                {
+                    // 48 rain / snow · 49 confetti · 51 water · 52 achievement · 55 at the bottom (demo; nothing saved)
+                    fh = 150;
+                    H.Agents.StopListening();
+                    _demoOnly = true;
+                    H.Media.FakeNone();
+                    bool wasTucked = _tucked;
+                    if (_tucked) Untuck();
+                    UpdatePill(true);
+                    await Task.Delay(800);
+                    _hintHoldMs = 3800;
+                    ShowHint("drop", L.T("Regen ab 15 Uhr"), (Brush)FindResource("Teal"), key: "weather");
+                    After(150, () => Shower(1, 3600, 14));
+                    await Film(16, 80);
+                    Save("1_regen");
+                    await Task.Delay(3500);
+                    Shower(2, 2600, 8);
+                    await Film(12, 120);
+                    Save("2_schnee");
+                    _hintHoldMs = 4500;
+                    ShowHint("sparkles", L.T("Frohes neues Jahr"), Brushes.White, key: "holiday");
+                    After(250, () => Confetti("newyear"));
+                    await Film(16, 70);
+                    Save("3_konfetti");
+                    await Task.Delay(4500);
+                    H.Day.Today.Water = 5;
+                    UpdatePill(true);
+                    UpdateWaterGlass();
+                    await Task.Delay(600);
+                    await Film(4, 100);
+                    Save("4_glas");
+                    ShowAchievement(AllAchievements[2]);
+                    await Film(14, 70);
+                    Save("5_erfolg");
+                    EndPeek();
+                    await Task.Delay(900);
+                    // 55: at the bottom (only in this test window)
+                    bool bottom = S.IslandBottom;
+                    S.IslandBottom = true;
+                    ApplyBottom();
+                    H.Media.Fake("Nachtlicht", "Lena Ost", Pic(Color.FromRgb(0xFF, 0x7A, 0x3D), Color.FromRgb(0xE0, 0x3A, 0x5A)), false);
+                    UpdatePill(true);
+                    await Task.Delay(900);
+                    Expand("Music", true);
+                    await Task.Delay(700);
+                    SaveFrameBottom("6_unten");
+                    Collapse();
+                    S.IslandBottom = bottom;
+                    ApplyBottom();
+                    if (wasTucked) Tuck();
                     break;
                 }
                 case "games2":

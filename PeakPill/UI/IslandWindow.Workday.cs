@@ -367,6 +367,7 @@ public partial class IslandWindow
     {
         H.Usage.ResetStreak();
         _eyeBreakUntil = DateTime.Now.AddSeconds(EyeBreakSeconds);
+        H.Day.Today.EyeBreaks++; // (an achievement counts them)
         if (_eyeBreakTimer == null)
         {
             _eyeBreakTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(500) };

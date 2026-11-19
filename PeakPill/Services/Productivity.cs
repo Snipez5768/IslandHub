@@ -107,6 +107,11 @@ public sealed record WeatherHour(string Time, string Icon, string Temp);
 
 public sealed class WeatherService : ObservableObject
 {
+    // rain and snow for the island (48, 2026-11-18): the WMO code now and for the next hours
+    public int Code { get; private set; }
+    public List<(DateTime At, int Code)> HourCodes { get; private set; } = new();
+    /// <summary>0 dry · 1 rain (drizzle, showers, thunder) · 2 snow.</summary>
+    public static int Precip(int code) => code is >= 71 and <= 77 or 85 or 86 ? 2 : code is >= 51 and <= 67 or >= 80 and <= 82 or >= 95 ? 1 : 0;
     private static readonly HttpClient Http = new() { Timeout = TimeSpan.FromSeconds(12) };
     private readonly DispatcherTimer _t = new() { Interval = TimeSpan.FromMinutes(20) };
     private bool _has;
@@ -186,6 +191,7 @@ public sealed class WeatherService : ObservableObject
             TempText = $"{temp:0}°";
             Description = desc;
             Icon = icon;
+            Code = code;
             Detail = L.T($"↑ {max:0}°  ↓ {min:0}°  ·  gefühlt {feels:0}°  ·  Wind {wind:0} km/h");
             Place = s.WeatherPlace;
             City = (s.WeatherPlace ?? "").Split(',')[0];
@@ -196,14 +202,18 @@ public sealed class WeatherService : ObservableObject
                 var hourly = doc.RootElement.GetProperty("hourly");
                 var times = hourly.GetProperty("time");
                 var hours = new List<WeatherHour>();
+                var codes = new List<(DateTime At, int Code)>();
                 for (int i = 0; i < times.GetArrayLength() && hours.Count < 5; i++)
                 {
                     var at = DateTime.Parse(times[i].GetString(), CultureInfo.InvariantCulture);
                     bool hd = hourly.GetProperty("is_day")[i].GetInt32() == 1;
                     var (_, hi) = Describe(hourly.GetProperty("weather_code")[i].GetInt32(), hd);
+                    codes.Add((at, hourly.GetProperty("weather_code")[i].GetInt32()));
                     hours.Add(new WeatherHour(i == 0 ? L.T("Jetzt") : at.ToString("HH"), hi, $"{hourly.GetProperty("temperature_2m")[i].GetDouble():0}°"));
                 }
                 Hours = hours;
+                HourCodes = codes;
+                Raise(nameof(HourCodes));
             }
             catch { }
             HasData = true;

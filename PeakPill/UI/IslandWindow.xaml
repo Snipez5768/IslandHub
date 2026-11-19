@@ -460,6 +460,12 @@
                     <!-- the clock in the quiet island (2026-11-18, mockup B) – its digits roll -->
                     <ui:RollingText x:Name="IdleClock" Grid.ColumnSpan="4" FontSize="14" FontWeight="SemiBold" Foreground="White" HorizontalAlignment="Center"
                                     VerticalAlignment="Center" Visibility="Collapsed" IsHitTestVisible="False" Margin="5,0,0,0" />
+                    <!-- the glass of water (51, 2026-11-18): it fills over the day -->
+                    <Grid x:Name="WaterGlass" Grid.ColumnSpan="4" Width="11" Height="15" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,4,0"
+                          Visibility="Collapsed" IsHitTestVisible="False" ClipToBounds="True">
+                        <Border x:Name="WaterFill" Background="#64D2FF" VerticalAlignment="Bottom" Height="0" CornerRadius="0,0,2.5,2.5" Margin="1.5,0,1.5,1.5" />
+                        <Border BorderBrush="#9964D2FF" BorderThickness="1.4,0,1.4,1.4" CornerRadius="0,0,3,3" />
+                    </Grid>
                     <StackPanel x:Name="Lead" Orientation="Horizontal" VerticalAlignment="Center">
                         <Grid>
                             <!-- new song: the old cover slides out to the left while the new one comes in from the right -->
@@ -2444,6 +2450,8 @@
                         </StackPanel>
                     </Grid>
                 </Grid>
+                <!-- rain and snow falling through the island (48, 2026-11-18) -->
+                <Canvas x:Name="WeatherFx" IsHitTestVisible="False" ClipToBounds="True" />
                 <!-- swipe on the closed island (15a, 2026-11-18): an arrow shows which way the title goes -->
                 <ui:SfIcon x:Name="SwipeArrow" Kind="chevron.right" Size="13" Foreground="White" HorizontalAlignment="Right" VerticalAlignment="Top"
                            Margin="0,9,10,0" Opacity="0" IsHitTestVisible="False" />
