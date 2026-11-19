@@ -795,6 +795,16 @@
                                     </StackPanel>
                                 </DockPanel>
                             </Border>
+                            <Border Style="{StaticResource Row}">
+                                <DockPanel>
+                                    <ToggleButton x:Name="OptSelectionMenu" DockPanel.Dock="Right" Style="{StaticResource Switch}" Click="Opt_Click" VerticalAlignment="Center" />
+                                    <ui:HintPic Kind="history" />
+                                    <StackPanel Margin="0,0,12,0" VerticalAlignment="Center">
+                                        <TextBlock Text="Menü beim Markieren" />
+                                        <TextBlock Style="{StaticResource Desc}" Text="Markierst du Text mit der Maus, bietet die Insel Übersetzen, Umformulieren und Erklären an (braucht einen KI-Schlüssel). Es wird dabei nichts kopiert." />
+                                    </StackPanel>
+                                </DockPanel>
+                            </Border>
                             <!-- helpers (2026-11-18): small offers after copying, files just saved -->
                             <Border Style="{StaticResource Row}">
                                 <DockPanel>

@@ -46,7 +46,10 @@ public partial class IslandWindow
 
     private async Task OfferHelper(ClipItem item)
     {
-        if (!S.CopyHelpers || _state != State.Collapsed || _tucked || _roomAway || !Island.IsVisible) return;
+        if (!S.CopyHelpers || _tucked) return;
+        // after the "Kopiert ✓" notice has settled (it used to block the helper: the island was busy with it – user report 2026-11-19)
+        await Task.Delay(650);
+        if (_state is not (State.Collapsed or State.Hint) || !IsVisible) return;
         var (kind, value) = CopyHelpers.Detect(item);
         switch (kind)
         {
@@ -85,8 +88,9 @@ public partial class IslandWindow
         HelperAction.Text = action;
         try
         {
+            // under the island where it rests – also when it just made room for an address bar (then it is slid away)
             var c = Island.TranslatePoint(new Point(Island.ActualWidth / 2, Island.ActualHeight), Root);
-            HelperBubble.Margin = new Thickness(0, c.Y + 6, 0, 0);
+            HelperBubble.Margin = new Thickness(0, c.Y - _roomShift.Y + 6, 0, 0);
             HelperShift.X = c.X - Root.ActualWidth / 2;
         }
         catch { }
@@ -356,9 +360,11 @@ public partial class IslandWindow
     private void ShowHits()
     {
         var best = _hits.Count > 0 ? _hits[Math.Clamp(_hitIdx, 0, _hits.Count - 1)] : null;
-        QueryBest.Text = best == null ? "" : best.Kind == "calc" ? best.Text : best.Text + "  ↵";
-        QueryBest.Foreground = best?.Kind == "calc" ? Brushes.White : new SolidColorBrush(Color.FromRgb(0xAE, 0xAE, 0xB2));
-        QueryBest.FontWeight = best?.Kind == "calc" ? FontWeights.SemiBold : FontWeights.Normal;
+        // a sum: its result right behind it (" = 87"); otherwise the best hit on the right
+        var calc = _hits.FirstOrDefault(h => h.Kind == "calc");
+        QueryResult.Text = calc?.Text ?? "";
+        QueryBest.Text = best == null || best.Kind == "calc" ? "" : best.Text + "  ↵";
+        QueryBest.Foreground = new SolidColorBrush(Color.FromRgb(0xAE, 0xAE, 0xB2));
         QueryList.Children.Clear();
         if (_queryOpen)
         {

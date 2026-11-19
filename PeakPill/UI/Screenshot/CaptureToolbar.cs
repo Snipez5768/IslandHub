@@ -38,6 +38,7 @@ public sealed class CaptureToolbar : Window
         (CaptureMode.Freeform, "lasso", L.T("Freihand"), L.T("Form umfahren")),
         (CaptureMode.Gif, "record", L.T("Aufnahme als GIF"), L.T("Bereich für GIF ziehen")),
         (CaptureMode.Picker, "eyedropper", L.T("Farbpipette"), L.T("Farbe anklicken")),
+        (CaptureMode.Explain, "sparkles", L.T("Erklären"), L.T("Bereich aufziehen – die KI erklärt ihn")),
     };
 
     public CaptureToolbar(CaptureSession session, WF.Screen screen, SD.Bitmap shot)

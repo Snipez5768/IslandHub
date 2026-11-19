@@ -23,7 +23,7 @@ public static class ScreenshotController
             PreviewWindow.CloseCurrent();
             await Task.Delay(160);
 
-            var result = await RunOverlayAsync(picker);
+            var result = await RunOverlayAsync(picker, explain);
             App.Island.SetCaptureHidden(false);
             if (result == null) return;
 
@@ -69,7 +69,7 @@ public static class ScreenshotController
             System.Windows.Media.Imaging.BitmapSource src;
             using (bmp) { src = ScreenshotService.ToBitmapSource(bmp); item = App.Hub.Clipboard.AddImage(src, true); }
 
-            if (explain) { App.Island.ExplainShot(item.ImageFile); return; } // 14 (2026-11-18): the KI says what it is
+            if (explain || result.Mode == CaptureMode.Explain) { App.Island.ExplainShot(item.ImageFile); return; } // 14 (2026-11-18): the KI says what it is
             if (liveText) { EditorWindow.Open(item, liveText: true); return; }
             // the picture shrinks and flies into the island (2026-11-17, no flash) – the preview comes after it landed
             await App.Island.FlyShot(src, result.Region);
@@ -97,11 +97,12 @@ public static class ScreenshotController
         done(new CaptureResult { Mode = CaptureMode.Area, Region = new SD.Rectangle(x, y, w, h), DelaySeconds = Math.Max(1, session.DelaySeconds) });
     }
 
-    private static Task<CaptureResult> RunOverlayAsync(bool picker = false)
+    private static Task<CaptureResult> RunOverlayAsync(bool picker = false, bool explainMode = false)
     {
         var tcs = new TaskCompletionSource<CaptureResult>();
         var session = new CaptureSession { DelaySeconds = App.Settings.ScreenshotTimer };
         if (picker) session.Mode = CaptureMode.Picker; // straight to the colour picker with its loupe (30)
+        if (explainMode) session.Mode = CaptureMode.Explain; // straight to "Erklären" (14)
         session.Windows.AddRange(ScreenshotService.EnumerateWindows());
         var screens = WF.Screen.AllScreens;
         var shots = screens.Select(s => ScreenshotService.Capture(s.Bounds)).ToList();

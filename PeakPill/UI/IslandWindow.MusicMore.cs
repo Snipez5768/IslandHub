@@ -41,6 +41,8 @@ public partial class IslandWindow
         Island.PreviewMouseLeftButtonDown += SwipeDown;
         Island.PreviewMouseMove += SwipeMove;
         Island.PreviewMouseLeftButtonUp += SwipeUp;
+        if (new System.Windows.Interop.WindowInteropHelper(this).Handle != IntPtr.Zero) HookTouchpadSwipe();
+        else SourceInitialized += (_, _) => HookTouchpadSwipe();
 
         _musicTick.Tick += (_, _) => MusicTick();
         _musicTick.Start();
@@ -76,9 +78,24 @@ public partial class IslandWindow
     private double _swipeStartX, _swipeDx;
     private const double SwipeNeed = 40;
 
+    /// <summary>
+    /// Where a swipe may start: the closed island with the music in front – or the open music page (with "open on
+    /// hover" the island opens the moment the pointer touches it, user report 2026-11-19), but not on its buttons
+    /// and sliders.
+    /// </summary>
+    private bool CanSwipe(object source)
+    {
+        if (_moveMode || !H.Media.HasMedia) return false;
+        if (_state == State.Collapsed) return _lastLead == Act.Music;
+        if (_state != State.Expanded || _tab != "Music") return false;
+        for (var d = source as DependencyObject; d != null && d != Island; d = VisualTreeHelper.GetParent(d) ?? LogicalTreeHelper.GetParent(d))
+            if (d is System.Windows.Controls.Primitives.ButtonBase or Slider or System.Windows.Controls.Primitives.TextBoxBase or ScrollViewer) return false;
+        return true;
+    }
+
     private void SwipeDown(object sender, MouseButtonEventArgs e)
     {
-        if (_moveMode || _state != State.Collapsed || _lastLead != Act.Music || !H.Media.HasMedia) return;
+        if (!CanSwipe(e.OriginalSource)) return;
         Native.GetCursorPos(out var p);
         _swipeStartX = p.X;
         _swipeArmed = true;
@@ -120,6 +137,41 @@ public partial class IslandWindow
         SwipeArrow.Margin = right ? new Thickness(0, Island.ActualHeight / 2 - 6.5, 10, 0) : new Thickness(10, Island.ActualHeight / 2 - 6.5, 0, 0);
         SwipeArrow.BeginAnimation(OpacityProperty, null);
         SwipeArrow.Opacity = Math.Min(1, Math.Abs(dx) / SwipeNeed);
+    }
+
+    // ---------- two fingers on the touchpad (sideways scrolling, user report 2026-11-19) ----------
+
+    private double _wheelDx;
+    private System.Windows.Threading.DispatcherTimer _wheelEnd;
+
+    private void HookTouchpadSwipe()
+    {
+        var src = System.Windows.Interop.HwndSource.FromHwnd(new System.Windows.Interop.WindowInteropHelper(this).Handle);
+        src?.AddHook((IntPtr hwnd, int msg, IntPtr w, IntPtr l, ref bool handled) =>
+        {
+            const int WM_MOUSEHWHEEL = 0x020E;
+            if (msg != WM_MOUSEHWHEEL || !IsCursorOverIsland(0) || _swiping) return IntPtr.Zero;
+            if (!CanSwipe(Mouse.DirectlyOver)) return IntPtr.Zero;
+            int delta = (short)((w.ToInt64() >> 16) & 0xFFFF);
+            _wheelDx += delta / 120.0 * 22;
+            ApplySwipe(_wheelDx);
+            _wheelEnd ??= new System.Windows.Threading.DispatcherTimer { Interval = TimeSpan.FromMilliseconds(170) };
+            _wheelEnd.Stop();
+            _wheelEnd.Tick -= WheelEnded;
+            _wheelEnd.Tick += WheelEnded;
+            _wheelEnd.Start();
+            handled = true;
+            return IntPtr.Zero;
+        });
+    }
+
+    private void WheelEnded(object sender, EventArgs e)
+    {
+        _wheelEnd.Stop();
+        bool go = Math.Abs(_wheelDx) >= SwipeNeed;
+        _swipeDx = _wheelDx;
+        _wheelDx = 0;
+        SwipeRelease(go);
     }
 
     private void SwipeUp(object sender, MouseButtonEventArgs e)

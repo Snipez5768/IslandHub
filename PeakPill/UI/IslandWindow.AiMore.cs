@@ -55,12 +55,14 @@ public partial class IslandWindow
     //  13a · selected text → the KI
     // =====================================================================
 
-    private async void AskAboutSelection()
+    private async void AskAboutSelection() => SelectionMenu(await GrabSelectionAsync(), fromHotkey: true);
+
+    /// <summary>The three buttons for selected text – from the hotkey, or by itself after selecting with the mouse.</summary>
+    private void SelectionMenu(string text, bool fromHotkey)
     {
-        var text = await GrabSelectionAsync();
         if (string.IsNullOrWhiteSpace(text))
         {
-            ShowHint("text", L.T("Erst Text markieren"), (Brush)FindResource("SubText"), key: "aisel");
+            if (fromHotkey) ShowHint("text", L.T("Erst Text markieren"), (Brush)FindResource("SubText"), key: "aisel");
             return;
         }
         text = text.Trim();
@@ -68,9 +70,9 @@ public partial class IslandWindow
         if (shown.Length > 70) shown = shown[..69] + "…";
         var p = new PeekInfo
         {
-            Key = "aisel", Important = true, Icon = "sparkles", GlyphBrush = (Brush)FindResource("Blue"),
+            Key = "aisel", Icon = "sparkles", GlyphBrush = (Brush)FindResource("Blue"),
             Source = L.T("Markierter Text"), SourceIcon = "text", SourceBrush = (Brush)FindResource("Blue"),
-            Title = shown, TimeoutMs = 15000,
+            Title = shown, TimeoutMs = fromHotkey ? 15000 : 6000, Important = fromHotkey,
         };
         bool en = L.English;
         p.Action(L.T("Übersetzen"), () => AskAi((en

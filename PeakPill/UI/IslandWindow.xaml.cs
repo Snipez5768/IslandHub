@@ -136,6 +136,7 @@ public partial class IslandWindow : Window
         WireSystem();
         WireGames2();
         WireFun();
+        WireSelectionMenu();
         ApplyBottom(); // at the top or at the bottom (55)
         WireSend();
         WireNotes();

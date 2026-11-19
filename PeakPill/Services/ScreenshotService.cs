@@ -13,7 +13,7 @@ using WinImg = Windows.Graphics.Imaging;
 
 namespace PeakPill.Services;
 
-public enum CaptureMode { Area, Window, Screen, Freeform, Gif, Picker }
+public enum CaptureMode { Area, Window, Screen, Freeform, Gif, Picker, Explain }
 
 public sealed class CaptureResult
 {
@@ -199,6 +199,7 @@ internal sealed class CaptureOverlay : WF.Form
         {
             case CaptureMode.Area:
             case CaptureMode.Gif:
+            case CaptureMode.Explain:
                 if (_sel.Width > 0 && _sel.Height > 0)
                 {
                     g.DrawImage(_shot, _sel, _sel, SD.GraphicsUnit.Pixel);

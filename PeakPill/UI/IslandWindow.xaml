@@ -664,8 +664,12 @@
                         <TextBlock x:Name="QueryBest" DockPanel.Dock="Right" FontSize="11.5" Foreground="#FFAEAEB2" VerticalAlignment="Center" Margin="8,0,2,0"
                                    MaxWidth="150" TextTrimming="CharacterEllipsis" />
                         <ui:SfIcon x:Name="QueryIcon" Kind="search" Size="13" Foreground="#FFAEAEB2" VerticalAlignment="Center" Margin="2,0,8,0" />
-                        <TextBox x:Name="QueryBox" Style="{x:Null}" Background="Transparent" BorderThickness="0" Foreground="White" CaretBrush="White"
-                                 FontSize="13" VerticalAlignment="Center" Padding="0" FocusVisualStyle="{x:Null}" />
+                        <!-- the sum and its result right behind it (user wish 2026-11-19) -->
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                            <TextBox x:Name="QueryBox" Style="{x:Null}" Background="Transparent" BorderThickness="0" Foreground="White" CaretBrush="White"
+                                     FontSize="13" VerticalAlignment="Center" Padding="0" MinWidth="16" FocusVisualStyle="{x:Null}" />
+                            <TextBlock x:Name="QueryResult" FontSize="13" FontWeight="SemiBold" Foreground="White" VerticalAlignment="Center" Margin="6,0,0,0" />
+                        </StackPanel>
                     </DockPanel>
                     <StackPanel x:Name="QueryList" Margin="0,6,0,3" Visibility="Collapsed" />
                 </StackPanel>

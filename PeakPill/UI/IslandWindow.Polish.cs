@@ -536,6 +536,32 @@ public partial class IslandWindow
                     H.Agents.EndDemo();
                     break;
                 }
+                case "fix1":
+                {
+                    // calculator result right behind the sum · voice: grammars and number words · swipe on the open music page
+                    fh = 90;
+                    H.Agents.StopListening();
+                    _demoOnly = true;
+                    _noFocus = true;
+                    var log = new List<string>();
+                    OpenQuery("=12*7+3");
+                    await Film(6, 60);
+                    Save("1_rechner");
+                    EndPeek();
+                    foreach (var s in new[] { "Timer fünfundzwanzig Minuten.", "Stell einen Timer auf zehn Minuten", "Nächster Titel", "Notiz Milch kaufen", "Öffne Spotify", "Timer eine Stunde" })
+                        try { log.Add($"{s} → {Normalize(s)} → {string.Join(" | ", Find(System.Text.RegularExpressions.Regex.Replace(Normalize(s), @"^(öffne|starte|zeig|open)\s+", "")).Take(2).Select(h => h.Kind + ":" + h.Text))}"); } catch (Exception ex) { log.Add(s + " → error " + ex.GetType().Name + ": " + ex.Message); }
+                    File.WriteAllLines(Path.Combine(dir, "fix1.txt"), log);
+                    try { var g = CommandGrammars(true); log.Add($"grammars={g.Count}"); using var eng = new System.Speech.Recognition.SpeechRecognitionEngine(new System.Globalization.CultureInfo("de-DE")); foreach (var x in g) eng.LoadGrammar(x); log.Add("loaded ok"); }
+                    catch (Exception ex) { log.Add("grammar error: " + ex.Message); }
+                    var cover = Pic(Color.FromRgb(0xFF, 0x7A, 0x3D), Color.FromRgb(0xE0, 0x3A, 0x5A));
+                    H.Media.Fake("Nachtlicht", "Lena Ost", cover, false);
+                    Expand("Music", true);
+                    await Task.Delay(500);
+                    log.Add($"swipe on open music page: {CanSwipe(MusicTitle)} · on the play button: {CanSwipe(PlayPauseBtn)}");
+                    Collapse();
+                    File.WriteAllLines(Path.Combine(dir, "fix1.txt"), log);
+                    break;
+                }
                 case "fun":
                 {
                     // 48 rain / snow · 49 confetti · 51 water · 52 achievement · 55 at the bottom (demo; nothing saved)

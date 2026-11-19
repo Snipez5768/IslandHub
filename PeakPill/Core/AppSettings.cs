@@ -100,6 +100,7 @@ public sealed class AppSettings
     public bool LyricLine { get; set; } = true;
     // helpers (2026-11-18): small offers after copying, and files just saved
     public bool CopyHelpers { get; set; } = true;
+    public bool SelectionMenu { get; set; } = true; // 2026-11-19: selecting text with the mouse offers the KI buttons
     public bool SavedFiles { get; set; } = true;
     // games (2026-11-18): a reminder after so many minutes played today (0 = off), sales on the Steam wishlist
     public int GameReminderMinutes { get; set; } = 120;

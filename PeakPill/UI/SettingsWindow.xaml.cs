@@ -324,6 +324,7 @@ public partial class SettingsWindow : Window
         OptScreenTime.IsChecked = S.ScreenTime;
         OptLyricLine.IsChecked = S.LyricLine;
         OptCopyHelpers.IsChecked = S.CopyHelpers;
+        OptSelectionMenu.IsChecked = S.SelectionMenu;
         OptSavedFiles.IsChecked = S.SavedFiles;
         OptWishlist.IsChecked = S.WishlistSales;
         OptWeatherFx.IsChecked = S.WeatherFx;
@@ -663,6 +664,7 @@ public partial class SettingsWindow : Window
         S.ScreenTime = OptScreenTime.IsChecked == true;
         S.LyricLine = OptLyricLine.IsChecked == true;
         S.CopyHelpers = OptCopyHelpers.IsChecked == true;
+        S.SelectionMenu = OptSelectionMenu.IsChecked == true;
         S.SavedFiles = OptSavedFiles.IsChecked == true;
         S.WishlistSales = OptWishlist.IsChecked == true;
         S.WeatherFx = OptWeatherFx.IsChecked == true;
