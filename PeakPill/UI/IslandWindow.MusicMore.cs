@@ -190,7 +190,13 @@ public partial class IslandWindow
         Island.ReleaseMouseCapture();
         // the same way as the buttons: on the open music page the covers slide like a carousel (user report 2026-11-19)
         // right to left = the next song, left to right = the previous one (user wish 2026-11-19, like turning a page)
-        if (go) { _swipeSkip = true; Skip(_swipeDx < 0 ? +1 : -1); }
+        // exactly like pressing Weiter / Zurück: the island does its usual animation – and stays open until it has run, even
+        // though the pointer usually ends outside after the swipe (user wish 2026-11-19)
+        if (go)
+        {
+            if (_state == State.Expanded) _holdOpenUntil = DateTime.Now.AddMilliseconds(2600);
+            if (_swipeDx < 0) Next_Click(null, null); else Prev_Click(null, null);
+        }
         // it snaps back with a little bounce
         var d = TimeSpan.FromMilliseconds(520);
         var ease = new ElasticEase { Oscillations = 1, Springiness = 5, EasingMode = EasingMode.EaseOut };

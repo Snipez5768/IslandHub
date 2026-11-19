@@ -1045,6 +1045,8 @@ public partial class IslandWindow : Window
         EndPeek();
     }
 
+    private DateTime _holdOpenUntil;
+
     private void WatchCursor()
     {
         if (_state != State.Expanded) { _watchTimer.Stop(); return; }
@@ -1052,6 +1054,7 @@ public partial class IslandWindow : Window
         if (IsCursorOverIsland(14)) { _cursorOutsideSince = DateTime.MaxValue; return; }
         if (_sticky) return;
         if (Mouse.Captured != null || Ext.IsDraggingSlider) return; // e.g. still dragging a slider just outside the island
+        if (DateTime.Now < _holdOpenUntil) return; // a swipe just skipped: let its animation run
         if (IsActive && Keyboard.FocusedElement is TextBox) return;
         if (_cursorOutsideSince == DateTime.MaxValue) { _cursorOutsideSince = DateTime.Now; return; }
         if ((DateTime.Now - _cursorOutsideSince).TotalMilliseconds > 380) Collapse();
