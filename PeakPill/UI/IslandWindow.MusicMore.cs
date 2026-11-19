@@ -75,6 +75,7 @@ public partial class IslandWindow
     private readonly ScaleTransform _swipeStretch = new();
     private readonly TranslateTransform _swipeShift = new();
     private bool _swipeArmed, _swiping, _swipeReady;
+    private bool _swipeSkip; // the next skip comes from a swipe: the covers follow the finger
     private double _swipeStartX, _swipeDx;
     private const double SwipeNeed = 40;
 
@@ -153,7 +154,7 @@ public partial class IslandWindow
             if (msg != WM_MOUSEHWHEEL || !IsCursorOverIsland(0) || _swiping) return IntPtr.Zero;
             if (!CanSwipe(Mouse.DirectlyOver)) return IntPtr.Zero;
             int delta = (short)((w.ToInt64() >> 16) & 0xFFFF);
-            _wheelDx += delta / 120.0 * 22;
+            _wheelDx -= delta / 120.0 * 22; // two fingers to the left (Windows: "scroll right") = pulling left = the next song
             ApplySwipe(_wheelDx);
             _wheelEnd ??= new System.Windows.Threading.DispatcherTimer { Interval = TimeSpan.FromMilliseconds(170) };
             _wheelEnd.Stop();
@@ -188,7 +189,8 @@ public partial class IslandWindow
         _swiping = false;
         Island.ReleaseMouseCapture();
         // the same way as the buttons: on the open music page the covers slide like a carousel (user report 2026-11-19)
-        if (go) Skip(_swipeDx > 0 ? +1 : -1);
+        // right to left = the next song, left to right = the previous one (user wish 2026-11-19, like turning a page)
+        if (go) { _swipeSkip = true; Skip(_swipeDx < 0 ? +1 : -1); }
         // it snaps back with a little bounce
         var d = TimeSpan.FromMilliseconds(520);
         var ease = new ElasticEase { Oscillations = 1, Springiness = 5, EasingMode = EasingMode.EaseOut };

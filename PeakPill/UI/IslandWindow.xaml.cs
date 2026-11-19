@@ -5044,6 +5044,7 @@ public partial class IslandWindow : Window
     private long _skipHash;
     private DateTime _skipAt;
     private bool _skipHolding;
+    private bool _skipMirror;
     private DispatcherTimer _skipTimer;
     private (ImageSource Cover, string Title, string Artist) _skipOld;
 
@@ -5055,6 +5056,8 @@ public partial class IslandWindow : Window
 
     private void BeginSkip(int dir)
     {
+        _skipMirror = _swipeSkip; // a swipe: the covers move the way the finger went
+        _swipeSkip = false;
         if (_state == State.Expanded && _tab == "Music" && S.Animations != AnimationLevel.Aus && MusicContent.IsVisible && !_volMode)
         {
             _skipDir = dir;
@@ -5105,6 +5108,7 @@ public partial class IslandWindow : Window
 
     private void SlideSong(int dir)
     {
+        int way = _skipMirror ? -dir : dir; // which way the covers move
         UpdateMusicUi(); // the new song's text and picture on the real elements
         var (oldCover, oldTitle, oldArtist) = _skipOld;
         const double Way = 78, TextWay = 30;
@@ -5116,7 +5120,7 @@ public partial class IslandWindow : Window
         MusicCoverBox.Clip = new RectangleGeometry(new Rect(0, 0, 78, 78), 12, 12);
         MusicCoverGhostImg.ImageSource = oldCover;
         MusicCoverGhost.Visibility = Visibility.Visible;
-        MusicCoverGhostShift.BeginAnimation(TranslateTransform.XProperty, new DoubleAnimation(0, dir * Way, Ms(380)) { EasingFunction = outEase });
+        MusicCoverGhostShift.BeginAnimation(TranslateTransform.XProperty, new DoubleAnimation(0, way * Way, Ms(380)) { EasingFunction = outEase });
         var shrink = new DoubleAnimation(1, 0.85, Ms(380)) { EasingFunction = outEase };
         MusicCoverGhostScale.BeginAnimation(ScaleTransform.ScaleXProperty, shrink);
         MusicCoverGhostScale.BeginAnimation(ScaleTransform.ScaleYProperty, shrink);
@@ -5133,7 +5137,7 @@ public partial class IslandWindow : Window
                 new EasingDoubleKeyFrame(to, KeyTime.FromTimeSpan(Ms(delay + dur)), e)
             }
         };
-        MusicCoverShift.BeginAnimation(TranslateTransform.XProperty, Late(-dir * Way, 0, 80, 620, inEase));
+        MusicCoverShift.BeginAnimation(TranslateTransform.XProperty, Late(-way * Way, 0, 80, 620, inEase));
         var grow = Late(0.85, 1, 80, 620, inEase);
         MusicCoverScale.BeginAnimation(ScaleTransform.ScaleXProperty, grow);
         MusicCoverScale.BeginAnimation(ScaleTransform.ScaleYProperty, grow);
@@ -5143,11 +5147,11 @@ public partial class IslandWindow : Window
         MusicTitleGhost.Text = oldTitle;
         MusicArtistGhost.Text = oldArtist;
         MusicTextGhost.Visibility = Visibility.Visible;
-        MusicTextGhostShift.BeginAnimation(TranslateTransform.XProperty, new DoubleAnimation(0, dir * TextWay, Ms(260)) { EasingFunction = outEase });
+        MusicTextGhostShift.BeginAnimation(TranslateTransform.XProperty, new DoubleAnimation(0, way * TextWay, Ms(260)) { EasingFunction = outEase });
         var tfade = new DoubleAnimation(1, 0, Ms(260));
         tfade.Completed += (_, _) => { MusicTextGhost.Visibility = Visibility.Collapsed; MusicTextGhost.BeginAnimation(OpacityProperty, null); };
         MusicTextGhost.BeginAnimation(OpacityProperty, tfade);
-        MusicTextShift.BeginAnimation(TranslateTransform.XProperty, Late(-dir * TextWay, 0, 140, 520, inEase));
+        MusicTextShift.BeginAnimation(TranslateTransform.XProperty, Late(-way * TextWay, 0, 140, 520, inEase));
         MusicText.BeginAnimation(OpacityProperty, Late(0, 1, 140, 360, null));
 
         if (dir < 0)
