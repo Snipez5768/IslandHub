@@ -89,7 +89,7 @@ public partial class IslandWindow
         if (_moveMode || !H.Media.HasMedia) return false;
         if (_state == State.Collapsed) return _lastLead == Act.Music;
         if (_state != State.Expanded || _tab != "Music") return false;
-        for (var d = source as DependencyObject; d != null && d != Island; d = VisualTreeHelper.GetParent(d) ?? LogicalTreeHelper.GetParent(d))
+        for (var d = source as DependencyObject; d != null && d != Island; d = ParentOf(d))
             if (d is System.Windows.Controls.Primitives.ButtonBase or Slider or System.Windows.Controls.Primitives.TextBoxBase or ScrollViewer) return false;
         return true;
     }

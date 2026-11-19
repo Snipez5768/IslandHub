@@ -536,6 +536,28 @@ public partial class IslandWindow
                     H.Agents.EndDemo();
                     break;
                 }
+                case "skip":
+                {
+                    // the carousel after a skip on the open music page (the title change is simulated – the real player is not touched)
+                    fh = 150;
+                    H.Agents.StopListening();
+                    _demoOnly = true;
+                    var log = new List<string>();
+                    var a = Pic(Color.FromRgb(0xFF, 0x7A, 0x3D), Color.FromRgb(0xE0, 0x3A, 0x5A));
+                    var b = Pic(Color.FromRgb(0x3D, 0x8B, 0xFF), Color.FromRgb(0x5A, 0x3A, 0xE0));
+                    H.Media.Fake("Nachtlicht", "Lena Ost", a, false);
+                    Expand("Music", true);
+                    await Task.Delay(700);
+                    BeginSkip(+1);
+                    await Film(4, 60);
+                    H.Media.Fake("Morgenrot", "Lena Ost", b, true);
+                    await Film(26, 60);
+                    log.Add($"after: skipDir={_skipDir} title={MusicTitle.Text} barAnimated={MusicProgress.HasAnimatedProperties} bar={MusicProgress.Value:0.00} coverIsNew={MusicCover.ImageSource == H.Media.Cover}");
+                    Save("skip");
+                    File.WriteAllLines(Path.Combine(dir, "skip.txt"), log);
+                    Collapse();
+                    break;
+                }
                 case "fix1":
                 {
                     // calculator result right behind the sum · voice: grammars and number words · swipe on the open music page

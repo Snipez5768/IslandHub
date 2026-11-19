@@ -125,7 +125,7 @@ public partial class IslandWindow
         TimerSetup.PreviewMouseLeftButtonDown += (_, e) =>
         {
             // the wheels and buttons keep their own handling
-            for (var d = e.OriginalSource as DependencyObject; d != null && d != TimerSetup; d = VisualTreeHelper.GetParent(d))
+            for (var d = e.OriginalSource as DependencyObject; d != null && d != TimerSetup; d = ParentOf(d))
                 if (d is WheelPicker or ButtonBase) return;
             _timerDragging = true;
             _timerDragY = e.GetPosition(TimerSetup).Y;

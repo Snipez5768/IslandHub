@@ -5044,6 +5044,7 @@ public partial class IslandWindow : Window
 
     private int _skipDir;
     private string _skipTitle;
+    private string _skipArtist;
     private long _skipHash;
     private DateTime _skipAt;
     private bool _skipHolding;
@@ -5065,6 +5066,7 @@ public partial class IslandWindow : Window
         {
             _skipDir = dir;
             _skipTitle = H.Media.Title;
+            _skipArtist = H.Media.Artist;
             _skipHash = H.Media.CoverHash;
             _skipAt = DateTime.Now;
             _skipOld = (MusicCover.ImageSource, MusicTitle.Text, MusicArtist.Text);
@@ -5092,7 +5094,8 @@ public partial class IslandWindow : Window
     private void SkipTick()
     {
         var waited = DateTime.Now - _skipAt;
-        bool newTitle = H.Media.Title != _skipTitle;
+        // a new song: another title – or another picture / artist (players do not always send the title first, user report 2026-11-19)
+        bool newTitle = H.Media.Title != _skipTitle || H.Media.Artist != _skipArtist || H.Media.Cover != null && H.Media.CoverHash != _skipHash;
         if (newTitle && !_skipHolding) { _skipHolding = true; _skipAt = DateTime.Now; waited = TimeSpan.Zero; } // from now on, wait for the picture
         if (_skipHolding)
         {
@@ -5106,7 +5109,7 @@ public partial class IslandWindow : Window
             return;
         }
         // nothing new after 3 s (e.g. "Zurück" only restarted the song): just let the bar follow the player again
-        if (waited > TimeSpan.FromSeconds(3)) { _skipTimer.Stop(); _skipDir = 0; ReleaseSkipBar(); }
+        if (waited > TimeSpan.FromSeconds(3)) { _skipTimer.Stop(); _skipDir = 0; ReleaseSkipBar(); UpdateMusicUi(); } // (whatever changed meanwhile shows now)
     }
 
     private void SlideSong(int dir)

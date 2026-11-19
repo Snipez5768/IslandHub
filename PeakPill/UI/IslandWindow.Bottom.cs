@@ -37,3 +37,11 @@ public partial class IslandWindow
         return new Rect(new Point(Math.Min(a.X, c.X), Math.Min(a.Y, c.Y)), new Point(Math.Max(a.X, c.X), Math.Max(a.Y, c.Y)));
     }
 }
+
+public partial class IslandWindow
+{
+    /// <summary>The parent of anything under the pointer – also of a piece of text (a Run is no Visual; asking the visual
+    /// tree for its parent throws, which broke swiping on the title and dragging the timer, log 2026-11-19).</summary>
+    private static DependencyObject ParentOf(DependencyObject d) =>
+        d is Visual or System.Windows.Media.Media3D.Visual3D ? VisualTreeHelper.GetParent(d) : LogicalTreeHelper.GetParent(d);
+}
