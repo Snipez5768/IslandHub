@@ -3607,7 +3607,7 @@ public partial class IslandWindow : Window
     {
         _songPending = true;
         _songOld = PillCover.ImageSource;
-        _songDeadline = DateTime.Now.AddMilliseconds(750);
+        _songDeadline = DateTime.Now.AddMilliseconds(1100); // (the new picture is asked for every 250 ms, MediaService.ChaseCover)
         _trackPeekNotBefore = DateTime.Now.AddMilliseconds(1700);
         if (_songTimer == null)
         {
@@ -5091,7 +5091,7 @@ public partial class IslandWindow : Window
         if (_skipHolding)
         {
             bool newPicture = H.Media.Cover != null && H.Media.CoverHash != _skipHash;
-            if (!newPicture && waited < TimeSpan.FromMilliseconds(600)) return;
+            if (!newPicture && waited < TimeSpan.FromMilliseconds(1100)) return; // (the new picture is now asked for every 250 ms)
             _skipTimer.Stop();
             _skipHolding = false;
             int dir = _skipDir;

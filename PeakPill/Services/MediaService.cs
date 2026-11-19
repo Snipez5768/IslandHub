@@ -119,23 +119,8 @@ public sealed class MediaService : ObservableObject
             Artist = string.IsNullOrWhiteSpace(p.Artist) ? p.AlbumArtist : p.Artist;
             HasMedia = true;
 
-            ImageSource cover = null;
-            if (p.Thumbnail != null)
-            {
-                using var ras = await p.Thumbnail.OpenReadAsync();
-                using var st = ras.AsStreamForRead();
-                var ms = new MemoryStream();
-                await st.CopyToAsync(ms);
-                ms.Position = 0;
-                var bi = new BitmapImage();
-                bi.BeginInit();
-                bi.StreamSource = ms;
-                bi.CacheOption = BitmapCacheOption.OnLoad;
-                bi.DecodePixelWidth = 300;
-                bi.EndInit();
-                bi.Freeze();
-                cover = bi;
-            }
+            long before = CoverHash;
+            var cover = await LoadThumb(p);
             if (s != _session) return;
             // players often send the new title with the OLD picture first – the hash tells whether the picture really changed
             var (avg, hash) = cover is BitmapSource bs ? Analyze(bs) : (Colors.Transparent, 0L);
@@ -143,8 +128,54 @@ public sealed class MediaService : ObservableObject
             Cover = cover;
             CoverColor = avg;
             if (changed) TrackChanged?.Invoke();
+            if (changed && hash == before) _ = ChaseCover(s, Title, before);
         }
         catch (Exception ex) { App.Log(ex); }
+    }
+
+    private static async Task<ImageSource> LoadThumb(GlobalSystemMediaTransportControlsSessionMediaProperties p)
+    {
+        if (p?.Thumbnail == null) return null;
+        using var ras = await p.Thumbnail.OpenReadAsync();
+        using var st = ras.AsStreamForRead();
+        var ms = new MemoryStream();
+        await st.CopyToAsync(ms);
+        ms.Position = 0;
+        var bi = new BitmapImage();
+        bi.BeginInit();
+        bi.StreamSource = ms;
+        bi.CacheOption = BitmapCacheOption.OnLoad;
+        bi.DecodePixelWidth = 300;
+        bi.EndInit();
+        bi.Freeze();
+        return bi;
+    }
+
+    /// <summary>
+    /// A new title still with the old picture: Windows often gets the new one a moment later and does not always say so
+    /// – ask again every quarter second (up to 4 s) until it is there (user report 2026-11-19: "das richtige Cover kommt
+    /// erst viel zu spät").
+    /// </summary>
+    private async Task ChaseCover(MediaSession s, string title, long oldHash)
+    {
+        for (int i = 0; i < 16; i++)
+        {
+            await Task.Delay(250);
+            if (s != _session || Title != title || CoverHash != oldHash) return;
+            try
+            {
+                var p = await s.TryGetMediaPropertiesAsync();
+                var cover = await LoadThumb(p);
+                if (s != _session || Title != title || cover is not BitmapSource bs) continue;
+                var (avg, hash) = Analyze(bs);
+                if (hash == oldHash || hash == 0) continue;
+                CoverHash = hash;
+                Cover = cover;
+                CoverColor = avg;
+                return;
+            }
+            catch { }
+        }
     }
 
     private void RefreshPlayback()

@@ -187,7 +187,8 @@ public partial class IslandWindow
     {
         _swiping = false;
         Island.ReleaseMouseCapture();
-        if (go) { if (_swipeDx > 0) H.Media.Next(); else H.Media.Previous(); }
+        // the same way as the buttons: on the open music page the covers slide like a carousel (user report 2026-11-19)
+        if (go) Skip(_swipeDx > 0 ? +1 : -1);
         // it snaps back with a little bounce
         var d = TimeSpan.FromMilliseconds(520);
         var ease = new ElasticEase { Oscillations = 1, Springiness = 5, EasingMode = EasingMode.EaseOut };
